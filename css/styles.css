@@ -1,0 +1,80 @@
+/* ---------- CAPA HTML/CSS: todo lo que se LEE y se DECIDE ---------- */
+:root{
+  --stone-900:#12141a; --stone-800:#1a1e27; --stone-700:#242a36;
+  --steel:#3a4456; --bone:#d9d4c7; --bone-dim:#8b8778;
+  --ember:#e08a3c; --ember-deep:#a85a1e; --blood:#b5443a;
+  --moss:#6f9c5a; --gold:#d8b24a;
+}
+*{ box-sizing:border-box; }
+html,body{ margin:0; height:100%; background:#0a0b0f; }
+body{
+  display:flex; align-items:center; justify-content:center;
+  min-height:100dvh; padding:14px;
+  font-family: ui-monospace,"SFMono-Regular","Cascadia Mono",Menlo,Consolas,monospace;
+  color:var(--bone); -webkit-tap-highlight-color:transparent; user-select:none;
+}
+.frame{ width:100%; max-width:448px; display:flex; flex-direction:column; gap:10px; position:relative; }
+
+.hud{ display:flex; align-items:stretch; gap:8px; background:var(--stone-800);
+  border:1px solid var(--steel); border-radius:4px; padding:8px 10px; }
+.hud .who{ display:flex; flex-direction:column; gap:4px; flex:1; }
+.hud .name{ font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--bone-dim); }
+.bar{ height:9px; border-radius:2px; background:#000; overflow:hidden; border:1px solid #000; }
+.bar > span{ display:block; height:100%; transition:width .25s ease; }
+.bar.hero > span{ background:linear-gradient(var(--moss),#4d6f3d); }
+.bar.foe  > span{ background:linear-gradient(var(--blood),#7d2a24); }
+.stat{ display:flex; align-items:center; gap:5px; font-size:13px;
+  padding-left:10px; border-left:1px solid var(--steel); }
+.stat b{ color:var(--gold); font-weight:600; }
+
+#game{ width:100%; aspect-ratio:1/1; background:var(--stone-900);
+  border:1px solid var(--steel); border-radius:4px; overflow:hidden; position:relative; }
+#map{ display:block; width:100%; height:100%; }
+
+.log{ min-height:34px; display:flex; align-items:center; font-size:12.5px; line-height:1.35;
+  color:var(--bone-dim); background:var(--stone-800); border:1px solid var(--steel);
+  border-radius:4px; padding:8px 11px; }
+.log b{ color:var(--bone); font-weight:600; }
+.log .dmg{ color:var(--blood); } .log .heal{ color:var(--moss); }
+
+.foot{ display:flex; justify-content:space-between; align-items:center; }
+.foot small{ color:#565b66; font-size:11px; }
+.reset{ background:transparent; color:var(--bone-dim); border:1px solid var(--steel);
+  border-radius:3px; font:inherit; font-size:11px; letter-spacing:.1em; text-transform:uppercase;
+  padding:6px 12px; cursor:pointer; }
+.reset:hover{ color:var(--bone); border-color:var(--bone-dim); }
+.reset:focus-visible{ outline:2px solid var(--ember); outline-offset:2px; }
+
+/* ---------- CARTA DE EVENTO (HTML puro sobre el mapa) ---------- */
+.veil{ position:absolute; inset:0; z-index:10; display:none; align-items:center; justify-content:center;
+  padding:16px; background:rgba(6,7,10,.72); backdrop-filter:blur(2px); animation:fade .18s ease both; }
+.veil.show{ display:flex; }
+@keyframes fade{ from{opacity:0} to{opacity:1} }
+.card{ width:100%; max-width:360px;
+  background:linear-gradient(180deg,var(--stone-700),var(--stone-800));
+  border:1px solid var(--steel); border-left:3px solid var(--ember); border-radius:5px;
+  box-shadow:0 18px 40px rgba(0,0,0,.55); padding:18px 18px 16px;
+  animation:rise .22s cubic-bezier(.2,.8,.2,1) both; }
+@keyframes rise{ from{opacity:0; transform:translateY(10px)} to{opacity:1; transform:none} }
+.card .kicker{ font-size:10px; letter-spacing:.22em; text-transform:uppercase; color:var(--ember); margin-bottom:6px; }
+.card h2{ margin:0 0 10px; font-family:Georgia,"Times New Roman",serif; font-weight:600;
+  font-size:22px; line-height:1.1; color:var(--bone); }
+.card p{ margin:0 0 16px; font-size:13.5px; line-height:1.5; color:#bdb9ab; }
+.choices{ display:flex; flex-direction:column; gap:8px; }
+.choice{ text-align:left; width:100%; background:var(--stone-900); color:var(--bone);
+  border:1px solid var(--steel); border-radius:4px; font:inherit; font-size:13px;
+  padding:11px 13px; cursor:pointer; display:flex; justify-content:space-between; align-items:center;
+  gap:10px; transition:border-color .12s, background .12s, transform .05s; }
+.choice:hover{ border-color:var(--ember); background:#171b23; }
+.choice:active{ transform:translateY(1px); }
+.choice:focus-visible{ outline:2px solid var(--ember); outline-offset:2px; }
+.choice .tag{ font-size:11px; color:var(--bone-dim); white-space:nowrap; }
+.choice .tag.dmg{ color:var(--blood); } .choice .tag.heal{ color:var(--moss); } .choice .tag.gold{ color:var(--gold); }
+
+.banner{ text-align:center; }
+.banner h2{ color:var(--ember); }
+.banner .again{ margin-top:6px; background:var(--ember); color:#1a1206; border:none; border-radius:4px;
+  font:inherit; font-weight:600; font-size:13px; padding:11px 20px; cursor:pointer; letter-spacing:.04em; }
+.banner .again:focus-visible{ outline:2px solid var(--bone); outline-offset:2px; }
+
+@media (prefers-reduced-motion:reduce){ .veil,.card{ animation:none; } .bar>span{ transition:none; } }
