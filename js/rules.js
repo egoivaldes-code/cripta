@@ -1,7 +1,7 @@
-// Reglas del juego: turnos, movimiento, combate, niebla y salida de nivel.
+// Reglas del juego: turnos, movimiento (rango 3), combate, niebla y salida.
 // Agnóstico del dibujo. Pide a `ui` mostrar eventos/HUD y a `anim` las animaciones.
 
-import { state, walkable, adjacent, recomputeFog } from './state.js';
+import { state, walkable, adjacent, recomputeFog, computeReach, pathTo } from './state.js';
 import { openEvent, syncHUD, log, gameOver } from './ui.js';
 import { t } from './i18n.js';
 import * as anim from './anim.js';
@@ -10,15 +10,15 @@ import * as audio from './audio.js';
 const sign = (n) => Math.sign(n);
 
 let onDescend = () => {};
-export function bindDescend(fn) { onDescend = fn; } // lo cablea main (cargar nivel)
+export function bindDescend(fn) { onDescend = fn; }
 
 // Acción del jugador al tocar una casilla (la llama render.js).
 export function onTapTile(gx, gy) {
   const { hero, foe } = state;
-  if (!adjacent(hero, gx, gy)) return;
 
-  // ¿Atacar al enemigo?
+  // ¿Atacar? Solo si el enemigo está en una casilla contigua.
   if (foe.alive && foe.x === gx && foe.y === gy) {
+    if (!adjacent(hero, gx, gy)) return;
     anim.attack('hero', sign(gx - hero.x), sign(gy - hero.y));
     anim.hurt('foe'); anim.floatAt(foe.x, foe.y, `−${hero.atk}`, '#e86a5c'); audio.fx('hit');
     foe.hp -= hero.atk;
@@ -28,17 +28,15 @@ export function onTapTile(gx, gy) {
     return enemyTurn();
   }
 
-  // ¿Mover?
-  if (!walkable(gx, gy)) return;
-  const fromX = hero.x, fromY = hero.y;
+  // ¿Mover? Solo a casillas dentro del rango (camino que rodea muros).
+  const path = pathTo(gx, gy);
+  if (!path) return;                 // fuera de rango / muro / ocupada
   hero.x = gx; hero.y = gy;
-  anim.move('hero', fromX, fromY, gx, gy); audio.fx('move');
+  anim.movePath('hero', path); audio.fx('move');
   recomputeFog();
 
-  // ¿Escalera de salida? -> cambia de nivel (fin del turno).
   if (state.exit && gx === state.exit.x && gy === state.exit.y) { onDescend(); return; }
 
-  // ¿Punto de evento?
   const trig = state.triggers.find(tr => !tr.used && tr.x === gx && tr.y === gy);
   if (trig) { openEvent(trig); return; }
 
@@ -46,9 +44,10 @@ export function onTapTile(gx, gy) {
 }
 
 // Turno del enemigo: acercarse un paso o atacar si está contiguo.
+// Al terminar recalcula el rango para el siguiente turno del héroe.
 export function enemyTurn() {
   const { hero, foe } = state;
-  if (!foe.alive) return;
+  if (!foe.alive) { computeReach(); return; }
 
   if (adjacent(foe, hero.x, hero.y)) {
     anim.attack('foe', sign(hero.x - foe.x), sign(hero.y - foe.y));
@@ -57,6 +56,7 @@ export function enemyTurn() {
     log(t('log.hitHero', { dmg: foe.atk }));
     syncHUD();
     if (hero.hp <= 0) return gameOver('lose');
+    computeReach();
     return;
   }
 
@@ -73,4 +73,5 @@ export function enemyTurn() {
     anim.move('foe', fromX, fromY, step.x, step.y);
   }
   syncHUD();
+  computeReach();
 }

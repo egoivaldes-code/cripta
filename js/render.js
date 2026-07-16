@@ -5,7 +5,7 @@
 // (TILE), así que en pantallas grandes se ve más mapa. La cámara se arrastra y
 // se recentra en el héroe. Niebla de guerra de dos capas (negro / penumbra).
 
-import { state, walkable } from './state.js';
+import { state } from './state.js';
 import { TILE } from './config.js';
 import { images, ATLAS_TILE, SPRITE_TILE } from './assets.js';
 import * as anim from './anim.js';
@@ -61,7 +61,7 @@ function resize() {
 function bindPointer() {
   let p = null;
   canvas.addEventListener('pointerdown', e => {
-    if (state.busy || anim.active()) return;
+    // Arrastrar la cámara SIEMPRE se permite; la acción se decide al soltar.
     canvas.setPointerCapture(e.pointerId);
     p = { id: e.pointerId, sx: e.clientX, sy: e.clientY, lx: e.clientX, ly: e.clientY, moved: false };
   });
@@ -76,7 +76,7 @@ function bindPointer() {
   });
   const finish = e => {
     if (!p || e.pointerId !== p.id) return;
-    if (!p.moved) {
+    if (!p.moved && !state.busy && !anim.active()) {   // fue un toque limpio y se puede actuar
       const rect = canvas.getBoundingClientRect();
       const lx = (e.clientX - rect.left) + camera.x;
       const ly = (e.clientY - rect.top) + camera.y;
@@ -114,8 +114,9 @@ function glyph(cx, cy, ch, color, size) {
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(ch, cx, cy);
 }
 
-function drawActor(name, sheet, gx, gy, ts, fallback) {
-  const a = anim.resolve(name, gx, gy, ts);
+function drawActor(name, sheet, gx, gy, ts, fallback, show = true) {
+  const a = anim.resolve(name, gx, gy, ts);   // SIEMPRE avanza la animación...
+  if (!show) return;                           // ...aunque el actor esté en niebla y no se pinte
   const cx = a.cx - camera.x, cy = a.cy - camera.y;
   if (sheet) {
     const size = TILE * 1.28;
@@ -125,7 +126,7 @@ function drawActor(name, sheet, gx, gy, ts, fallback) {
     disc(cx, cy, 15, fallback.body); ring(cx, cy, 15, fallback.edge, 2);
     glyph(cx, cy, fallback.mark, fallback.ink, 18);
   }
-  if (a.hurt > 0) { disc(cx, cy - 4, TILE * 0.42, `rgba(210,60,50,${0.35 * a.hurt})`); } // destello rojo
+  if (a.hurt > 0) disc(cx, cy - 4, TILE * 0.42, `rgba(210,60,50,${0.35 * a.hurt})`);
 }
 
 function draw(ts) {
@@ -163,13 +164,20 @@ function draw(ts) {
     glyph(cx, cy, '▼', on ? '#a9d4e4' : '#5f7d88', 20);
   }
 
-  // Casillas alcanzables (guía). Ocultas al animar/desplazar.
-  if (!state.busy && !anim.active() && !userPanning) for (const [dx, dy] of [[0,-1],[0,1],[-1,0],[1,0]]) {
-    const nx = hero.x + dx, ny = hero.y + dy;
-    const attack = foe.alive && foe.x === nx && foe.y === ny && state.visible[ny] && state.visible[ny][nx];
-    if (walkable(nx, ny) || attack) {
-      ctx.strokeStyle = attack ? '#b5443a' : '#e08a3c'; ctx.lineWidth = 2;
-      ctx.strokeRect(nx * TILE - camX + 4.5, ny * TILE - camY + 4.5, TILE - 9, TILE - 9);
+  // Rango de movimiento (relleno ámbar de hasta 3 casillas) y enemigo atacable.
+  if (!state.busy && !anim.active() && !userPanning) {
+    const d = state.reach.dist;
+    for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
+      if (d[y] && d[y][x] > 0) {
+        const px = x * TILE - camX, py = y * TILE - camY;
+        ctx.fillStyle = 'rgba(224,138,60,.12)'; ctx.fillRect(px + 2, py + 2, TILE - 4, TILE - 4);
+        ctx.strokeStyle = 'rgba(224,138,60,.5)'; ctx.lineWidth = 1.5; ctx.strokeRect(px + 3.5, py + 3.5, TILE - 7, TILE - 7);
+      }
+    }
+    if (foe.alive && Math.abs(foe.x - hero.x) + Math.abs(foe.y - hero.y) === 1
+        && state.visible[foe.y] && state.visible[foe.y][foe.x]) {
+      ctx.strokeStyle = '#b5443a'; ctx.lineWidth = 2;
+      ctx.strokeRect(foe.x * TILE - camX + 4.5, foe.y * TILE - camY + 4.5, TILE - 9, TILE - 9);
     }
   }
 
@@ -184,9 +192,11 @@ function draw(ts) {
     glyph(cx, cy, tr.id === 'cofre' ? '▪' : '◆', on ? '#e08a3c' : '#8a6a44', 20);
   }
 
-  // Enemigo: solo si está a la vista ahora mismo.
-  if (foe.alive && state.visible[foe.y] && state.visible[foe.y][foe.x])
-    drawActor('foe', images.enemy, foe.x, foe.y, ts, { body:'#b5443a', edge:'#7d2a24', ink:'#2a0f0d', mark:'✕' });
+  // Enemigo: su animación SIEMPRE avanza; solo se dibuja si está a la vista.
+  if (foe.alive) {
+    const vis = state.visible[foe.y] && state.visible[foe.y][foe.x];
+    drawActor('foe', images.enemy, foe.x, foe.y, ts, { body:'#b5443a', edge:'#7d2a24', ink:'#2a0f0d', mark:'✕' }, vis);
+  }
 
   // Héroe (siempre visible).
   drawActor('hero', images.hero, hero.x, hero.y, ts, { body:'#6f9c5a', edge:'#4d6f3d', ink:'#12200c', mark:'◊' });

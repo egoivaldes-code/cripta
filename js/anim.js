@@ -37,6 +37,14 @@ export function attack(name, dx, dy) {
   if (a) a.anim = { type: 'attack', t0: performance.now(), dur: D_ATTACK, dir: { x: dx, y: dy } };
 }
 
+// Desliza por un camino de varias casillas (rango de movimiento). cells: [{x,y}...]
+export function movePath(name, cells) {
+  const a = ensure(name, cells[0].x, cells[0].y);
+  const pts = cells.map(c => ({ x: center(c.x), y: center(c.y) }));
+  a.px = pts[0].x; a.py = pts[0].y;
+  a.anim = { type: 'path', t0: performance.now(), segDur: 145, pts };
+}
+
 export function hurt(name) {
   const a = actors[name];
   if (a) a.hurtT0 = performance.now();
@@ -65,14 +73,25 @@ export function resolve(name, gx, gy, ts) {
 
   const an = a.anim;
   if (an) {
-    const p = (ts - an.t0) / an.dur;
-    if (p >= 1) { if (an.type === 'move') { a.px = an.to.x; a.py = an.to.y; } a.anim = null; }
-    else if (an.type === 'move') {
-      const e = easeInOut(p);
-      return { cx: lerp(an.from.x, an.to.x, e) + sx, cy: lerp(an.from.y, an.to.y, e) + sy, frame: p < 0.5 ? 1 : 2, hurt };
-    } else { // attack
-      const k = Math.sin(p * Math.PI);
-      return { cx: a.px + an.dir.x * TILE * 0.42 * k + sx, cy: a.py + an.dir.y * TILE * 0.42 * k + sy, frame: 3, hurt };
+    if (an.type === 'path') {
+      const n = an.pts.length - 1, total = an.segDur * n, e = ts - an.t0;
+      if (e >= total) { a.px = an.pts[n].x; a.py = an.pts[n].y; a.anim = null; }
+      else {
+        const seg = Math.min(n - 1, Math.floor(e / an.segDur));
+        const lt = (e - seg * an.segDur) / an.segDur;
+        const p0 = an.pts[seg], p1 = an.pts[seg + 1];
+        return { cx: lerp(p0.x, p1.x, lt) + sx, cy: lerp(p0.y, p1.y, lt) + sy, frame: seg % 2 === 0 ? 1 : 2, hurt };
+      }
+    } else {
+      const p = (ts - an.t0) / an.dur;
+      if (p >= 1) { if (an.type === 'move') { a.px = an.to.x; a.py = an.to.y; } a.anim = null; }
+      else if (an.type === 'move') {
+        const e = easeInOut(p);
+        return { cx: lerp(an.from.x, an.to.x, e) + sx, cy: lerp(an.from.y, an.to.y, e) + sy, frame: p < 0.5 ? 1 : 2, hurt };
+      } else { // attack
+        const k = Math.sin(p * Math.PI);
+        return { cx: a.px + an.dir.x * TILE * 0.42 * k + sx, cy: a.py + an.dir.y * TILE * 0.42 * k + sy, frame: 3, hurt };
+      }
     }
   }
 
