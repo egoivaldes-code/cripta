@@ -2,6 +2,8 @@
 // t('log.hitFoe', { dmg: 6 })  ->  "Golpeas al acechador. −6"
 // Ningún texto visible debe estar en el código: todo pasa por aquí.
 
+import { VERSION } from './config.js?v=0.3.1';
+
 let dict = {};
 let current = 'es';
 const listeners = [];
@@ -13,7 +15,7 @@ export function initialLang() {
 }
 
 export async function loadLang(lang) {
-  const res = await fetch(`./data/i18n/${lang}.json`);
+  const res = await fetch(`./data/i18n/${lang}.json?v=${VERSION}`);
   dict = await res.json();
   current = lang;
   try { localStorage.setItem('cripta.lang', lang); } catch {}

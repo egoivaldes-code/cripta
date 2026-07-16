@@ -1,13 +1,14 @@
 // Punto de entrada. Carga idioma y datos, cablea módulos y arranca el bucle.
 
-import { state, initGame } from './state.js';
-import { initRenderer, startLoop, centerOnHero } from './render.js';
-import { onTapTile, bindDescend, startHeroTurn, endHeroTurn, afterInteract } from './rules.js';
-import { syncHUD, log, hideVeil, bindAfterInteract, bindRestart, applyStaticText } from './ui.js';
-import { loadAssets } from './assets.js';
-import { initialLang, loadLang, onLangChange, getLang, t } from './i18n.js';
-import * as anim from './anim.js';
-import * as audio from './audio.js';
+import { state, initGame } from './state.js?v=0.3.1';
+import { initRenderer, startLoop, centerOnHero } from './render.js?v=0.3.1';
+import { onTapTile, bindDescend, startHeroTurn, endHeroTurn, afterInteract } from './rules.js?v=0.3.1';
+import { syncHUD, log, hideVeil, bindAfterInteract, bindRestart, applyStaticText } from './ui.js?v=0.3.1';
+import { loadAssets } from './assets.js?v=0.3.1';
+import { initialLang, loadLang, onLangChange, getLang, t } from './i18n.js?v=0.3.1';
+import * as anim from './anim.js?v=0.3.1';
+import * as audio from './audio.js?v=0.3.1';
+import { VERSION } from './config.js?v=0.3.1';
 
 async function boot() {
   // Idioma primero (los textos) y assets/datos en paralelo.
@@ -15,13 +16,13 @@ async function boot() {
   await loadLang(initialLang());
 
   const [events] = await Promise.all([
-    fetch('./data/events.json').then(r => r.json()),
+    fetch(`./data/events.json?v=${VERSION}`).then(r => r.json()),
     loadAssets().catch(err => console.warn('Assets:', err.message)),
   ]);
 
   const levelCache = {};
   async function getLevel(name) {
-    if (!levelCache[name]) levelCache[name] = await fetch(`./data/levels/${name}.json`).then(r => r.json());
+    if (!levelCache[name]) levelCache[name] = await fetch(`./data/levels/${name}.json?v=${VERSION}`).then(r => r.json());
     return levelCache[name];
   }
 
@@ -59,7 +60,7 @@ async function boot() {
     if (!state.busy) endHeroTurn();
   });
   document.getElementById('recenter').addEventListener('click', () => centerOnHero(false));
-  document.getElementById('hud').addEventListener('click', () => centerOnHero(false));
+  document.getElementById('hudRow').addEventListener('click', () => centerOnHero(false));
 
   // Ajustes
   const settingsVeil = document.getElementById('settingsVeil');

@@ -2,7 +2,7 @@
 // Incluye niebla de guerra (explored/visible) y el alcance de movimiento
 // ligado a los Puntos de Acción (PA) restantes del héroe.
 
-import { SIGHT, AP_MAX } from './config.js';
+import { SIGHT, AP_MAX } from './config.js?v=0.3.1';
 
 export const state = {
   cols: 0, rows: 0,

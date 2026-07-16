@@ -1,6 +1,8 @@
 // Precarga de imágenes. El juego espera a que estén listas antes de dibujar.
 // Añadir un asset nuevo = una línea en `sources`.
 
+import { VERSION } from './config.js?v=0.3.1';
+
 export const ATLAS_TILE = 128; // px por celda en el tileset fuente (dungeon.png)
 export const SPRITE_TILE = 128; // px por fotograma en las hojas de sprites
 
@@ -17,7 +19,7 @@ function loadImage(src) {
     const img = new Image();
     img.onload = () => resolve(img);
     img.onerror = () => reject(new Error('No pude cargar ' + src));
-    img.src = src;
+    img.src = `${src}?v=${VERSION}`;
   });
 }
 

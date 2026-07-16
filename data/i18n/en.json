@@ -46,7 +46,7 @@
   "set.music": "Music",
   "set.fx": "Sound FX",
   "hud.ap": "Actions",
-  "btn.endturn": "End turn",
+  "btn.endturn": "Skip turn",
   "log.noAP": "Not enough actions left.",
   "ev.palanca.kicker": "Mechanism",
   "ev.palanca.title": "Rusted lever",

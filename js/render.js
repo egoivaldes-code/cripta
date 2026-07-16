@@ -5,10 +5,10 @@
 // (TILE), así que en pantallas grandes se ve más mapa. La cámara se arrastra y
 // se recentra en el héroe. Niebla de guerra de dos capas (negro / penumbra).
 
-import { state } from './state.js';
-import { TILE } from './config.js';
-import { images, ATLAS_TILE, SPRITE_TILE } from './assets.js';
-import * as anim from './anim.js';
+import { state } from './state.js?v=0.3.1';
+import { TILE, CAMERA_MARGIN } from './config.js?v=0.3.1';
+import { images, ATLAS_TILE, SPRITE_TILE } from './assets.js?v=0.3.1';
+import * as anim from './anim.js?v=0.3.1';
 
 function atlasCol(value, x, y) {
   if (value === 1) return 3;
@@ -24,8 +24,16 @@ let lastHeroX = -1, lastHeroY = -1;
 const easeInOut = (t) => t < 0.5 ? 2*t*t : 1 - Math.pow(-2*t+2, 2)/2;
 
 // Clamp por eje: si el mundo es más pequeño que el viewport, se centra.
-function clampX(v) { const w = state.cols * TILE; return w <= VW ? (w - VW) / 2 : Math.max(0, Math.min(v, w - VW)); }
-function clampY(v) { const h = state.rows * TILE; return h <= VH ? (h - VH) / 2 : Math.max(0, Math.min(v, h - VH)); }
+// Si es más grande, se deja un margen extra para que la cámara no quede
+// pegada justo al borde del mapa (más aire alrededor del personaje).
+function clampX(v) {
+  const w = state.cols * TILE;
+  return w <= VW ? (w - VW) / 2 : Math.max(-CAMERA_MARGIN, Math.min(v, w - VW + CAMERA_MARGIN));
+}
+function clampY(v) {
+  const h = state.rows * TILE;
+  return h <= VH ? (h - VH) / 2 : Math.max(-CAMERA_MARGIN, Math.min(v, h - VH + CAMERA_MARGIN));
+}
 function heroTarget() {
   return { x: clampX(state.hero.x * TILE + TILE/2 - VW/2), y: clampY(state.hero.y * TILE + TILE/2 - VH/2) };
 }

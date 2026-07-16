@@ -1,6 +1,6 @@
 # Cripta — táctico de Puntos de Acción + eventos
 
-Versión: 0.3 (ver `CHANGELOG.md`). Juego para móvil y PC, multiidioma.
+Versión: 0.3.1 (ver `CHANGELOG.md`). Juego para móvil y PC, multiidioma.
 Sin build step. Módulos ES nativos + datos en JSON.
 
 ## Combate: Puntos de Acción (PA)
@@ -22,6 +22,23 @@ si se pisan sin desarmar —incluso de paso hacia otro destino— se activan sol
 El turno del héroe acaba solo (al llegar a 0 PA) o pulsando "Fin de turno".
 El enemigo usa el mismo sistema pero como presupuesto interno: no se ve su
 barra, simplemente se acerca y ataca según le rinda.
+
+## Versión y anticaché
+
+La versión vive en **un único sitio**: la constante `VERSION` en `js/config.js`.
+De ahí se pintan las dos etiquetas de versión en pantalla (nunca hay que
+editarlas a mano), y de ahí sale el parámetro `?v=X.X.X` que se añade a
+**todos** los recursos (imports internos entre módulos, `fetch()` de JSON,
+imágenes, y el `<script>`/`<link>` de `index.html`). Así, al subir una versión
+nueva, el número de la URL cambia y el navegador **siempre** descarga la
+versión nueva con una recarga normal — no hace falta modo incógnito ni borrar
+caché a mano.
+
+Al preparar una versión nueva: cambiar `VERSION` en `js/config.js`, y
+actualizar ese mismo número en cada `?v=...` de los `import` (todos los
+`js/*.js`), en `index.html` (script y link) y en `js/assets.js`. Es un
+cambio mecánico (buscar y reemplazar el número de versión anterior por el
+nuevo en todos los archivos), pero tiene que quedar igual en todos los sitios.
 
 ## Estructura
 

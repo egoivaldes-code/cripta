@@ -1,12 +1,12 @@
 // Reglas del juego: economía de Puntos de Acción (PA), interacción a distancia
 // y adyacente, trampas, niebla y salida de nivel. Agnóstico del dibujo.
 
-import { state, walkable, adjacent, distTo, isVisible, recomputeFog, computeReach, pathTo, blockingTriggerAt, trapAt } from './state.js';
-import { openEvent, syncHUD, log, gameOver } from './ui.js';
-import { t } from './i18n.js';
-import { MOVE_COST, ATTACK_COST } from './config.js';
-import * as anim from './anim.js';
-import * as audio from './audio.js';
+import { state, walkable, adjacent, distTo, isVisible, recomputeFog, computeReach, pathTo, blockingTriggerAt, trapAt } from './state.js?v=0.3.1';
+import { openEvent, syncHUD, log, gameOver } from './ui.js?v=0.3.1';
+import { t } from './i18n.js?v=0.3.1';
+import { MOVE_COST, ATTACK_COST } from './config.js?v=0.3.1';
+import * as anim from './anim.js?v=0.3.1';
+import * as audio from './audio.js?v=0.3.1';
 
 const sign = (n) => Math.sign(n);
 

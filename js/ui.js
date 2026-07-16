@@ -1,10 +1,11 @@
 // Capa DOM: HUD (con PA), cartas de evento, registro, fin de partida y ajustes.
 // Todo el texto visible pasa por t() (multiidioma). No dibuja en el canvas.
 
-import { state } from './state.js';
-import { t } from './i18n.js';
-import * as anim from './anim.js';
-import * as audio from './audio.js';
+import { state } from './state.js?v=0.3.1';
+import { t } from './i18n.js?v=0.3.1';
+import * as anim from './anim.js?v=0.3.1';
+import * as audio from './audio.js?v=0.3.1';
+import { VERSION } from './config.js?v=0.3.1';
 
 let afterInteract = () => {};
 let restart = () => {};
@@ -103,7 +104,7 @@ export function applyStaticText() {
   $('heroName').textContent = t('hud.hero');
   $('foeName').textContent = t('hud.foe');
   $('reset').title = t('btn.reset');
-  $('endTurn').title = t('btn.endturn');
+  $('endTurn').textContent = t('btn.endturn');
   $('settingsBtn').title = t('btn.settings');
   $('recenter').title = t('btn.recenter');
   $('apPips').setAttribute('aria-label', t('hud.ap'));
@@ -113,5 +114,7 @@ export function applyStaticText() {
   $('setMusicLabel').textContent = t('set.music');
   $('setFxLabel').textContent = t('set.fx');
   $('setClose').textContent = t('set.close');
+  $('verTag').textContent = 'v' + VERSION;
+  $('verTagPanel').textContent = 'cripta v' + VERSION;
   if (open) renderCard();
 }

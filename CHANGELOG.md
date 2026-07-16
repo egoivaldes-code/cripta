@@ -2,6 +2,12 @@
 
 Esquema: `0.X` = cambio grande · `0.X.Y` = cambio pequeño / fix.
 
+## 0.3.1 — ajustes de cámara/UI y anticaché
+- Cámara: 360px de margen extra alrededor del mapa, así el personaje ya no se queda pegado justo al borde de la pantalla al llegar a una esquina del mapa.
+- El botón de turno ahora es un botón de texto "Saltar turno" (antes icono ⏭), colocado justo debajo de la vida en el HUD, sin solapes.
+- Número de versión visible en la partida (abajo a la derecha, a la izquierda de Ajustes y Centrar) y en el panel de Ajustes, ambos desde una única fuente (ya no hay que recordar actualizarlo a mano en varios sitios).
+- Sistema anticaché: cada archivo (JS, CSS, JSON, imágenes) se carga con un parámetro de versión (`?v=0.3.1`). Al subir una versión nueva, el juego se actualiza solo con una recarga normal — ya no hace falta modo incógnito ni borrar caché a mano.
+
 ## 0.3 — combate táctico por Puntos de Acción (PA)
 - Sistema de PA estilo Descent 2 / BG3: 4 acciones por turno. Moverse 1 casilla = 1 PA. Atacar = 2 PA (así, con 4 PA, caben dos ataques seguidos). Interactuar con un objeto cuesta entre 1 y 3 PA según cuál sea.
 - HUD con PA visibles (puntitos que se llenan/vacían) y botón "Fin de turno" para pasar voluntariamente.
