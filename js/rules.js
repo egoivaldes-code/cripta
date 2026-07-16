@@ -1,12 +1,12 @@
 // Reglas del juego: economía de Puntos de Acción (PA), interacción a distancia
 // y adyacente, trampas, niebla y salida de nivel. Agnóstico del dibujo.
 
-import { state, walkable, adjacent, distTo, isVisible, recomputeFog, computeReach, pathTo, blockingTriggerAt, trapAt } from './state.js?v=0.3.1';
-import { openEvent, syncHUD, log, gameOver } from './ui.js?v=0.3.1';
-import { t } from './i18n.js?v=0.3.1';
-import { MOVE_COST, ATTACK_COST } from './config.js?v=0.3.1';
-import * as anim from './anim.js?v=0.3.1';
-import * as audio from './audio.js?v=0.3.1';
+import { state, walkable, adjacent, distTo, isVisible, recomputeFog, computeReach, pathTo, blockingTriggerAt, trapAt, stepNeighbors } from './state.js?v=0.3.2';
+import { openEvent, syncHUD, log, gameOver } from './ui.js?v=0.3.2';
+import { t } from './i18n.js?v=0.3.2';
+import { MOVE_COST, ATTACK_COST } from './config.js?v=0.3.2';
+import * as anim from './anim.js?v=0.3.2';
+import * as audio from './audio.js?v=0.3.2';
 
 const sign = (n) => Math.sign(n);
 
@@ -32,7 +32,7 @@ function triggerTrap(trap) {
   const ev = state.events[trap.id];
   const dmg = ev.trapDmg || 4;
   trap.used = true;
-  anim.hurt('hero'); anim.floatAt(state.hero.x, state.hero.y, `−${dmg}`, '#e86a5c'); audio.fx('hit');
+  anim.hurt('hero'); anim.floatAt(state.hero.x, state.hero.y, `−${dmg}`, '#e86a5c'); audio.fx('hurt');
   state.hero.hp -= dmg;
   log(`<b>${t(ev.i18n + '.kicker')}</b> — ${t(ev.i18n + '.text')}`);
   syncHUD();
@@ -49,10 +49,11 @@ export function onTapTile(gx, gy) {
     if (hero.ap < ATTACK_COST) { log(t('log.noAP')); return; }
     hero.ap -= ATTACK_COST;
     anim.attack('hero', sign(gx - hero.x), sign(gy - hero.y));
-    anim.hurt('foe'); anim.floatAt(foe.x, foe.y, `−${hero.atk}`, '#e86a5c'); audio.fx('hit');
+    anim.hurt('foe'); anim.floatAt(foe.x, foe.y, `−${hero.atk}`, '#e86a5c');
     foe.hp -= hero.atk;
     log(t('log.hitFoe', { dmg: hero.atk }));
-    if (foe.hp <= 0) { foe.alive = false; syncHUD(); return gameOver('win'); }
+    if (foe.hp <= 0) { audio.fx('kill'); foe.alive = false; syncHUD(); return gameOver('win'); }
+    audio.fx('attack');
     syncHUD();
     computeReach();
     if (hero.ap <= 0) return endHeroTurn();
@@ -141,7 +142,7 @@ export function enemyAITurn() {
       if (ap < ATTACK_COST) break;
       ap -= ATTACK_COST;
       anim.attack('foe', sign(hero.x - foe.x), sign(hero.y - foe.y));
-      anim.hurt('hero'); anim.floatAt(hero.x, hero.y, `−${foe.atk}`, '#e86a5c'); audio.fx('hit');
+      anim.hurt('hero'); anim.floatAt(hero.x, hero.y, `−${foe.atk}`, '#e86a5c'); audio.fx('hurt');
       hero.hp -= foe.atk;
       log(t('log.hitHero', { dmg: foe.atk }));
       syncHUD();
@@ -150,9 +151,9 @@ export function enemyAITurn() {
     }
     if (ap < MOVE_COST) break;
     const cur = distTo(foe, hero.x, hero.y);
-    const step = [[0,-1],[0,1],[-1,0],[1,0]]
-      .map(([dx, dy]) => ({ x: foe.x + dx, y: foe.y + dy }))
-      .filter(p => walkable(p.x, p.y) && !(p.x === hero.x && p.y === hero.y))
+    const step = stepNeighbors(foe.x, foe.y)
+      .map(([x, y]) => ({ x, y }))
+      .filter(p => !(p.x === hero.x && p.y === hero.y))
       .map(p => ({ ...p, d: distTo(hero, p.x, p.y) }))
       .sort((a, b) => a.d - b.d)[0];
     if (!step || step.d >= cur) break;   // no puede acercarse más: no malgasta el resto de PA

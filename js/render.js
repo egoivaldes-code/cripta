@@ -5,10 +5,10 @@
 // (TILE), así que en pantallas grandes se ve más mapa. La cámara se arrastra y
 // se recentra en el héroe. Niebla de guerra de dos capas (negro / penumbra).
 
-import { state } from './state.js?v=0.3.1';
-import { TILE, CAMERA_MARGIN } from './config.js?v=0.3.1';
-import { images, ATLAS_TILE, SPRITE_TILE } from './assets.js?v=0.3.1';
-import * as anim from './anim.js?v=0.3.1';
+import { state } from './state.js?v=0.3.2';
+import { TILE, CAMERA_MARGIN } from './config.js?v=0.3.2';
+import { images, ATLAS_TILE, SPRITE_TILE } from './assets.js?v=0.3.2';
+import * as anim from './anim.js?v=0.3.2';
 
 function atlasCol(value, x, y) {
   if (value === 1) return 3;
@@ -198,7 +198,7 @@ function draw(ts) {
         ctx.strokeStyle = 'rgba(224,138,60,.5)'; ctx.lineWidth = 1.5; ctx.strokeRect(px + 3.5, py + 3.5, TILE - 7, TILE - 7);
       }
     }
-    if (foe.alive && Math.abs(foe.x - hero.x) + Math.abs(foe.y - hero.y) === 1
+    if (foe.alive && Math.max(Math.abs(foe.x - hero.x), Math.abs(foe.y - hero.y)) === 1
         && state.visible[foe.y] && state.visible[foe.y][foe.x]) {
       ctx.strokeStyle = '#b5443a'; ctx.lineWidth = 2;
       ctx.strokeRect(foe.x * TILE - camX + 4.5, foe.y * TILE - camY + 4.5, TILE - 9, TILE - 9);

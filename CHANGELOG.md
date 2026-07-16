@@ -2,6 +2,13 @@
 
 Esquema: `0.X` = cambio grande · `0.X.Y` = cambio pequeño / fix.
 
+## 0.3.2 — movimiento en diagonal y sonido real
+- Movimiento en 8 direcciones: además de las 4 rectas, ahora te mueves y atacas también en diagonal. La diagonal cuesta 1 PA (igual que un paso recto), así que cubres más terreno. Los esqueletos también usan las diagonales para acercarse.
+- Regla de esquinas: no se puede cruzar en diagonal rozando la esquina de un muro (para rodear una pared se da el paso recto), así el personaje nunca se solapa con las paredes.
+- Sonido real (antes eran pitidos): pasos al mover, espadazo + golpe al atacar, espadazo + crítico al rematar, gruñido de dolor (alterna dos) al recibir daño, y monedas al abrir cofres/altares. Los menús mantienen un clic suave.
+- Ambiente: fondo de bosque nocturno en bucle + ulular de búho a intervalos aleatorios (22–52 s). El volumen del ambiente va en el slider de "Música"; el resto de efectos, en "Efectos".
+- Limpieza: eliminadas carpetas sobrantes de experimentos anteriores (artifacts, lib, scripts) que el juego no usaba.
+
 ## 0.3.1 — ajustes de cámara/UI y anticaché
 - Cámara: 360px de margen extra alrededor del mapa, así el personaje ya no se queda pegado justo al borde de la pantalla al llegar a una esquina del mapa.
 - El botón de turno ahora es un botón de texto "Saltar turno" (antes icono ⏭), colocado justo debajo de la vida en el HUD, sin solapes.

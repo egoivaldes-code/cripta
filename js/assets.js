@@ -1,7 +1,7 @@
 // Precarga de imágenes. El juego espera a que estén listas antes de dibujar.
 // Añadir un asset nuevo = una línea en `sources`.
 
-import { VERSION } from './config.js?v=0.3.1';
+import { VERSION } from './config.js?v=0.3.2';
 
 export const ATLAS_TILE = 128; // px por celda en el tileset fuente (dungeon.png)
 export const SPRITE_TILE = 128; // px por fotograma en las hojas de sprites

@@ -2,7 +2,7 @@
 // Incluye niebla de guerra (explored/visible) y el alcance de movimiento
 // ligado a los Puntos de Acción (PA) restantes del héroe.
 
-import { SIGHT, AP_MAX } from './config.js?v=0.3.1';
+import { SIGHT, AP_MAX } from './config.js?v=0.3.2';
 
 export const state = {
   cols: 0, rows: 0,
@@ -16,6 +16,8 @@ export const state = {
 };
 
 const DIRS = [[0,-1],[0,1],[-1,0],[1,0]];
+const DIAG = [[-1,-1],[1,-1],[-1,1],[1,1]];
+const DIRS8 = [...DIRS, ...DIAG];   // 4 rectas + 4 diagonales
 function grid(rows, cols, val) {
   return Array.from({ length: rows }, () => Array.from({ length: cols }, () => val));
 }
@@ -53,8 +55,25 @@ export function walkable(x, y) {
     && !(state.foe.alive && state.foe.x === x && state.foe.y === y)
     && !blockingTriggerAt(x, y);
 }
-export function adjacent(a, x, y) { return Math.abs(a.x - x) + Math.abs(a.y - y) === 1; }
-export function distTo(a, x, y) { return Math.abs(a.x - x) + Math.abs(a.y - y); }
+// "Al lado" ahora incluye las diagonales (distancia de Chebyshev = 1), así que
+// se puede atacar y usar objetos también en diagonal.
+export function adjacent(a, x, y) { return Math.max(Math.abs(a.x - x), Math.abs(a.y - y)) === 1; }
+export function distTo(a, x, y) { return Math.max(Math.abs(a.x - x), Math.abs(a.y - y)); }
+
+// Casillas a las que se puede dar UN paso desde (x,y): las 4 rectas siempre;
+// las 4 diagonales solo si no se corta la esquina de un muro (las dos casillas
+// rectas contiguas tienen que estar libres). Así no te cuelas entre dos paredes.
+function diagOpen(x, y, dx, dy) { return !isWall(x + dx, y) && !isWall(x, y + dy); }
+export function stepNeighbors(x, y) {
+  const out = [];
+  for (const [dx, dy] of DIRS8) {
+    const nx = x + dx, ny = y + dy;
+    if (!walkable(nx, ny)) continue;
+    if (dx !== 0 && dy !== 0 && !diagOpen(x, y, dx, dy)) continue;
+    out.push([nx, ny]);
+  }
+  return out;
+}
 export function isVisible(x, y) { return inBounds(x, y) && state.visible[y][x]; }
 export function isExplored(x, y) { return inBounds(x, y) && state.explored[y][x]; }
 
@@ -95,9 +114,8 @@ export function computeReach() {
   while (q.length) {
     const [x, y] = q.shift();
     if (dist[y][x] >= hero.ap) continue;
-    for (const [dx, dy] of DIRS) {
-      const nx = x + dx, ny = y + dy;
-      if (walkable(nx, ny) && dist[ny][nx] === -1) {
+    for (const [nx, ny] of stepNeighbors(x, y)) {
+      if (dist[ny][nx] === -1) {
         dist[ny][nx] = dist[y][x] + 1; from[ny][nx] = [x, y]; q.push([nx, ny]);
       }
     }
