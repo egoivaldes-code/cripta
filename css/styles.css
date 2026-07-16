@@ -28,8 +28,11 @@ body{
 .bar.foe  > span{ background:linear-gradient(var(--blood),#7d2a24); }
 .stat{ display:flex; align-items:center; gap:5px; font-size:13px; padding-left:10px; border-left:1px solid var(--steel); }
 .stat b{ color:var(--gold); font-weight:600; }
+.ap{ display:flex; gap:5px; align-items:center; padding-left:10px; border-left:1px solid var(--steel); }
+.pip{ width:10px; height:10px; border-radius:50%; background:#000; border:1px solid var(--steel); }
+.pip.on{ background:var(--ember); border-color:var(--ember); }
 
-.topright{ top:max(10px,env(safe-area-inset-top)); right:10px; transform:scale(var(--ui)); transform-origin:top right; }
+.topright{ top:max(10px,env(safe-area-inset-top)); right:10px; transform:scale(var(--ui)); transform-origin:top right; display:flex; gap:8px; }
 .iconbtn{ width:40px; height:40px; border-radius:6px; background:rgba(26,30,39,.82); color:var(--bone);
   border:1px solid var(--steel); font-size:19px; line-height:1; cursor:pointer; backdrop-filter:blur(3px);
   display:flex; align-items:center; justify-content:center; }

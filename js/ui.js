@@ -1,4 +1,4 @@
-// Capa DOM: HUD, cartas de evento, registro, fin de partida y textos de ajustes.
+// Capa DOM: HUD (con PA), cartas de evento, registro, fin de partida y ajustes.
 // Todo el texto visible pasa por t() (multiidioma). No dibuja en el canvas.
 
 import { state } from './state.js';
@@ -6,9 +6,9 @@ import { t } from './i18n.js';
 import * as anim from './anim.js';
 import * as audio from './audio.js';
 
-let afterChoice = () => {};
+let afterInteract = () => {};
 let restart = () => {};
-export function bindAfterChoice(fn) { afterChoice = fn; }
+export function bindAfterInteract(fn) { afterInteract = fn; }
 export function bindRestart(fn) { restart = fn; }
 
 const $ = id => document.getElementById(id);
@@ -21,6 +21,14 @@ export function syncHUD() {
   $('hpHero').style.width = Math.max(0, hero.hp / hero.maxHp * 100) + '%';
   $('hpFoe').style.width = foe.alive ? Math.max(0, foe.hp / foe.maxHp * 100) + '%' : '0%';
   $('gold').textContent = hero.gold;
+  // Puntos de acción: pips llenos/vacíos.
+  const pips = $('apPips');
+  pips.innerHTML = '';
+  for (let i = 0; i < hero.apMax; i++) {
+    const d = document.createElement('span');
+    d.className = 'pip' + (i < hero.ap ? ' on' : '');
+    pips.appendChild(d);
+  }
 }
 
 export function hideVeil() { $('veil').classList.remove('show'); open = null; }
@@ -68,7 +76,7 @@ function resolveChoice(trig, ch, i, b) {
   log(t(`${b}.c${i}.r`));
   state.busy = false;
   if (hero.hp <= 0) return gameOver('lose');
-  afterChoice();
+  afterInteract();
 }
 
 export function gameOver(kind) {
@@ -95,8 +103,10 @@ export function applyStaticText() {
   $('heroName').textContent = t('hud.hero');
   $('foeName').textContent = t('hud.foe');
   $('reset').title = t('btn.reset');
+  $('endTurn').title = t('btn.endturn');
   $('settingsBtn').title = t('btn.settings');
   $('recenter').title = t('btn.recenter');
+  $('apPips').setAttribute('aria-label', t('hud.ap'));
   $('setTitle').textContent = t('set.title');
   $('setLangLabel').textContent = t('set.lang');
   $('setScaleLabel').textContent = t('set.uiscale');

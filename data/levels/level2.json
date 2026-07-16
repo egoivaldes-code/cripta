@@ -383,12 +383,14 @@
     {
       "x": 8,
       "y": 8,
-      "id": "cofre"
+      "id": "cofre",
+      "type": "chest"
     },
     {
       "x": 13,
       "y": 4,
-      "id": "altar"
+      "id": "altar",
+      "type": "altar"
     }
   ],
   "exit": {

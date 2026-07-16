@@ -93,7 +93,12 @@ function bindPointer() {
 }
 
 export function startLoop() { requestAnimationFrame(loop); }
-function loop(ts) { pulse = ts / 1000; draw(ts); requestAnimationFrame(loop); }
+function loop(ts) {
+  pulse = ts / 1000;
+  try { draw(ts); }
+  catch (err) { console.error('Fallo al dibujar (se ignora este fotograma):', err); }
+  requestAnimationFrame(loop);   // SIEMPRE se reprograma, aunque draw() falle
+}
 
 function updateCamera(ts) {
   if (!userPanning && (state.hero.x !== lastHeroX || state.hero.y !== lastHeroY)) {
@@ -112,6 +117,17 @@ function ring(cx, cy, r, color, w) { ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math
 function glyph(cx, cy, ch, color, size) {
   ctx.fillStyle = color; ctx.font = `bold ${size}px Georgia, serif`;
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(ch, cx, cy);
+}
+function glyphFor(type) {
+  switch (type) {
+    case 'chest': return '▪';
+    case 'altar': return '◆';
+    case 'lever': return '/';
+    case 'orb':   return '●';
+    case 'table': return '▦';
+    case 'trap':  return '▲';
+    default:      return '?';
+  }
 }
 
 function drawActor(name, sheet, gx, gy, ts, fallback, show = true) {
@@ -189,7 +205,7 @@ function draw(ts) {
     const on = state.visible[tr.y][tr.x];
     disc(cx, cy, 20, `rgba(224,138,60,${(on ? 0.10 : 0.05) + 0.10 * glow})`);
     ring(cx, cy, 14, on ? 'rgba(224,138,60,0.85)' : 'rgba(224,138,60,0.4)', 2);
-    glyph(cx, cy, tr.id === 'cofre' ? '▪' : '◆', on ? '#e08a3c' : '#8a6a44', 20);
+    glyph(cx, cy, glyphFor(tr.type), on ? '#e08a3c' : '#8a6a44', 20);
   }
 
   // Enemigo: su animación SIEMPRE avanza; solo se dibuja si está a la vista.

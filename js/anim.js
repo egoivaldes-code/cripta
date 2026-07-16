@@ -74,16 +74,16 @@ export function resolve(name, gx, gy, ts) {
   const an = a.anim;
   if (an) {
     if (an.type === 'path') {
-      const n = an.pts.length - 1, total = an.segDur * n, e = ts - an.t0;
+      const n = an.pts.length - 1, total = an.segDur * n, e = Math.max(0, ts - an.t0);
       if (e >= total) { a.px = an.pts[n].x; a.py = an.pts[n].y; a.anim = null; }
       else {
-        const seg = Math.min(n - 1, Math.floor(e / an.segDur));
-        const lt = (e - seg * an.segDur) / an.segDur;
+        const seg = Math.max(0, Math.min(n - 1, Math.floor(e / an.segDur)));
+        const lt = Math.min(1, (e - seg * an.segDur) / an.segDur);
         const p0 = an.pts[seg], p1 = an.pts[seg + 1];
         return { cx: lerp(p0.x, p1.x, lt) + sx, cy: lerp(p0.y, p1.y, lt) + sy, frame: seg % 2 === 0 ? 1 : 2, hurt };
       }
     } else {
-      const p = (ts - an.t0) / an.dur;
+      const p = Math.max(0, (ts - an.t0) / an.dur);
       if (p >= 1) { if (an.type === 'move') { a.px = an.to.x; a.py = an.to.y; } a.anim = null; }
       else if (an.type === 'move') {
         const e = easeInOut(p);

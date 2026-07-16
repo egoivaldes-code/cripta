@@ -311,12 +311,32 @@
     {
       "x": 4,
       "y": 8,
-      "id": "cofre"
+      "id": "cofre",
+      "type": "chest"
     },
     {
       "x": 11,
       "y": 7,
-      "id": "altar"
+      "id": "altar",
+      "type": "altar"
+    },
+    {
+      "x": 9,
+      "y": 11,
+      "id": "palanca",
+      "type": "lever"
+    },
+    {
+      "x": 13,
+      "y": 9,
+      "id": "orbe",
+      "type": "orb"
+    },
+    {
+      "x": 2,
+      "y": 6,
+      "id": "trampa",
+      "type": "trap"
     }
   ],
   "exit": {

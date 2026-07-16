@@ -1,6 +1,8 @@
 {
   "cofre": {
     "i18n": "ev.cofre",
+    "type": "chest",
+    "actionCost": 1,
     "choices": [
       { "effect": { "gold": 8 } },
       { "effect": { "gold": 18, "hp": -6 } },
@@ -9,10 +11,46 @@
   },
   "altar": {
     "i18n": "ev.altar",
+    "type": "altar",
+    "actionCost": 1,
     "choices": [
       { "effect": { "hp": 10, "gold": -4 } },
       { "effect": { "gold": 5 } },
       { "effect": {} }
     ]
+  },
+  "palanca": {
+    "i18n": "ev.palanca",
+    "type": "lever",
+    "actionCost": 1,
+    "choices": [
+      { "effect": { "gold": 6 } },
+      { "effect": {} }
+    ]
+  },
+  "orbe": {
+    "i18n": "ev.orbe",
+    "type": "orb",
+    "actionCost": 2,
+    "choices": [
+      { "effect": { "hp": 8 } },
+      { "effect": { "gold": 14, "hp": -8 } },
+      { "effect": {} }
+    ]
+  },
+  "mesa": {
+    "i18n": "ev.mesa",
+    "type": "table",
+    "actionCost": 3,
+    "choices": [
+      { "effect": { "gold": 10 } },
+      { "effect": {} }
+    ]
+  },
+  "trampa": {
+    "i18n": "ev.trampa",
+    "type": "trap",
+    "actionCost": 2,
+    "trapDmg": 5
   }
 }

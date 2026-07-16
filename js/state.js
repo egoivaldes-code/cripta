@@ -1,16 +1,17 @@
 // Estado de la partida + consultas sobre el mapa (sin dibujar ni tocar el DOM).
-// Incluye niebla de guerra (explored/visible) y el rango de movimiento (reach).
+// Incluye niebla de guerra (explored/visible) y el alcance de movimiento
+// ligado a los Puntos de Acción (PA) restantes del héroe.
 
-import { SIGHT, MOVE } from './config.js';
+import { SIGHT, AP_MAX } from './config.js';
 
 export const state = {
   cols: 0, rows: 0,
   tiles: [],
-  hero: null, foe: null,
+  hero: null, foe: null,     // hero/foe.ap = PA restantes este turno; .apMax = PA por turno
   triggers: [], exit: null,
   events: {},
   explored: [], visible: [],
-  reach: { dist: [], from: [] },   // alcance de movimiento del héroe
+  reach: { dist: [], from: [] },   // alcance de movimiento según PA restantes
   busy: false,
 };
 
@@ -23,8 +24,8 @@ export function initGame(level, events) {
   state.tiles = level.tiles;
   state.rows = level.tiles.length;
   state.cols = level.tiles[0].length;
-  state.hero = { ...level.start.hero };
-  state.foe = { ...level.start.foe, alive: true };
+  state.hero = { ...level.start.hero, ap: AP_MAX, apMax: AP_MAX };
+  state.foe = { ...level.start.foe, alive: true, apMax: AP_MAX };
   state.triggers = level.triggers.map(t => ({ ...t, used: false }));
   state.exit = level.exit ? { ...level.exit } : null;
   state.events = events;
@@ -37,11 +38,23 @@ export function initGame(level, events) {
 
 export function inBounds(x, y) { return x >= 0 && y >= 0 && x < state.cols && y < state.rows; }
 export function isWall(x, y) { return !inBounds(x, y) || state.tiles[y][x] === 1; }
+
+// Un trigger "mueble" (todo salvo trampa) ocupa su casilla: no se puede pisar,
+// se interactúa desde al lado. La trampa es un peligro de SUELO: sí se pisa.
+export function blockingTriggerAt(x, y) {
+  return state.triggers.find(t => !t.used && t.type !== 'trap' && t.x === x && t.y === y);
+}
+export function trapAt(x, y) {
+  return state.triggers.find(t => !t.used && t.type === 'trap' && t.x === x && t.y === y);
+}
+
 export function walkable(x, y) {
   return inBounds(x, y) && state.tiles[y][x] === 0
-    && !(state.foe.alive && state.foe.x === x && state.foe.y === y);
+    && !(state.foe.alive && state.foe.x === x && state.foe.y === y)
+    && !blockingTriggerAt(x, y);
 }
 export function adjacent(a, x, y) { return Math.abs(a.x - x) + Math.abs(a.y - y) === 1; }
+export function distTo(a, x, y) { return Math.abs(a.x - x) + Math.abs(a.y - y); }
 export function isVisible(x, y) { return inBounds(x, y) && state.visible[y][x]; }
 export function isExplored(x, y) { return inBounds(x, y) && state.explored[y][x]; }
 
@@ -72,7 +85,7 @@ export function recomputeFog() {
   }
 }
 
-// --- rango de movimiento (BFS hasta MOVE casillas, rodeando muros/enemigo) ---
+// --- alcance de movimiento (BFS hasta los PA restantes, rodeando muros/muebles) ---
 export function computeReach() {
   const { hero } = state;
   const dist = grid(state.rows, state.cols, -1);
@@ -81,12 +94,10 @@ export function computeReach() {
   const q = [[hero.x, hero.y]];
   while (q.length) {
     const [x, y] = q.shift();
-    if (dist[y][x] >= MOVE) continue;
+    if (dist[y][x] >= hero.ap) continue;
     for (const [dx, dy] of DIRS) {
       const nx = x + dx, ny = y + dy;
-      if (inBounds(nx, ny) && state.tiles[ny][nx] === 0
-        && !(state.foe.alive && state.foe.x === nx && state.foe.y === ny)
-        && dist[ny][nx] === -1) {
+      if (walkable(nx, ny) && dist[ny][nx] === -1) {
         dist[ny][nx] = dist[y][x] + 1; from[ny][nx] = [x, y]; q.push([nx, ny]);
       }
     }
@@ -97,7 +108,7 @@ export function inRange(x, y) {
   const d = state.reach.dist;
   return inBounds(x, y) && d[y] && d[y][x] > 0;
 }
-// Camino desde el héroe hasta (x,y), o null si está fuera de rango.
+// Camino desde el héroe hasta (x,y) dentro del alcance, o null si no llega.
 export function pathTo(x, y) {
   const { dist, from } = state.reach;
   if (!inBounds(x, y) || !dist[y] || dist[y][x] <= 0) return null;

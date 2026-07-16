@@ -2,8 +2,8 @@
 
 import { state, initGame } from './state.js';
 import { initRenderer, startLoop, centerOnHero } from './render.js';
-import { onTapTile, enemyTurn, bindDescend } from './rules.js';
-import { syncHUD, log, hideVeil, bindAfterChoice, bindRestart, applyStaticText } from './ui.js';
+import { onTapTile, bindDescend, startHeroTurn, endHeroTurn, afterInteract } from './rules.js';
+import { syncHUD, log, hideVeil, bindAfterInteract, bindRestart, applyStaticText } from './ui.js';
 import { loadAssets } from './assets.js';
 import { initialLang, loadLang, onLangChange, getLang, t } from './i18n.js';
 import * as anim from './anim.js';
@@ -32,6 +32,7 @@ async function boot() {
     anim.reset();
     centerOnHero(true);
     hideVeil();
+    startHeroTurn();
     syncHUD();
     log(t('log.intro'));
   }
@@ -44,7 +45,7 @@ async function boot() {
     log(t('log.descend'));
   }
 
-  bindAfterChoice(enemyTurn);
+  bindAfterInteract(afterInteract);
   bindRestart(newGame);
   bindDescend(descend);
 
@@ -54,6 +55,9 @@ async function boot() {
 
   // --- controles ---
   document.getElementById('reset').addEventListener('click', newGame);
+  document.getElementById('endTurn').addEventListener('click', () => {
+    if (!state.busy) endHeroTurn();
+  });
   document.getElementById('recenter').addEventListener('click', () => centerOnHero(false));
   document.getElementById('hud').addEventListener('click', () => centerOnHero(false));
 
