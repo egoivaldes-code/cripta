@@ -2,37 +2,66 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>Cripta — Táctico + Eventos</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Cripta</title>
 <link rel="stylesheet" href="./css/styles.css">
 </head>
 <body>
-<div class="frame">
+<div id="game">
+  <canvas id="map"></canvas>
 
-  <div class="hud">
-    <div class="who"><span class="name">Mercenaria</span>
+  <!-- HUD (arriba-izquierda). Tocarlo recentra la cámara. -->
+  <div class="ui hud" id="hud">
+    <div class="who"><span class="name" id="heroName"></span>
       <div class="bar hero"><span id="hpHero" style="width:100%"></span></div></div>
-    <div class="who"><span class="name">Acechador</span>
+    <div class="who"><span class="name" id="foeName"></span>
       <div class="bar foe"><span id="hpFoe" style="width:100%"></span></div></div>
     <div class="stat">◆ <b id="gold">0</b></div>
   </div>
 
-  <!-- Mapa cenital: canvas 2D. La capa de dibujo vive en js/render.js -->
-  <div id="game">
-    <canvas id="map"></canvas>
-    <!-- Carta de evento: HTML puro sobre el mapa. Se rellena desde js/ui.js -->
-    <div class="veil" id="veil"><div class="card" id="card"></div></div>
+  <!-- Reiniciar (arriba-derecha) -->
+  <div class="ui topright">
+    <button class="iconbtn" id="reset" aria-label="Reiniciar">⟳</button>
   </div>
 
-  <div class="log" id="log">Cargando…</div>
-
-  <div class="foot">
-    <small>Canvas 2D en el mapa · HTML/CSS en las cartas</small>
-    <button class="reset" id="reset">Reiniciar</button>
+  <!-- Ajustes + recentrar (abajo-derecha) -->
+  <div class="ui bottomright">
+    <button class="fab" id="settingsBtn" aria-label="Ajustes">⚙</button>
+    <button class="fab" id="recenter" aria-label="Centrar">⌖</button>
   </div>
+
+  <!-- Registro (abajo-izquierda) -->
+  <div class="ui log" id="log"></div>
+
+  <!-- Panel de ajustes -->
+  <div class="veil" id="settingsVeil">
+    <div class="panel">
+      <h2 id="setTitle"></h2>
+
+      <label id="setLangLabel"></label>
+      <div class="langrow">
+        <button class="langbtn" data-lang="es">ES</button>
+        <button class="langbtn" data-lang="en">EN</button>
+      </div>
+
+      <label id="setScaleLabel"></label>
+      <input type="range" id="uiScale" min="0.8" max="1.6" step="0.05" value="1">
+
+      <label id="setMusicLabel"></label>
+      <input type="range" id="musicVol" min="0" max="1" step="0.05" value="0.6">
+
+      <label id="setFxLabel"></label>
+      <input type="range" id="fxVol" min="0" max="1" step="0.05" value="0.7">
+
+      <button class="primary" id="setClose"></button>
+      <div class="ver">cripta v0.2</div>
+    </div>
+  </div>
+
+  <!-- Carta de evento -->
+  <div class="veil" id="veil"><div class="card" id="card"></div></div>
 </div>
 
-<!-- Punto de entrada. type="module" habilita import/export nativos. -->
 <script type="module" src="./js/main.js"></script>
 </body>
 </html>

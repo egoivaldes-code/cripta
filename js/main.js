@@ -1,48 +1,100 @@
-// Punto de entrada. Carga los datos, conecta los módulos y arranca el bucle.
-// Aquí se "cablea" todo para que los demás módulos no dependan en círculo.
+// Punto de entrada. Carga idioma y datos, cablea módulos y arranca el bucle.
 
 import { state, initGame } from './state.js';
-import { initRenderer, startLoop } from './render.js';
-import { onTapTile, enemyTurn } from './rules.js';
-import { syncHUD, log, hideVeil, bindAfterChoice, bindRestart } from './ui.js';
+import { initRenderer, startLoop, centerOnHero } from './render.js';
+import { onTapTile, enemyTurn, bindDescend } from './rules.js';
+import { syncHUD, log, hideVeil, bindAfterChoice, bindRestart, applyStaticText } from './ui.js';
 import { loadAssets } from './assets.js';
+import { initialLang, loadLang, onLangChange, getLang, t } from './i18n.js';
 import * as anim from './anim.js';
-
-const INTRO = 'Toca una casilla contigua para moverte. Alcanza los <b>puntos ámbar</b>.';
+import * as audio from './audio.js';
 
 async function boot() {
-  // Los eventos y el nivel viven en /data como JSON (fetch necesita http://).
-  const [events, level] = await Promise.all([
+  // Idioma primero (los textos) y assets/datos en paralelo.
+  onLangChange(() => { applyStaticText(); markLang(); });
+  await loadLang(initialLang());
+
+  const [events] = await Promise.all([
     fetch('./data/events.json').then(r => r.json()),
-    fetch('./data/level1.json').then(r => r.json()),
+    loadAssets().catch(err => console.warn('Assets:', err.message)),
   ]);
 
-  // Precarga del tileset. Si falla, el juego cae a colores planos (no bloquea).
-  await loadAssets().catch(err => console.warn('Assets:', err.message));
-
-  function newGame() {
-    initGame(level, events);
-    anim.reset();
-    hideVeil();
-    syncHUD();
-    log(INTRO);
+  const levelCache = {};
+  async function getLevel(name) {
+    if (!levelCache[name]) levelCache[name] = await fetch(`./data/levels/${name}.json`).then(r => r.json());
+    return levelCache[name];
   }
 
-  // Inyección de dependencias: rompe el ciclo ui <-> rules.
-  bindAfterChoice(enemyTurn); // qué hace la UI tras elegir en una carta
-  bindRestart(newGame);       // qué hace el botón "Otra incursión"
+  async function loadLevel(name, carry) {
+    const level = await getLevel(name);
+    initGame(level, events);
+    if (carry) Object.assign(state.hero, carry);   // arrastra vida/oro entre niveles
+    anim.reset();
+    centerOnHero(true);
+    hideVeil();
+    syncHUD();
+    log(t('log.intro'));
+  }
 
-  initGame(level, events);            // estado listo antes de medir el canvas
+  function newGame() { loadLevel('level1'); }
+  async function descend() {
+    const c = { hp: state.hero.hp, maxHp: state.hero.maxHp, atk: state.hero.atk, gold: state.hero.gold };
+    audio.fx('descend');
+    await loadLevel(state.exit.to, c);
+    log(t('log.descend'));
+  }
+
+  bindAfterChoice(enemyTurn);
+  bindRestart(newGame);
+  bindDescend(descend);
+
   initRenderer(document.getElementById('map'), onTapTile);
   startLoop();
-  newGame();
+  await loadLevel('level1');
 
+  // --- controles ---
   document.getElementById('reset').addEventListener('click', newGame);
+  document.getElementById('recenter').addEventListener('click', () => centerOnHero(false));
+  document.getElementById('hud').addEventListener('click', () => centerOnHero(false));
+
+  // Ajustes
+  const settingsVeil = document.getElementById('settingsVeil');
+  document.getElementById('settingsBtn').addEventListener('click', () => settingsVeil.classList.add('show'));
+  document.getElementById('setClose').addEventListener('click', () => settingsVeil.classList.remove('show'));
+  settingsVeil.addEventListener('click', e => { if (e.target === settingsVeil) settingsVeil.classList.remove('show'); });
+
+  document.querySelectorAll('.langbtn').forEach(btn =>
+    btn.addEventListener('click', () => loadLang(btn.dataset.lang)));
+
+  // Audio: se desbloquea con el primer toque (requisito del móvil).
+  window.addEventListener('pointerdown', () => audio.unlock(), { once: true });
+
+  // Escala de la interfaz (persistida)
+  const gameEl = document.getElementById('game');
+  const uiInput = document.getElementById('uiScale');
+  function setUiScale(v) { gameEl.style.setProperty('--ui', v); try { localStorage.setItem('cripta.ui', v); } catch {} }
+  let savedUi = '1';
+  try { savedUi = localStorage.getItem('cripta.ui') || '1'; } catch {}
+  uiInput.value = savedUi; setUiScale(savedUi);
+  uiInput.addEventListener('input', e => setUiScale(e.target.value));
+
+  // Volúmenes de música y efectos (persistidos)
+  const musicInput = document.getElementById('musicVol');
+  const fxInput = document.getElementById('fxVol');
+  musicInput.value = audio.initialMusicVol();
+  fxInput.value = audio.initialFxVol();
+  musicInput.addEventListener('input', e => audio.setMusicVol(parseFloat(e.target.value)));
+  fxInput.addEventListener('input', e => { audio.setFxVol(parseFloat(e.target.value)); audio.fx('ui'); });
+
+  markLang();
+}
+
+function markLang() {
+  document.querySelectorAll('.langbtn').forEach(b => b.classList.toggle('on', b.dataset.lang === getLang()));
 }
 
 boot().catch(err => {
   console.error(err);
-  document.getElementById('log').innerHTML =
-    'No pude cargar los datos. Si abriste el archivo como <b>file://</b>, ' +
-    'súbelo a un servidor (p. ej. GitHub Pages) o sírvelo por http://.';
+  document.getElementById('log').textContent =
+    'Error al cargar. Si abriste el archivo como file://, sírvelo por http:// (GitHub Pages).';
 });

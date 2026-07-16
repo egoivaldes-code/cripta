@@ -1,9 +1,10 @@
-// Capa DOM: cartas de evento, HUD, registro y banner de fin.
-// Lee de `state` y escribe en el HTML. No dibuja en el canvas ni decide reglas.
-// Para evitar dependencias circulares, recibe por inyección qué hacer
-// "después de elegir" (el turno enemigo) y "al reiniciar" (nueva partida).
+// Capa DOM: HUD, cartas de evento, registro, fin de partida y textos de ajustes.
+// Todo el texto visible pasa por t() (multiidioma). No dibuja en el canvas.
 
 import { state } from './state.js';
+import { t } from './i18n.js';
+import * as anim from './anim.js';
+import * as audio from './audio.js';
 
 let afterChoice = () => {};
 let restart = () => {};
@@ -11,6 +12,7 @@ export function bindAfterChoice(fn) { afterChoice = fn; }
 export function bindRestart(fn) { restart = fn; }
 
 const $ = id => document.getElementById(id);
+let open = null; // { type:'event', trig } | { type:'over', kind } | null
 
 export function log(html) { $('log').innerHTML = html; }
 
@@ -21,55 +23,85 @@ export function syncHUD() {
   $('gold').textContent = hero.gold;
 }
 
-export function hideVeil() { $('veil').classList.remove('show'); }
+export function hideVeil() { $('veil').classList.remove('show'); open = null; }
 
-// Abre la carta de un punto de evento (bloquea el mapa hasta elegir).
 export function openEvent(trig) {
   state.busy = true;
-  const ev = state.events[trig.id];
-  const card = $('card');
-  card.innerHTML =
-    `<div class="kicker">${ev.kicker}</div>
-     <h2>${ev.title}</h2>
-     <p>${ev.text}</p>
-     <div class="choices"></div>`;
-  const box = card.querySelector('.choices');
-  ev.choices.forEach(ch => {
-    const b = document.createElement('button');
-    b.className = 'choice';
-    const tc = ch.effect.hp > 0 ? 'heal' : ch.effect.hp < 0 ? 'dmg' : ch.effect.gold ? 'gold' : '';
-    b.innerHTML = `<span>${ch.label}</span><span class="tag ${tc}">${ch.tag}</span>`;
-    b.onclick = () => resolveChoice(trig, ch);
-    box.appendChild(b);
-  });
+  open = { type: 'event', trig };
+  renderCard();
   $('veil').classList.add('show');
+  audio.fx('event');
 }
 
-function resolveChoice(trig, ch) {
+function renderCard() {
+  if (!open) return;
+  const card = $('card');
+  if (open.type === 'over') { renderOver(card, open.kind); return; }
+
+  const ev = state.events[open.trig.id];
+  const b = ev.i18n;
+  card.innerHTML =
+    `<div class="kicker">${t(b + '.kicker')}</div>
+     <h2>${t(b + '.title')}</h2>
+     <p>${t(b + '.text')}</p>
+     <div class="choices"></div>`;
+  const box = card.querySelector('.choices');
+  ev.choices.forEach((ch, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'choice';
+    const e = ch.effect || {};
+    const tc = e.hp > 0 ? 'heal' : e.hp < 0 ? 'dmg' : e.gold ? 'gold' : '';
+    btn.innerHTML = `<span>${t(`${b}.c${i}`)}</span><span class="tag ${tc}">${t(`${b}.c${i}.tag`)}</span>`;
+    btn.onclick = () => resolveChoice(open.trig, ch, i, b);
+    box.appendChild(btn);
+  });
+}
+
+function resolveChoice(trig, ch, i, b) {
   const { hero } = state;
-  if (ch.effect.hp) hero.hp = Math.min(hero.maxHp, hero.hp + ch.effect.hp);
-  if (ch.effect.gold) hero.gold = Math.max(0, hero.gold + ch.effect.gold);
+  const e = ch.effect || {};
+  if (e.hp) { hero.hp = Math.min(hero.maxHp, hero.hp + e.hp); anim.floatAt(hero.x, hero.y, (e.hp > 0 ? '+' : '') + e.hp, e.hp > 0 ? '#7fc06a' : '#e86a5c'); }
+  if (e.gold) hero.gold = Math.max(0, hero.gold + e.gold);
   trig.used = true;
   hideVeil();
   syncHUD();
-  log(ch.result);
+  log(t(`${b}.c${i}.r`));
   state.busy = false;
   if (hero.hp <= 0) return gameOver('lose');
-  afterChoice(); // tras decidir, actúa el enemigo
+  afterChoice();
 }
 
 export function gameOver(kind) {
   state.busy = true;
-  const win = kind === 'win';
-  $('card').innerHTML =
-    `<div class="banner">
-       <div class="kicker">${win ? 'Victoria' : 'Derrota'}</div>
-       <h2>${win ? 'Acechador abatido' : 'Has caído'}</h2>
-       <p>${win
-        ? `Sales de la sala con <b>${state.hero.gold} ◆</b> y la respiración entera.`
-        : 'La oscuridad se cierra. La sala guarda sus secretos.'}</p>
-       <button class="again" id="again">Otra incursión</button>
-     </div>`;
+  open = { type: 'over', kind };
+  renderCard();
   $('veil').classList.add('show');
+}
+
+function renderOver(card, kind) {
+  const win = kind === 'win';
+  card.innerHTML =
+    `<div class="banner">
+       <div class="kicker">${t(win ? 'over.winKicker' : 'over.loseKicker')}</div>
+       <h2>${t(win ? 'over.winTitle' : 'over.loseTitle')}</h2>
+       <p>${win ? t('over.winText', { gold: state.hero.gold }) : t('over.loseText')}</p>
+       <button class="again" id="again">${t('over.again')}</button>
+     </div>`;
   $('again').onclick = restart;
+}
+
+// Aplica los textos estáticos (y re-renderiza lo abierto). Se llama al cambiar idioma.
+export function applyStaticText() {
+  $('heroName').textContent = t('hud.hero');
+  $('foeName').textContent = t('hud.foe');
+  $('reset').title = t('btn.reset');
+  $('settingsBtn').title = t('btn.settings');
+  $('recenter').title = t('btn.recenter');
+  $('setTitle').textContent = t('set.title');
+  $('setLangLabel').textContent = t('set.lang');
+  $('setScaleLabel').textContent = t('set.uiscale');
+  $('setMusicLabel').textContent = t('set.music');
+  $('setFxLabel').textContent = t('set.fx');
+  $('setClose').textContent = t('set.close');
+  if (open) renderCard();
 }

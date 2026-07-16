@@ -1,22 +1,18 @@
 {
   "cofre": {
-    "kicker": "Hallazgo",
-    "title": "Cofre lacrado",
-    "text": "Un cofre de hierro rezuma óxido y algo dulzón. El cierre cede si insistes… pero el metal está caliente, como si algo respirara dentro.",
+    "i18n": "ev.cofre",
     "choices": [
-      { "label": "Forzar el cierre", "tag": "+8 ◆", "effect": { "gold": 8 }, "result": "Monedas y un diente. Cierras rápido." },
-      { "label": "Meter la mano dentro", "tag": "riesgo", "effect": { "gold": 18, "hp": -6 }, "result": "Algo muerde, pero sacas un puñado de oro." },
-      { "label": "Dejarlo estar", "tag": "—", "effect": {}, "result": "Mejor no tentar a la suerte." }
+      { "effect": { "gold": 8 } },
+      { "effect": { "gold": 18, "hp": -6 } },
+      { "effect": {} }
     ]
   },
   "altar": {
-    "kicker": "Reliquia",
-    "title": "Altar agrietado",
-    "text": "Una veta de brasa late bajo la piedra rota. Ofrece calor a cambio de sangre, o silencio a cambio de nada.",
+    "i18n": "ev.altar",
     "choices": [
-      { "label": "Sangrar sobre la veta", "tag": "+10 vida / −4 ◆", "effect": { "hp": 10, "gold": -4 }, "result": "El calor sella tus heridas." },
-      { "label": "Arrancar una esquirla", "tag": "+5 ◆", "effect": { "gold": 5 }, "result": "La esquirla brilla débil en tu bolsa." },
-      { "label": "Rezar y seguir", "tag": "—", "effect": {}, "result": "El altar se apaga a tu espalda." }
+      { "effect": { "hp": 10, "gold": -4 } },
+      { "effect": { "gold": 5 } },
+      { "effect": {} }
     ]
   }
 }
