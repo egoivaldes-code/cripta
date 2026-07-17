@@ -1,12 +1,12 @@
 // Reglas del juego: economía de Puntos de Acción (PA), interacción a distancia
 // y adyacente, trampas, niebla y salida de nivel. Agnóstico del dibujo.
 
-import { state, walkable, adjacent, distTo, isVisible, recomputeFog, computeReach, pathTo, blockingTriggerAt, trapAt, stepNeighbors, foeAt, livingFoes } from './state.js?v=0.4';
-import { openEvent, syncHUD, log, gameOver } from './ui.js?v=0.4';
-import { t } from './i18n.js?v=0.4';
-import { MOVE_COST, ATTACK_COST } from './config.js?v=0.4';
-import * as anim from './anim.js?v=0.4';
-import * as audio from './audio.js?v=0.4';
+import { state, walkable, adjacent, distTo, isVisible, recomputeFog, computeReach, pathTo, reachCost, blockingTriggerAt, trapAt, stepNeighbors, foeAt, livingFoes } from './state.js?v=0.5';
+import { openEvent, syncHUD, log, gameOver } from './ui.js?v=0.5';
+import { t } from './i18n.js?v=0.5';
+import { MOVE_COST, ATTACK_COST } from './config.js?v=0.5';
+import * as anim from './anim.js?v=0.5';
+import * as audio from './audio.js?v=0.5';
 
 const sign = (n) => Math.sign(n);
 
@@ -102,7 +102,7 @@ export function onTapTile(gx, gy) {
   // --- Mover (rango según PA restantes; rodea muros y objetos). ---
   const path = pathTo(gx, gy);
   if (!path) return;
-  const cost = path.length - 1;
+  const cost = reachCost(gx, gy);   // ya incluye el extra por subir escalones
   hero.ap -= cost;
   hero.x = gx; hero.y = gy;
   anim.movePath('hero', path); audio.fx('move');
@@ -164,15 +164,15 @@ export function enemyAITurn() {
       if (ap < MOVE_COST) break;
       const cur = distTo(foe, hero.x, hero.y);
       const step = stepNeighbors(foe.x, foe.y)
-        .map(([x, y]) => ({ x, y }))
-        .filter(p => !(p.x === hero.x && p.y === hero.y))
+        .map(([x, y, cost]) => ({ x, y, cost }))
+        .filter(p => !(p.x === hero.x && p.y === hero.y) && p.cost <= ap)
         .map(p => ({ ...p, d: distTo(hero, p.x, p.y) }))
         .sort((a, b) => a.d - b.d)[0];
       if (!step || step.d >= cur) break;   // no puede acercarse más: no malgasta PA
       const fromX = foe.x, fromY = foe.y;
       foe.x = step.x; foe.y = step.y;
       anim.move(foe.anim, fromX, fromY, step.x, step.y);
-      ap -= MOVE_COST;
+      ap -= step.cost;
     }
   }
   syncHUD();

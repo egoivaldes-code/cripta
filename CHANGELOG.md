@@ -2,6 +2,20 @@
 
 Esquema: `0.X` = cambio grande · `0.X.Y` = cambio pequeño / fix.
 
+## 0.5 — cenital puro, zoom, altura real y mapas pintados a mano
+- Vista cenital pura (se abandona el 2.5D): el cementerio ahora tiene un fondo pintado a mano real, con la rejilla táctica encima.
+- Zoom con límites: pellizco de 2 dedos en móvil, rueda del ratón en PC. El punto bajo el dedo/cursor se queda fijo.
+- Altura de verdad: subir un escalón cuesta el doble de PA; un desnivel de 2+ es un precipicio infranqueable. Los bordes de las casillas muestran verde (lado alto) y rojo (lado bajo), estilo Descent.
+- Terreno difícil (matorrales, escombros...): no bloquea el paso pero cuesta más PA cruzarlo; se marca con un tinte morado.
+- Personajes reescalados: solo la cabeza asoma a la casilla de arriba (antes ocupaban más).
+- Objetos pequeños (lápidas...) ahora miden la mitad que un personaje y no invaden la casilla de al lado.
+- Nueva herramienta de edición de terreno (fuera del juego): permite pintar transitable/obstáculo/elevado/difícil directamente sobre la imagen de cualquier mapa, para preparar niveles fijos con rapidez.
+- Por dentro: motor de losetas modulares (tipo Descent, con conectores) listo y probado para futuros niveles ALEATORIOS; el cementerio de esta versión es un mapa FIJO, pero ambos sistemas conviven.
+- Aparcado: la cripta isométrica (arte antiguo) deja de cargarse por ahora, ya que el cementerio usa su propio fondo pintado; se retomará con arte a juego cuando toque.
+
+## 0.4.1 — fix del desfase enemigo/casilla
+- Arreglado: cuando un enemigo se acercaba y atacaba en el mismo turno, el muñeco se quedaba clavado en la casilla anterior mientras el recuadro rojo (su casilla real) ya estaba en la nueva. Ahora el sprite se asienta en su casilla correcta antes de atacar, así que muñeco y recuadro coinciden.
+
 ## 0.4 — el cementerio
 - Nuevo escenario: un cementerio con muro de piedra alrededor, hierba, lápidas y dos criptas, todo con arte pintado a mano (estética Ultima Online).
 - 3 esqueletos distintos (sin arma, con espada y escudo, con armadura) que empiezan quietos y despiertan al acercarte; luego van a por ti.

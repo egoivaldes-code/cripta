@@ -1,14 +1,16 @@
 // Capa de dibujo (Canvas 2D). Lee de `state` y pinta; no conoce las reglas.
 // Es la ÚNICA parte atada al canvas.
 //
-// Pantalla completa: el canvas ocupa todo #game. La casilla es de tamaño fijo
-// (TILE), así que en pantallas grandes se ve más mapa. La cámara se arrastra y
-// se recentra en el héroe. Niebla de guerra de dos capas (negro / penumbra).
+// Vista cenital pura (losetas tipo Descent). La casilla tiene un tamaño BASE
+// (TILE) que se multiplica por el ZOOM actual; la cámara siempre se guarda en
+// coordenadas de MUNDO (sin zoom), así que zoom y cámara no se pisan entre sí.
+// La altura de cada casilla se pinta con un tinte y, en los escalones, un
+// borde de color: VERDE en el lado alto, ROJO en el lado bajo (estilo Descent).
 
-import { state } from './state.js?v=0.4';
-import { TILE, CAMERA_MARGIN } from './config.js?v=0.4';
-import { images, ATLAS_TILE, SPRITE_TILE } from './assets.js?v=0.4';
-import * as anim from './anim.js?v=0.4';
+import { state } from './state.js?v=0.5';
+import { TILE, CAMERA_MARGIN, ZOOM_MIN, ZOOM_MAX, ZOOM_DEFAULT, TOKEN_TALL, PROP_TALL } from './config.js?v=0.5';
+import { images, ATLAS_TILE, SPRITE_TILE } from './assets.js?v=0.5';
+import * as anim from './anim.js?v=0.5';
 
 function atlasCol(value, x, y) {
   if (value === 1) return 3;
@@ -17,25 +19,31 @@ function atlasCol(value, x, y) {
 
 let ctx, canvas, VW = 0, VH = 0, pulse = 0, reduceMotion = false, onTap = () => {};
 
-const camera = { x: 0, y: 0 };
+const camera = { x: 0, y: 0 };   // SIEMPRE en coordenadas de mundo (px a zoom 1)
+let zoom = ZOOM_DEFAULT;
 let camTween = null;
 let userPanning = false;
 let lastHeroX = -1, lastHeroY = -1;
 const easeInOut = (t) => t < 0.5 ? 2*t*t : 1 - Math.pow(-2*t+2, 2)/2;
 
-// Clamp por eje: si el mundo es más pequeño que el viewport, se centra.
-// Si es más grande, se deja un margen extra para que la cámara no quede
-// pegada justo al borde del mapa (más aire alrededor del personaje).
+// --- conversión mundo <-> pantalla (todo pasa por aquí; el resto no toca `zoom` a mano) ---
+export function worldToScreen(wx, wy) { return { x: (wx - camera.x) * zoom, y: (wy - camera.y) * zoom }; }
+export function screenToWorld(sx, sy) { return { x: sx / zoom + camera.x, y: sy / zoom + camera.y }; }
+export function getZoom() { return zoom; }
+function clampZoom(z) { return Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, z)); }
+
+// Clamp por eje en coordenadas de MUNDO: el viewport visible en mundo mide VW/zoom x VH/zoom.
 function clampX(v) {
-  const w = state.cols * TILE;
-  return w <= VW ? (w - VW) / 2 : Math.max(-CAMERA_MARGIN, Math.min(v, w - VW + CAMERA_MARGIN));
+  const w = state.cols * TILE, vw = VW / zoom;
+  return w <= vw ? (w - vw) / 2 : Math.max(-CAMERA_MARGIN, Math.min(v, w - vw + CAMERA_MARGIN));
 }
 function clampY(v) {
-  const h = state.rows * TILE;
-  return h <= VH ? (h - VH) / 2 : Math.max(-CAMERA_MARGIN, Math.min(v, h - VH + CAMERA_MARGIN));
+  const h = state.rows * TILE, vh = VH / zoom;
+  return h <= vh ? (h - vh) / 2 : Math.max(-CAMERA_MARGIN, Math.min(v, h - vh + CAMERA_MARGIN));
 }
 function heroTarget() {
-  return { x: clampX(state.hero.x * TILE + TILE/2 - VW/2), y: clampY(state.hero.y * TILE + TILE/2 - VH/2) };
+  const vw = VW / zoom, vh = VH / zoom;
+  return { x: clampX(state.hero.x * TILE + TILE/2 - vw/2), y: clampY(state.hero.y * TILE + TILE/2 - vh/2) };
 }
 function tweenTo(t) { camTween = { fromX: camera.x, fromY: camera.y, toX: t.x, toY: t.y, t0: performance.now(), dur: 260 }; }
 
@@ -44,6 +52,15 @@ export function centerOnHero(instant = false) {
   lastHeroX = state.hero.x; lastHeroY = state.hero.y; userPanning = false;
   if (instant) { camera.x = t.x; camera.y = t.y; camTween = null; }
   else tweenTo(t);
+}
+
+// Aplica un nuevo zoom manteniendo fijo, en pantalla, el punto de mundo bajo (sx,sy).
+function zoomAt(sx, sy, newZoom) {
+  const before = screenToWorld(sx, sy);
+  zoom = clampZoom(newZoom);
+  camera.x = before.x - sx / zoom;
+  camera.y = before.y - sy / zoom;
+  camera.x = clampX(camera.x); camera.y = clampY(camera.y);
 }
 
 export function initRenderer(canvasEl, tapHandler) {
@@ -66,38 +83,79 @@ function resize() {
   if (state.cols) { camera.x = clampX(camera.x); camera.y = clampY(camera.y); }
 }
 
+// --- entrada: arrastrar/tocar con 1 dedo, pellizcar con 2, rueda en PC ---
 function bindPointer() {
-  let p = null;
+  const pts = new Map();   // pointerId -> {x,y}
+  let p = null;            // seguimiento de 1 dedo (pan / tap)
+  let pinch = null;        // { startDist, startZoom, midX, midY }
+
+  function twoPointerInfo() {
+    const arr = [...pts.values()];
+    const dx = arr[0].x - arr[1].x, dy = arr[0].y - arr[1].y;
+    return { dist: Math.hypot(dx, dy), midX: (arr[0].x + arr[1].x) / 2, midY: (arr[0].y + arr[1].y) / 2 };
+  }
+
   canvas.addEventListener('pointerdown', e => {
-    // Arrastrar la cámara SIEMPRE se permite; la acción se decide al soltar.
     canvas.setPointerCapture(e.pointerId);
-    p = { id: e.pointerId, sx: e.clientX, sy: e.clientY, lx: e.clientX, ly: e.clientY, moved: false };
+    pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pts.size === 2) {
+      p = null;   // dos dedos: se acabó el pan de 1 dedo, empieza el pellizco
+      const info = twoPointerInfo();
+      const rect = canvas.getBoundingClientRect();
+      pinch = { startDist: info.dist, startZoom: zoom, mx: info.midX - rect.left, my: info.midY - rect.top };
+    } else if (pts.size === 1) {
+      p = { id: e.pointerId, sx: e.clientX, sy: e.clientY, lx: e.clientX, ly: e.clientY, moved: false };
+    }
   });
+
   canvas.addEventListener('pointermove', e => {
+    if (!pts.has(e.pointerId)) return;
+    pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+    if (pts.size >= 2 && pinch) {
+      const info = twoPointerInfo();
+      const ratio = info.dist / Math.max(1, pinch.startDist);
+      userPanning = true; camTween = null;
+      zoomAt(pinch.mx, pinch.my, pinch.startZoom * ratio);
+      return;
+    }
     if (!p || e.pointerId !== p.id) return;
     const dx = e.clientX - p.lx, dy = e.clientY - p.ly;
     if (Math.hypot(e.clientX - p.sx, e.clientY - p.sy) > 8) {
       p.moved = true; userPanning = true; camTween = null;
-      camera.x = clampX(camera.x - dx); camera.y = clampY(camera.y - dy);
+      camera.x = clampX(camera.x - dx / zoom); camera.y = clampY(camera.y - dy / zoom);
     }
     p.lx = e.clientX; p.ly = e.clientY;
   });
+
   const finish = e => {
-    if (!p || e.pointerId !== p.id) return;
-    if (!p.moved && !state.busy && !anim.active()) {   // fue un toque limpio y se puede actuar
-      const rect = canvas.getBoundingClientRect();
-      const lx = (e.clientX - rect.left) + camera.x;
-      const ly = (e.clientY - rect.top) + camera.y;
-      const gx = Math.floor(lx / TILE), gy = Math.floor(ly / TILE);
-      if (gx >= 0 && gy >= 0 && gx < state.cols && gy < state.rows) {
-        if (gx === state.hero.x && gy === state.hero.y) centerOnHero(false);
-        else onTap(gx, gy);
+    pts.delete(e.pointerId);
+    if (pinch && pts.size < 2) pinch = null;
+    if (p && e.pointerId === p.id) {
+      if (!p.moved && !state.busy && !anim.active() && pts.size === 0) {   // toque limpio
+        const rect = canvas.getBoundingClientRect();
+        const w = screenToWorld(e.clientX - rect.left, e.clientY - rect.top);
+        const gx = Math.floor(w.x / TILE), gy = Math.floor(w.y / TILE);
+        if (gx >= 0 && gy >= 0 && gx < state.cols && gy < state.rows) {
+          if (gx === state.hero.x && gy === state.hero.y) centerOnHero(false);
+          else onTap(gx, gy);
+        }
       }
+      p = null;
     }
-    userPanning = false; p = null;
+    if (pts.size === 0) userPanning = false;
   };
   canvas.addEventListener('pointerup', finish);
-  canvas.addEventListener('pointercancel', () => { userPanning = false; p = null; });
+  canvas.addEventListener('pointercancel', finish);
+
+  // Rueda del ratón en PC (Ctrl+rueda también, por si el navegador la usa para zoom de página).
+  canvas.addEventListener('wheel', e => {
+    e.preventDefault();
+    const rect = canvas.getBoundingClientRect();
+    const factor = Math.pow(1.0015, -e.deltaY);
+    userPanning = true; camTween = null;
+    zoomAt(e.clientX - rect.left, e.clientY - rect.top, zoom * factor);
+  }, { passive: false });
 }
 
 export function startLoop() { requestAnimationFrame(loop); }
@@ -134,96 +192,136 @@ function glyphFor(type) {
     case 'orb':   return '●';
     case 'table': return '▦';
     case 'trap':  return '▲';
+    case 'grave': return '†';
+    case 'crypt': return '⌂';
     default:      return '?';
   }
+}
+
+// Tinte de altura: más claro cuanto más alto, más oscuro cuanto más bajo (relativo a 0).
+function elevTint(h, strength = 1) {
+  if (h > 0) return `rgba(255,255,255,${Math.min(0.22, h * 0.11) * strength})`;
+  if (h < 0) return `rgba(0,0,0,${Math.min(0.38, -h * 0.14) * strength})`;
+  return null;
 }
 
 function drawActor(name, sheet, gx, gy, ts, fallback, show = true) {
   const a = anim.resolve(name, gx, gy, ts);   // SIEMPRE avanza la animación...
   if (!show) return;                           // ...aunque el actor esté en niebla y no se pinte
-  const cx = a.cx - camera.x, cy = a.cy - camera.y;
+  const s = worldToScreen(a.cx, a.cy);
+  const T = TILE * zoom;
   if (sheet) {
-    const size = TILE * 1.28;
-    ctx.drawImage(sheet, a.frame * SPRITE_TILE, 0, SPRITE_TILE, SPRITE_TILE, cx - size/2, cy - size*0.6, size, size);
+    // Ficha "de pie" (cenital): alto = TOKEN_TALL casillas; los pies quedan casi al
+    // fondo de su propia casilla, así que solo la cabeza asoma a la de arriba.
+    const size = T * TOKEN_TALL;
+    ctx.drawImage(sheet, a.frame * SPRITE_TILE, 0, SPRITE_TILE, SPRITE_TILE,
+                  s.x - size/2, s.y + T*0.40 - size, size, size);
   } else {
-    disc(cx, cy + 3, 16, 'rgba(0,0,0,.35)');
-    disc(cx, cy, 15, fallback.body); ring(cx, cy, 15, fallback.edge, 2);
-    glyph(cx, cy, fallback.mark, fallback.ink, 18);
+    disc(s.x, s.y + 3, 16*zoom, 'rgba(0,0,0,.35)');
+    disc(s.x, s.y, 15*zoom, fallback.body); ring(s.x, s.y, 15*zoom, fallback.edge, 2);
+    glyph(s.x, s.y, fallback.mark, fallback.ink, 18*zoom);
   }
-  if (a.hurt > 0) disc(cx, cy - 4, TILE * 0.42, `rgba(210,60,50,${0.35 * a.hurt})`);
+  if (a.hurt > 0) disc(s.x, s.y - 4*zoom, T * 0.42, `rgba(210,60,50,${0.35 * a.hurt})`);
 }
 
 function draw(ts) {
   if (!state.cols) return;
-  const { hero, triggers, tiles, exit } = state;
+  const { hero, triggers, tiles, elev } = state;
   updateCamera(ts);
-  const camX = camera.x, camY = camera.y;
   ctx.clearRect(0, 0, VW, VH);
+  const T = TILE * zoom;
 
   const atlas = images.tiles;
-  const x0 = Math.max(0, Math.floor(camX / TILE));
-  const y0 = Math.max(0, Math.floor(camY / TILE));
-  const x1 = Math.min(state.cols - 1, Math.floor((camX + VW) / TILE));
-  const y1 = Math.min(state.rows - 1, Math.floor((camY + VH) / TILE));
+  const bgImg = state.background && images[state.background.key];
+  const x0 = Math.max(0, Math.floor(camera.x / TILE));
+  const y0 = Math.max(0, Math.floor(camera.y / TILE));
+  const x1 = Math.min(state.cols - 1, Math.floor((camera.x + VW/zoom) / TILE));
+  const y1 = Math.min(state.rows - 1, Math.floor((camera.y + VH/zoom) / TILE));
+
+  // Si el nivel tiene un fondo pintado a mano, se dibuja UNA vez, estirado a toda
+  // la rejilla; si no, se dibujan las losetas del atlas casilla a casilla.
+  if (bgImg) {
+    const s0 = worldToScreen(0, 0), s1 = worldToScreen(state.cols * TILE, state.rows * TILE);
+    ctx.drawImage(bgImg, s0.x, s0.y, s1.x - s0.x, s1.y - s0.y);
+  }
 
   for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
-    const px = x * TILE - camX, py = y * TILE - camY;
-    if (!state.explored[y][x]) { ctx.fillStyle = '#05060a'; ctx.fillRect(px, py, TILE, TILE); continue; } // niebla negra
+    const s = worldToScreen(x * TILE, y * TILE);
+    if (!state.explored[y][x]) { ctx.fillStyle = '#05060a'; ctx.fillRect(s.x, s.y, T, T); continue; } // niebla negra
     const value = tiles[y][x];
-    if (atlas) {
-      ctx.drawImage(atlas, atlasCol(value, x, y) * ATLAS_TILE, 0, ATLAS_TILE, ATLAS_TILE, px, py, TILE, TILE);
-    } else {
-      ctx.fillStyle = value === 1 ? '#0e1016' : '#1b2029'; ctx.fillRect(px, py, TILE, TILE);
+    if (!bgImg) {
+      if (atlas) ctx.drawImage(atlas, atlasCol(value, x, y) * ATLAS_TILE, 0, ATLAS_TILE, ATLAS_TILE, s.x, s.y, T, T);
+      else { ctx.fillStyle = value === 1 ? '#0e1016' : '#1b2029'; ctx.fillRect(s.x, s.y, T, T); }
     }
-    ctx.strokeStyle = 'rgba(0,0,0,.28)'; ctx.lineWidth = 1;
-    ctx.strokeRect(px + 0.5, py + 0.5, TILE - 1, TILE - 1);
-    if (!state.visible[y][x]) { ctx.fillStyle = 'rgba(6,8,13,.62)'; ctx.fillRect(px, py, TILE, TILE); } // penumbra
+    if (value === 0) {
+      // Tinte por altura (más suave sobre fondo pintado, para no tapar el arte).
+      const tint = elevTint(elev[y] ? elev[y][x] : 0, bgImg ? 0.55 : 1);
+      if (tint) { ctx.fillStyle = tint; ctx.fillRect(s.x, s.y, T, T); }
+      // Aviso de terreno difícil (matorrales, escombros...).
+      if (state.difficult[y] && state.difficult[y][x]) { ctx.fillStyle = 'rgba(155,89,182,.30)'; ctx.fillRect(s.x, s.y, T, T); }
+    }
+    ctx.strokeStyle = bgImg ? 'rgba(255,255,255,.08)' : 'rgba(0,0,0,.28)'; ctx.lineWidth = 1;
+    ctx.strokeRect(s.x + 0.5, s.y + 0.5, T - 1, T - 1);
+    if (!state.visible[y][x]) { ctx.fillStyle = 'rgba(6,8,13,.62)'; ctx.fillRect(s.x, s.y, T, T); } // penumbra
   }
 
-  // Escalera de salida (si ya se ha visto)
-  if (exit && state.explored[exit.y][exit.x]) {
-    const cx = exit.x * TILE + TILE/2 - camX, cy = exit.y * TILE + TILE/2 - camY;
-    const on = state.visible[exit.y][exit.x];
-    ring(cx, cy, 15, on ? 'rgba(140,190,210,.9)' : 'rgba(140,190,210,.4)', 2);
-    glyph(cx, cy, '▼', on ? '#a9d4e4' : '#5f7d88', 20);
+  // Bordes de escalón (VERDE = lado alto, ROJO = lado bajo), estilo Descent.
+  const bt = Math.max(2, 4 * zoom);
+  for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
+    if (tiles[y][x] !== 0 || !state.explored[y][x]) continue;
+    const h = elev[y] ? elev[y][x] : 0;
+    const s = worldToScreen(x * TILE, y * TILE);
+    const edges = [[1,0],[-1,0],[0,1],[0,-1]];
+    for (const [dx, dy] of edges) {
+      const nx = x + dx, ny = y + dy;
+      if (nx < 0 || ny < 0 || nx >= state.cols || ny >= state.rows || tiles[ny][nx] !== 0) continue;
+      const hh = elev[ny] ? elev[ny][nx] : 0;
+      if (h === hh) continue;
+      ctx.fillStyle = h > hh ? 'rgba(90,200,90,.9)' : 'rgba(210,70,60,.9)';
+      if (dx === 1) ctx.fillRect(s.x + T - bt, s.y + 2, bt, T - 4);
+      if (dx === -1) ctx.fillRect(s.x, s.y + 2, bt, T - 4);
+      if (dy === 1) ctx.fillRect(s.x + 2, s.y + T - bt, T - 4, bt);
+      if (dy === -1) ctx.fillRect(s.x + 2, s.y, T - 4, bt);
+    }
   }
 
-  // Rango de movimiento (relleno ámbar de hasta 3 casillas) y enemigo atacable.
+  // Rango de movimiento (relleno ámbar) y enemigo atacable.
   if (!state.busy && !anim.active() && !userPanning) {
     const d = state.reach.dist;
     for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
       if (d[y] && d[y][x] > 0) {
-        const px = x * TILE - camX, py = y * TILE - camY;
-        ctx.fillStyle = 'rgba(224,138,60,.12)'; ctx.fillRect(px + 2, py + 2, TILE - 4, TILE - 4);
-        ctx.strokeStyle = 'rgba(224,138,60,.5)'; ctx.lineWidth = 1.5; ctx.strokeRect(px + 3.5, py + 3.5, TILE - 7, TILE - 7);
+        const s = worldToScreen(x * TILE, y * TILE);
+        ctx.fillStyle = 'rgba(224,138,60,.12)'; ctx.fillRect(s.x + 2, s.y + 2, T - 4, T - 4);
+        ctx.strokeStyle = 'rgba(224,138,60,.5)'; ctx.lineWidth = 1.5; ctx.strokeRect(s.x + 3.5, s.y + 3.5, T - 7, T - 7);
       }
     }
     for (const foe of state.foes) {
       if (foe.alive && Math.max(Math.abs(foe.x - hero.x), Math.abs(foe.y - hero.y)) === 1
           && state.visible[foe.y] && state.visible[foe.y][foe.x]) {
+        const s = worldToScreen(foe.x * TILE, foe.y * TILE);
         ctx.strokeStyle = '#b5443a'; ctx.lineWidth = 2;
-        ctx.strokeRect(foe.x * TILE - camX + 4.5, foe.y * TILE - camY + 4.5, TILE - 9, TILE - 9);
+        ctx.strokeRect(s.x + 4.5, s.y + 4.5, T - 9, T - 9);
       }
     }
   }
 
-  // Puntos de evento (si ya se han visto)
+  // Puntos de evento (lápidas, criptas...) — billboard con arte real si lo hay.
   const glow = reduceMotion ? 0.6 : 0.5 + 0.5 * Math.sin(pulse * 2.6);
   for (const tr of triggers) {
     if (tr.used || !state.explored[tr.y][tr.x]) continue;
-    const cx = tr.x * TILE + TILE/2 - camX, cy = tr.y * TILE + TILE/2 - camY;
+    const s = worldToScreen(tr.x * TILE + TILE/2, tr.y * TILE + TILE/2);
     const on = state.visible[tr.y][tr.x];
     const art = tr.sprite ? images[tr.sprite] : null;
     if (art) {
-      const th = (tr.tall || 1.3) * TILE, w = art.width * th / art.height;
+      const th = (tr.tall || PROP_TALL) * T, w = art.width * th / art.height;
       ctx.save();
-      if (!on) ctx.globalAlpha = 0.55;               // en penumbra, más apagado
-      ctx.drawImage(art, cx - w/2, cy - th + TILE*0.42, w, th);
+      if (!on) ctx.globalAlpha = 0.55;
+      ctx.drawImage(art, s.x - w/2, s.y - th + T*0.42, w, th);
       ctx.restore();
     } else {
-      disc(cx, cy, 20, `rgba(224,138,60,${(on ? 0.10 : 0.05) + 0.10 * glow})`);
-      ring(cx, cy, 14, on ? 'rgba(224,138,60,0.85)' : 'rgba(224,138,60,0.4)', 2);
-      glyph(cx, cy, glyphFor(tr.type), on ? '#e08a3c' : '#8a6a44', 20);
+      disc(s.x, s.y, 20*zoom, `rgba(224,138,60,${(on ? 0.10 : 0.05) + 0.10 * glow})`);
+      ring(s.x, s.y, 14*zoom, on ? 'rgba(224,138,60,0.85)' : 'rgba(224,138,60,0.4)', 2);
+      glyph(s.x, s.y, glyphFor(tr.type), on ? '#e08a3c' : '#8a6a44', 20*zoom);
     }
   }
 
@@ -241,10 +339,11 @@ function draw(ts) {
   // Números flotantes de daño/curación.
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   for (const f of anim.floatsNow(ts)) {
-    ctx.font = 'bold 18px ui-monospace, monospace';
+    const s = worldToScreen(f.x, f.y);
+    ctx.font = `bold ${18*zoom}px ui-monospace, monospace`;
     ctx.globalAlpha = f.alpha;
-    ctx.fillStyle = '#000'; ctx.fillText(f.text, f.x - camX + 1, f.y - camY + 1);
-    ctx.fillStyle = f.color; ctx.fillText(f.text, f.x - camX, f.y - camY);
+    ctx.fillStyle = '#000'; ctx.fillText(f.text, s.x + 1, s.y + 1);
+    ctx.fillStyle = f.color; ctx.fillText(f.text, s.x, s.y);
     ctx.globalAlpha = 1;
   }
 }

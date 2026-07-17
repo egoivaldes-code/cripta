@@ -1,14 +1,34 @@
 // Punto de entrada. Carga idioma y datos, cablea módulos y arranca el bucle.
 
-import { state, initGame } from './state.js?v=0.4';
-import { initRenderer, startLoop, centerOnHero } from './render.js?v=0.4';
-import { onTapTile, bindDescend, startHeroTurn, endHeroTurn, afterInteract } from './rules.js?v=0.4';
-import { syncHUD, log, hideVeil, bindAfterInteract, bindRestart, applyStaticText } from './ui.js?v=0.4';
-import { loadAssets } from './assets.js?v=0.4';
-import { initialLang, loadLang, onLangChange, getLang, t } from './i18n.js?v=0.4';
-import * as anim from './anim.js?v=0.4';
-import * as audio from './audio.js?v=0.4';
-import { VERSION } from './config.js?v=0.4';
+import { state, initGame } from './state.js?v=0.5';
+import { initRenderer, startLoop, centerOnHero } from './render.js?v=0.5';
+import { onTapTile, bindDescend, startHeroTurn, endHeroTurn, afterInteract } from './rules.js?v=0.5';
+import { syncHUD, log, hideVeil, bindAfterInteract, bindRestart, applyStaticText } from './ui.js?v=0.5';
+import { loadAssets } from './assets.js?v=0.5';
+import { initialLang, loadLang, onLangChange, getLang, t } from './i18n.js?v=0.5';
+import * as anim from './anim.js?v=0.5';
+import * as audio from './audio.js?v=0.5';
+import { VERSION } from './config.js?v=0.5';
+import { assemble } from './mapgen.js?v=0.5';
+
+// El ensamblador de losetas (mapgen.js) sigue disponible para niveles ALEATORIOS
+// futuros; esta función queda de reserva pero no se usa por ahora, ya que el
+// cementerio pasó a ser un mapa FIJO pintado a mano (data/levels/cemetery.json).
+function buildRandomCemeteryLevel(seed) {
+  const m = assemble({ seed, pieces: 9 });
+  const spots = [...m.foeSpots];
+  const skelSprites = ['enemy1', 'enemy2', 'enemy3'];
+  const foes = spots.splice(0, 3).map((s, i) => ({
+    x: s.x, y: s.y, hp: 12, maxHp: 12, atk: 4, sprite: skelSprites[i], dormant: true, wakeR: 3,
+  }));
+  const triggers = spots.slice(0, 3).map(s => ({ x: s.x, y: s.y, id: 'tumba', type: 'grave', sprite: 'grave' }));
+  return {
+    name: 'El cementerio (aleatorio)',
+    tiles: m.tiles, elev: m.elev,
+    start: { hero: { x: m.heroStart.x, y: m.heroStart.y, hp: 26, maxHp: 26, atk: 6, gold: 0 }, foes },
+    triggers, exit: null,
+  };
+}
 
 async function boot() {
   // Idioma primero (los textos) y assets/datos en paralelo.
@@ -22,8 +42,9 @@ async function boot() {
 
   const levelCache = {};
   async function getLevel(name) {
-    if (!levelCache[name]) levelCache[name] = await fetch(`./data/levels/${name}.json?v=${VERSION}`).then(r => r.json());
-    return levelCache[name];
+    const file = name === 'level1' ? 'cemetery' : name;   // 'level1' = el cementerio (mapa fijo pintado)
+    if (!levelCache[file]) levelCache[file] = await fetch(`./data/levels/${file}.json?v=${VERSION}`).then(r => r.json());
+    return levelCache[file];
   }
 
   async function loadLevel(name, carry) {

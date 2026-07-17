@@ -2,7 +2,7 @@
 // Fotogramas: 0 quieto · 1 paso dcha · 2 paso izq · 3 ataque
 // Además: sacudida al recibir daño y números flotantes (daño/curación).
 
-import { TILE } from './config.js?v=0.4';
+import { TILE } from './config.js?v=0.5';
 
 const D_MOVE = 170;
 const D_ATTACK = 220;
@@ -25,6 +25,15 @@ export function reset() {
   floats.length = 0;
 }
 
+// Asienta (deja fijada) la posición final de un movimiento/camino en curso.
+// Evita que, al encadenar mover+atacar en el mismo turno, el sprite se quede
+// clavado en la casilla anterior mientras su casilla lógica ya avanzó.
+function commit(a) {
+  if (!a || !a.anim) return;
+  if (a.anim.type === 'move') { a.px = a.anim.to.x; a.py = a.anim.to.y; }
+  else if (a.anim.type === 'path') { const p = a.anim.pts[a.anim.pts.length - 1]; a.px = p.x; a.py = p.y; }
+}
+
 export function move(name, fromGX, fromGY, toGX, toGY) {
   const a = ensure(name, fromGX, fromGY);
   a.px = center(fromGX); a.py = center(fromGY);
@@ -34,7 +43,9 @@ export function move(name, fromGX, fromGY, toGX, toGY) {
 
 export function attack(name, dx, dy) {
   const a = actors[name];
-  if (a) a.anim = { type: 'attack', t0: performance.now(), dur: D_ATTACK, dir: { x: dx, y: dy } };
+  if (!a) return;
+  commit(a);   // asienta un movimiento previo sin terminar antes de lanzar el ataque
+  a.anim = { type: 'attack', t0: performance.now(), dur: D_ATTACK, dir: { x: dx, y: dy } };
 }
 
 // Desliza por un camino de varias casillas (rango de movimiento). cells: [{x,y}...]

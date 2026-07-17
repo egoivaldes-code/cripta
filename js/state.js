@@ -2,11 +2,14 @@
 // Incluye niebla de guerra (explored/visible) y el alcance de movimiento
 // ligado a los Puntos de Acción (PA) restantes del héroe.
 
-import { SIGHT, AP_MAX } from './config.js?v=0.4';
+import { SIGHT, AP_MAX, CLIMB_COST, MAX_CLIMB, DIFFICULT_EXTRA } from './config.js?v=0.5';
 
 export const state = {
   cols: 0, rows: 0,
   tiles: [],
+  elev: [],                  // altura por casilla (0 = normal; +/- = escalones)
+  difficult: [],             // terreno difícil (matorrales, escombros...): true = cuesta más cruzarlo
+  background: null,          // { key } si el nivel usa una imagen de fondo pintada, en vez de losetas
   hero: null, foes: [],      // hero.ap = PA restantes este turno; .apMax = PA por turno
   triggers: [], exit: null,
   events: {},
@@ -26,6 +29,9 @@ export function initGame(level, events) {
   state.tiles = level.tiles;
   state.rows = level.tiles.length;
   state.cols = level.tiles[0].length;
+  state.elev = level.elev || grid(state.rows, state.cols, 0);
+  state.difficult = level.difficult || grid(state.rows, state.cols, false);
+  state.background = level.background || null;
   state.hero = { ...level.start.hero, ap: AP_MAX, apMax: AP_MAX };
   const foeList = level.start.foes || (level.start.foe ? [level.start.foe] : []);
   state.foes = foeList.map((f, i) => ({
@@ -78,14 +84,27 @@ export function distTo(a, x, y) { return Math.max(Math.abs(a.x - x), Math.abs(a.
 // Casillas a las que se puede dar UN paso desde (x,y): las 4 rectas siempre;
 // las 4 diagonales solo si no se corta la esquina de un muro (las dos casillas
 // rectas contiguas tienen que estar libres). Así no te cuelas entre dos paredes.
+// Además, un desnivel de altura mayor que MAX_CLIMB es un precipicio: no se cruza.
+// Subir un escalón cuesta CLIMB_COST extra; bajar o llano cuesta 1 (MOVE_COST).
 function diagOpen(x, y, dx, dy) { return !isWall(x + dx, y) && !isWall(x, y + dy); }
+export function elevAt(x, y) { return (state.elev[y] && state.elev[y][x]) || 0; }
+export function isDifficult(x, y) { return !!(state.difficult[y] && state.difficult[y][x]); }
+export function stepCost(x, y, nx, ny) {
+  const diff = elevAt(nx, ny) - elevAt(x, y);
+  if (Math.abs(diff) > MAX_CLIMB) return -1;         // precipicio: infranqueable
+  let cost = 1 + (diff > 0 ? CLIMB_COST - 1 : 0);     // subir cuesta más; bajar/llano = 1
+  if (isDifficult(nx, ny)) cost += DIFFICULT_EXTRA;    // terreno difícil: cuesta más, pero no bloquea
+  return cost;
+}
 export function stepNeighbors(x, y) {
   const out = [];
   for (const [dx, dy] of DIRS8) {
     const nx = x + dx, ny = y + dy;
     if (!walkable(nx, ny)) continue;
     if (dx !== 0 && dy !== 0 && !diagOpen(x, y, dx, dy)) continue;
-    out.push([nx, ny]);
+    const cost = stepCost(x, y, nx, ny);
+    if (cost < 0) continue;                            // precipicio
+    out.push([nx, ny, cost]);
   }
   return out;
 }
@@ -119,19 +138,25 @@ export function recomputeFog() {
   }
 }
 
-// --- alcance de movimiento (BFS hasta los PA restantes, rodeando muros/muebles) ---
+// --- alcance de movimiento (Dijkstra hasta los PA restantes: subir cuesta más,
+// un desnivel grande es un precipicio infranqueable; rodea muros/muebles) ---
 export function computeReach() {
   const { hero } = state;
   const dist = grid(state.rows, state.cols, -1);
   const from = grid(state.rows, state.cols, null);
   dist[hero.y][hero.x] = 0;
-  const q = [[hero.x, hero.y]];
-  while (q.length) {
-    const [x, y] = q.shift();
-    if (dist[y][x] >= hero.ap) continue;
-    for (const [nx, ny] of stepNeighbors(x, y)) {
-      if (dist[ny][nx] === -1) {
-        dist[ny][nx] = dist[y][x] + 1; from[ny][nx] = [x, y]; q.push([nx, ny]);
+  // Cola de prioridad simple (los PA por turno son pocos, así que un array basta).
+  const pq = [[0, hero.x, hero.y]];
+  while (pq.length) {
+    pq.sort((a, b) => a[0] - b[0]);
+    const [d, x, y] = pq.shift();
+    if (d > dist[y][x]) continue;               // entrada obsoleta
+    if (d >= hero.ap) continue;
+    for (const [nx, ny, cost] of stepNeighbors(x, y)) {
+      const nd = d + cost;
+      if (nd > hero.ap) continue;                // no llega con los PA de este turno
+      if (dist[ny][nx] === -1 || nd < dist[ny][nx]) {
+        dist[ny][nx] = nd; from[ny][nx] = [x, y]; pq.push([nd, nx, ny]);
       }
     }
   }
@@ -140,6 +165,11 @@ export function computeReach() {
 export function inRange(x, y) {
   const d = state.reach.dist;
   return inBounds(x, y) && d[y] && d[y][x] > 0;
+}
+// Coste real en PA (ya con la altura aplicada) para llegar a (x,y), o -1 si no está en rango.
+export function reachCost(x, y) {
+  const d = state.reach.dist;
+  return (inBounds(x, y) && d[y] && d[y][x] > 0) ? d[y][x] : -1;
 }
 // Camino desde el héroe hasta (x,y) dentro del alcance, o null si no llega.
 export function pathTo(x, y) {
