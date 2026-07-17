@@ -1,12 +1,12 @@
 // Reglas del juego: economía de Puntos de Acción (PA), interacción a distancia
 // y adyacente, trampas, niebla y salida de nivel. Agnóstico del dibujo.
 
-import { state, walkable, adjacent, distTo, isVisible, recomputeFog, computeReach, pathTo, blockingTriggerAt, trapAt, stepNeighbors } from './state.js?v=0.3.2';
-import { openEvent, syncHUD, log, gameOver } from './ui.js?v=0.3.2';
-import { t } from './i18n.js?v=0.3.2';
-import { MOVE_COST, ATTACK_COST } from './config.js?v=0.3.2';
-import * as anim from './anim.js?v=0.3.2';
-import * as audio from './audio.js?v=0.3.2';
+import { state, walkable, adjacent, distTo, isVisible, recomputeFog, computeReach, pathTo, blockingTriggerAt, trapAt, stepNeighbors, foeAt, livingFoes } from './state.js?v=0.4';
+import { openEvent, syncHUD, log, gameOver } from './ui.js?v=0.4';
+import { t } from './i18n.js?v=0.4';
+import { MOVE_COST, ATTACK_COST } from './config.js?v=0.4';
+import * as anim from './anim.js?v=0.4';
+import * as audio from './audio.js?v=0.4';
 
 const sign = (n) => Math.sign(n);
 
@@ -41,20 +41,25 @@ function triggerTrap(trap) {
 
 // Acción del jugador al tocar una casilla (la llama render.js).
 export function onTapTile(gx, gy) {
-  const { hero, foe } = state;
+  const { hero } = state;
 
-  // --- ¿Atacar? Requiere estar pegado y tener PA suficientes. ---
-  if (foe.alive && foe.x === gx && foe.y === gy) {
+  // --- ¿Atacar al enemigo que hay en esta casilla? Pegado y con PA suficientes. ---
+  const target = foeAt(gx, gy);
+  if (target) {
     if (!adjacent(hero, gx, gy)) return;
     if (hero.ap < ATTACK_COST) { log(t('log.noAP')); return; }
     hero.ap -= ATTACK_COST;
     anim.attack('hero', sign(gx - hero.x), sign(gy - hero.y));
-    anim.hurt('foe'); anim.floatAt(foe.x, foe.y, `−${hero.atk}`, '#e86a5c');
-    foe.hp -= hero.atk;
+    anim.hurt(target.anim); anim.floatAt(target.x, target.y, `−${hero.atk}`, '#e86a5c');
+    target.hp -= hero.atk;
+    target.dormant = false;                 // si le pegas, despierta
     log(t('log.hitFoe', { dmg: hero.atk }));
-    if (foe.hp <= 0) { audio.fx('kill'); foe.alive = false; syncHUD(); return gameOver('win'); }
-    audio.fx('attack');
-    syncHUD();
+    if (target.hp <= 0) {
+      audio.fx('kill'); target.alive = false; syncHUD();
+      if (livingFoes().length === 0) return gameOver('win');
+    } else {
+      audio.fx('attack'); syncHUD();
+    }
     computeReach();
     if (hero.ap <= 0) return endHeroTurn();
     return;
@@ -133,34 +138,42 @@ export function endHeroTurn() {
 // Se acerca mientras le rinda, y ataca si queda pegado y le alcanzan los PA
 // (puede encadenar varios ataques, igual que el héroe).
 export function enemyAITurn() {
-  const { hero, foe } = state;
-  if (!foe.alive) return;
-  let ap = foe.apMax;
+  const { hero } = state;
+  for (const foe of state.foes) {
+    if (!foe.alive) continue;
 
-  while (ap > 0) {
-    if (adjacent(foe, hero.x, hero.y)) {
-      if (ap < ATTACK_COST) break;
-      ap -= ATTACK_COST;
-      anim.attack('foe', sign(hero.x - foe.x), sign(hero.y - foe.y));
-      anim.hurt('hero'); anim.floatAt(hero.x, hero.y, `−${foe.atk}`, '#e86a5c'); audio.fx('hurt');
-      hero.hp -= foe.atk;
-      log(t('log.hitHero', { dmg: foe.atk }));
-      syncHUD();
-      if (hero.hp <= 0) { gameOver('lose'); return; }
-      continue;
+    // Enemigo dormido: solo despierta si el héroe está a wakeR casillas o menos.
+    if (foe.dormant) {
+      if (distTo(foe, hero.x, hero.y) <= foe.wakeR) foe.dormant = false;
+      else continue;
     }
-    if (ap < MOVE_COST) break;
-    const cur = distTo(foe, hero.x, hero.y);
-    const step = stepNeighbors(foe.x, foe.y)
-      .map(([x, y]) => ({ x, y }))
-      .filter(p => !(p.x === hero.x && p.y === hero.y))
-      .map(p => ({ ...p, d: distTo(hero, p.x, p.y) }))
-      .sort((a, b) => a.d - b.d)[0];
-    if (!step || step.d >= cur) break;   // no puede acercarse más: no malgasta el resto de PA
-    const fromX = foe.x, fromY = foe.y;
-    foe.x = step.x; foe.y = step.y;
-    anim.move('foe', fromX, fromY, step.x, step.y);
-    ap -= MOVE_COST;
+
+    let ap = foe.apMax;
+    while (ap > 0) {
+      if (adjacent(foe, hero.x, hero.y)) {
+        if (ap < ATTACK_COST) break;
+        ap -= ATTACK_COST;
+        anim.attack(foe.anim, sign(hero.x - foe.x), sign(hero.y - foe.y));
+        anim.hurt('hero'); anim.floatAt(hero.x, hero.y, `−${foe.atk}`, '#e86a5c'); audio.fx('hurt');
+        hero.hp -= foe.atk;
+        log(t('log.hitHero', { dmg: foe.atk }));
+        syncHUD();
+        if (hero.hp <= 0) { gameOver('lose'); return; }
+        continue;
+      }
+      if (ap < MOVE_COST) break;
+      const cur = distTo(foe, hero.x, hero.y);
+      const step = stepNeighbors(foe.x, foe.y)
+        .map(([x, y]) => ({ x, y }))
+        .filter(p => !(p.x === hero.x && p.y === hero.y))
+        .map(p => ({ ...p, d: distTo(hero, p.x, p.y) }))
+        .sort((a, b) => a.d - b.d)[0];
+      if (!step || step.d >= cur) break;   // no puede acercarse más: no malgasta PA
+      const fromX = foe.x, fromY = foe.y;
+      foe.x = step.x; foe.y = step.y;
+      anim.move(foe.anim, fromX, fromY, step.x, step.y);
+      ap -= MOVE_COST;
+    }
   }
   syncHUD();
 }

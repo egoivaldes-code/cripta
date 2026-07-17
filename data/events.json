@@ -4,9 +4,20 @@
     "type": "chest",
     "actionCost": 1,
     "choices": [
-      { "effect": { "gold": 8 } },
-      { "effect": { "gold": 18, "hp": -6 } },
-      { "effect": {} }
+      {
+        "effect": {
+          "gold": 8
+        }
+      },
+      {
+        "effect": {
+          "gold": 18,
+          "hp": -6
+        }
+      },
+      {
+        "effect": {}
+      }
     ]
   },
   "altar": {
@@ -14,9 +25,20 @@
     "type": "altar",
     "actionCost": 1,
     "choices": [
-      { "effect": { "hp": 10, "gold": -4 } },
-      { "effect": { "gold": 5 } },
-      { "effect": {} }
+      {
+        "effect": {
+          "hp": 10,
+          "gold": -4
+        }
+      },
+      {
+        "effect": {
+          "gold": 5
+        }
+      },
+      {
+        "effect": {}
+      }
     ]
   },
   "palanca": {
@@ -24,8 +46,14 @@
     "type": "lever",
     "actionCost": 1,
     "choices": [
-      { "effect": { "gold": 6 } },
-      { "effect": {} }
+      {
+        "effect": {
+          "gold": 6
+        }
+      },
+      {
+        "effect": {}
+      }
     ]
   },
   "orbe": {
@@ -33,9 +61,20 @@
     "type": "orb",
     "actionCost": 2,
     "choices": [
-      { "effect": { "hp": 8 } },
-      { "effect": { "gold": 14, "hp": -8 } },
-      { "effect": {} }
+      {
+        "effect": {
+          "hp": 8
+        }
+      },
+      {
+        "effect": {
+          "gold": 14,
+          "hp": -8
+        }
+      },
+      {
+        "effect": {}
+      }
     ]
   },
   "mesa": {
@@ -43,8 +82,14 @@
     "type": "table",
     "actionCost": 3,
     "choices": [
-      { "effect": { "gold": 10 } },
-      { "effect": {} }
+      {
+        "effect": {
+          "gold": 10
+        }
+      },
+      {
+        "effect": {}
+      }
     ]
   },
   "trampa": {
@@ -52,5 +97,30 @@
     "type": "trap",
     "actionCost": 2,
     "trapDmg": 5
+  },
+  "tumba": {
+    "i18n": "ev.tumba",
+    "type": "grave",
+    "actionCost": 1,
+    "choices": [
+      {
+        "effect": {
+          "gold": 5
+        }
+      },
+      {
+        "effect": {}
+      }
+    ]
+  },
+  "cripta": {
+    "i18n": "ev.cripta",
+    "type": "crypt",
+    "actionCost": 1,
+    "choices": [
+      {
+        "effect": {}
+      }
+    ]
   }
 }

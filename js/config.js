@@ -10,4 +10,4 @@ export const MOVE_COST = 1;    // coste de moverse 1 casilla
 export const ATTACK_COST = 2;  // coste de atacar (depende del arma; por ahora fijo)
 
 // --- versión (fuente única; también se usa para el cache-busting de assets) ---
-export const VERSION = '0.3.2';
+export const VERSION = '0.4';

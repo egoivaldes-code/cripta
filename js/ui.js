@@ -1,11 +1,11 @@
 // Capa DOM: HUD (con PA), cartas de evento, registro, fin de partida y ajustes.
 // Todo el texto visible pasa por t() (multiidioma). No dibuja en el canvas.
 
-import { state } from './state.js?v=0.3.2';
-import { t } from './i18n.js?v=0.3.2';
-import * as anim from './anim.js?v=0.3.2';
-import * as audio from './audio.js?v=0.3.2';
-import { VERSION } from './config.js?v=0.3.2';
+import { state, nearestFoe } from './state.js?v=0.4';
+import { t } from './i18n.js?v=0.4';
+import * as anim from './anim.js?v=0.4';
+import * as audio from './audio.js?v=0.4';
+import { VERSION } from './config.js?v=0.4';
 
 let afterInteract = () => {};
 let restart = () => {};
@@ -18,9 +18,10 @@ let open = null; // { type:'event', trig } | { type:'over', kind } | null
 export function log(html) { $('log').innerHTML = html; }
 
 export function syncHUD() {
-  const { hero, foe } = state;
+  const { hero } = state;
+  const foe = nearestFoe();
   $('hpHero').style.width = Math.max(0, hero.hp / hero.maxHp * 100) + '%';
-  $('hpFoe').style.width = foe.alive ? Math.max(0, foe.hp / foe.maxHp * 100) + '%' : '0%';
+  $('hpFoe').style.width = foe ? Math.max(0, foe.hp / foe.maxHp * 100) + '%' : '0%';
   $('gold').textContent = hero.gold;
   // Puntos de acción: pips llenos/vacíos.
   const pips = $('apPips');

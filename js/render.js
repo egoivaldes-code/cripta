@@ -5,10 +5,10 @@
 // (TILE), así que en pantallas grandes se ve más mapa. La cámara se arrastra y
 // se recentra en el héroe. Niebla de guerra de dos capas (negro / penumbra).
 
-import { state } from './state.js?v=0.3.2';
-import { TILE, CAMERA_MARGIN } from './config.js?v=0.3.2';
-import { images, ATLAS_TILE, SPRITE_TILE } from './assets.js?v=0.3.2';
-import * as anim from './anim.js?v=0.3.2';
+import { state } from './state.js?v=0.4';
+import { TILE, CAMERA_MARGIN } from './config.js?v=0.4';
+import { images, ATLAS_TILE, SPRITE_TILE } from './assets.js?v=0.4';
+import * as anim from './anim.js?v=0.4';
 
 function atlasCol(value, x, y) {
   if (value === 1) return 3;
@@ -155,7 +155,7 @@ function drawActor(name, sheet, gx, gy, ts, fallback, show = true) {
 
 function draw(ts) {
   if (!state.cols) return;
-  const { hero, foe, triggers, tiles, exit } = state;
+  const { hero, triggers, tiles, exit } = state;
   updateCamera(ts);
   const camX = camera.x, camY = camera.y;
   ctx.clearRect(0, 0, VW, VH);
@@ -198,10 +198,12 @@ function draw(ts) {
         ctx.strokeStyle = 'rgba(224,138,60,.5)'; ctx.lineWidth = 1.5; ctx.strokeRect(px + 3.5, py + 3.5, TILE - 7, TILE - 7);
       }
     }
-    if (foe.alive && Math.max(Math.abs(foe.x - hero.x), Math.abs(foe.y - hero.y)) === 1
-        && state.visible[foe.y] && state.visible[foe.y][foe.x]) {
-      ctx.strokeStyle = '#b5443a'; ctx.lineWidth = 2;
-      ctx.strokeRect(foe.x * TILE - camX + 4.5, foe.y * TILE - camY + 4.5, TILE - 9, TILE - 9);
+    for (const foe of state.foes) {
+      if (foe.alive && Math.max(Math.abs(foe.x - hero.x), Math.abs(foe.y - hero.y)) === 1
+          && state.visible[foe.y] && state.visible[foe.y][foe.x]) {
+        ctx.strokeStyle = '#b5443a'; ctx.lineWidth = 2;
+        ctx.strokeRect(foe.x * TILE - camX + 4.5, foe.y * TILE - camY + 4.5, TILE - 9, TILE - 9);
+      }
     }
   }
 
@@ -211,15 +213,26 @@ function draw(ts) {
     if (tr.used || !state.explored[tr.y][tr.x]) continue;
     const cx = tr.x * TILE + TILE/2 - camX, cy = tr.y * TILE + TILE/2 - camY;
     const on = state.visible[tr.y][tr.x];
-    disc(cx, cy, 20, `rgba(224,138,60,${(on ? 0.10 : 0.05) + 0.10 * glow})`);
-    ring(cx, cy, 14, on ? 'rgba(224,138,60,0.85)' : 'rgba(224,138,60,0.4)', 2);
-    glyph(cx, cy, glyphFor(tr.type), on ? '#e08a3c' : '#8a6a44', 20);
+    const art = tr.sprite ? images[tr.sprite] : null;
+    if (art) {
+      const th = (tr.tall || 1.3) * TILE, w = art.width * th / art.height;
+      ctx.save();
+      if (!on) ctx.globalAlpha = 0.55;               // en penumbra, más apagado
+      ctx.drawImage(art, cx - w/2, cy - th + TILE*0.42, w, th);
+      ctx.restore();
+    } else {
+      disc(cx, cy, 20, `rgba(224,138,60,${(on ? 0.10 : 0.05) + 0.10 * glow})`);
+      ring(cx, cy, 14, on ? 'rgba(224,138,60,0.85)' : 'rgba(224,138,60,0.4)', 2);
+      glyph(cx, cy, glyphFor(tr.type), on ? '#e08a3c' : '#8a6a44', 20);
+    }
   }
 
-  // Enemigo: su animación SIEMPRE avanza; solo se dibuja si está a la vista.
-  if (foe.alive) {
+  // Enemigos: cada uno con su sprite; su animación siempre avanza; se dibuja si está a la vista.
+  for (const foe of state.foes) {
+    if (!foe.alive) continue;
     const vis = state.visible[foe.y] && state.visible[foe.y][foe.x];
-    drawActor('foe', images.enemy, foe.x, foe.y, ts, { body:'#b5443a', edge:'#7d2a24', ink:'#2a0f0d', mark:'✕' }, vis);
+    drawActor(foe.anim, images[foe.sprite] || images.enemy, foe.x, foe.y, ts,
+              { body:'#b5443a', edge:'#7d2a24', ink:'#2a0f0d', mark:'✕' }, vis);
   }
 
   // Héroe (siempre visible).

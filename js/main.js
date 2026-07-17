@@ -1,14 +1,14 @@
 // Punto de entrada. Carga idioma y datos, cablea módulos y arranca el bucle.
 
-import { state, initGame } from './state.js?v=0.3.2';
-import { initRenderer, startLoop, centerOnHero } from './render.js?v=0.3.2';
-import { onTapTile, bindDescend, startHeroTurn, endHeroTurn, afterInteract } from './rules.js?v=0.3.2';
-import { syncHUD, log, hideVeil, bindAfterInteract, bindRestart, applyStaticText } from './ui.js?v=0.3.2';
-import { loadAssets } from './assets.js?v=0.3.2';
-import { initialLang, loadLang, onLangChange, getLang, t } from './i18n.js?v=0.3.2';
-import * as anim from './anim.js?v=0.3.2';
-import * as audio from './audio.js?v=0.3.2';
-import { VERSION } from './config.js?v=0.3.2';
+import { state, initGame } from './state.js?v=0.4';
+import { initRenderer, startLoop, centerOnHero } from './render.js?v=0.4';
+import { onTapTile, bindDescend, startHeroTurn, endHeroTurn, afterInteract } from './rules.js?v=0.4';
+import { syncHUD, log, hideVeil, bindAfterInteract, bindRestart, applyStaticText } from './ui.js?v=0.4';
+import { loadAssets } from './assets.js?v=0.4';
+import { initialLang, loadLang, onLangChange, getLang, t } from './i18n.js?v=0.4';
+import * as anim from './anim.js?v=0.4';
+import * as audio from './audio.js?v=0.4';
+import { VERSION } from './config.js?v=0.4';
 
 async function boot() {
   // Idioma primero (los textos) y assets/datos en paralelo.

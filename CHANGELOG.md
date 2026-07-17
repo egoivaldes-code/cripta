@@ -2,6 +2,15 @@
 
 Esquema: `0.X` = cambio grande · `0.X.Y` = cambio pequeño / fix.
 
+## 0.4 — el cementerio
+- Nuevo escenario: un cementerio con muro de piedra alrededor, hierba, lápidas y dos criptas, todo con arte pintado a mano (estética Ultima Online).
+- 3 esqueletos distintos (sin arma, con espada y escudo, con armadura) que empiezan quietos y despiertan al acercarte; luego van a por ti.
+- El motor ahora maneja varios enemigos a la vez.
+- Lápidas y criptas son obstáculos que puedes registrar: las tumbas a veces guardan monedas; las criptas están selladas por ahora.
+- Se gana al derrotar a los tres esqueletos.
+- Personajes en pose fija (idle) que se deslizan por el mapa; las animaciones de andar/atacar/morir llegarán cuando tengamos esos fotogramas.
+- Pendiente para la V0.4.1: entrar en las criptas y que se abra el tejado.
+
 ## 0.3.2 — movimiento en diagonal y sonido real
 - Movimiento en 8 direcciones: además de las 4 rectas, ahora te mueves y atacas también en diagonal. La diagonal cuesta 1 PA (igual que un paso recto), así que cubres más terreno. Los esqueletos también usan las diagonales para acercarse.
 - Regla de esquinas: no se puede cruzar en diagonal rozando la esquina de un muro (para rodear una pared se da el paso recto), así el personaje nunca se solapa con las paredes.

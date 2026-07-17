@@ -2,12 +2,12 @@
 // Incluye niebla de guerra (explored/visible) y el alcance de movimiento
 // ligado a los Puntos de Acción (PA) restantes del héroe.
 
-import { SIGHT, AP_MAX } from './config.js?v=0.3.2';
+import { SIGHT, AP_MAX } from './config.js?v=0.4';
 
 export const state = {
   cols: 0, rows: 0,
   tiles: [],
-  hero: null, foe: null,     // hero/foe.ap = PA restantes este turno; .apMax = PA por turno
+  hero: null, foes: [],      // hero.ap = PA restantes este turno; .apMax = PA por turno
   triggers: [], exit: null,
   events: {},
   explored: [], visible: [],
@@ -27,7 +27,14 @@ export function initGame(level, events) {
   state.rows = level.tiles.length;
   state.cols = level.tiles[0].length;
   state.hero = { ...level.start.hero, ap: AP_MAX, apMax: AP_MAX };
-  state.foe = { ...level.start.foe, alive: true, apMax: AP_MAX };
+  const foeList = level.start.foes || (level.start.foe ? [level.start.foe] : []);
+  state.foes = foeList.map((f, i) => ({
+    ...f, alive: true, apMax: AP_MAX,
+    anim: 'foe' + i,                       // nombre único para su animación
+    sprite: f.sprite || 'enemy',           // qué imagen usa
+    dormant: f.dormant === true,           // empieza quieto hasta que te acercas
+    wakeR: f.wakeR != null ? f.wakeR : 3,  // a cuántas casillas despierta
+  }));
   state.triggers = level.triggers.map(t => ({ ...t, used: false }));
   state.exit = level.exit ? { ...level.exit } : null;
   state.events = events;
@@ -52,8 +59,16 @@ export function trapAt(x, y) {
 
 export function walkable(x, y) {
   return inBounds(x, y) && state.tiles[y][x] === 0
-    && !(state.foe.alive && state.foe.x === x && state.foe.y === y)
+    && !state.foes.some(f => f.alive && f.x === x && f.y === y)
     && !blockingTriggerAt(x, y);
+}
+// Consultas sobre los enemigos.
+export function livingFoes() { return state.foes.filter(f => f.alive); }
+export function foeAt(x, y) { return state.foes.find(f => f.alive && f.x === x && f.y === y) || null; }
+export function nearestFoe() {
+  const { hero } = state; let best = null, bd = Infinity;
+  for (const f of state.foes) { if (!f.alive) continue; const d = distTo(f, hero.x, hero.y); if (d < bd) { bd = d; best = f; } }
+  return best;
 }
 // "Al lado" ahora incluye las diagonales (distancia de Chebyshev = 1), así que
 // se puede atacar y usar objetos también en diagonal.

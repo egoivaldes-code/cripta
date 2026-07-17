@@ -2,7 +2,7 @@
 // Fotogramas: 0 quieto · 1 paso dcha · 2 paso izq · 3 ataque
 // Además: sacudida al recibir daño y números flotantes (daño/curación).
 
-import { TILE } from './config.js?v=0.3.2';
+import { TILE } from './config.js?v=0.4';
 
 const D_MOVE = 170;
 const D_ATTACK = 220;

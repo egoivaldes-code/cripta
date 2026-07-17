@@ -85,5 +85,22 @@
   "ev.trampa.title": "Losa inestable",
   "ev.trampa.hint": "Algo en el suelo no encaja del todo.",
   "ev.trampa.text": "La losa cede bajo tu peso y algo se dispara desde la pared.",
-  "log.trapDisarm": "Desarmas la trampa."
+  "log.trapDisarm": "Desarmas la trampa.",
+  "ev.tumba.kicker": "Tumba",
+  "ev.tumba.title": "Lápida musgosa",
+  "ev.tumba.hint": "Una vieja tumba cubierta de musgo.",
+  "ev.tumba.text": "La tierra está removida y blanda. Algo brilla entre las raíces.",
+  "ev.tumba.c0": "Rebuscar en la tierra",
+  "ev.tumba.c0.tag": "+5 ◆",
+  "ev.tumba.c0.r": "Unas monedas viejas entre los huesos.",
+  "ev.tumba.c1": "Dejar descansar",
+  "ev.tumba.c1.tag": "—",
+  "ev.tumba.c1.r": "Mejor no molestar a los muertos.",
+  "ev.cripta.kicker": "Cripta",
+  "ev.cripta.title": "Puerta sellada",
+  "ev.cripta.hint": "Una cripta de piedra con la puerta cerrada.",
+  "ev.cripta.text": "La puerta está trabada con cadenas oxidadas. Por ahora no cede.",
+  "ev.cripta.c0": "Alejarte",
+  "ev.cripta.c0.tag": "—",
+  "ev.cripta.c0.r": "Las cadenas crujen a tu espalda."
 }

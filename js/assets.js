@@ -1,7 +1,7 @@
 // Precarga de imágenes. El juego espera a que estén listas antes de dibujar.
 // Añadir un asset nuevo = una línea en `sources`.
 
-import { VERSION } from './config.js?v=0.3.2';
+import { VERSION } from './config.js?v=0.4';
 
 export const ATLAS_TILE = 128; // px por celda en el tileset fuente (dungeon.png)
 export const SPRITE_TILE = 128; // px por fotograma en las hojas de sprites
@@ -10,6 +10,12 @@ const sources = {
   tiles: './assets/tiles/dungeon.png',
   hero: './assets/sprites/hero.png',
   enemy: './assets/sprites/enemy.png',
+  enemy1: './assets/sprites/enemy1.png',
+  enemy2: './assets/sprites/enemy2.png',
+  enemy3: './assets/sprites/enemy3.png',
+  grave: './assets/props/grave.png',
+  crypt: './assets/props/crypt.png',
+  crypt_in: './assets/props/crypt_in.png',
 };
 
 export const images = {}; // se rellena tras loadAssets()
