@@ -7,10 +7,10 @@
 // La altura de cada casilla se pinta con un tinte y, en los escalones, un
 // borde de color: VERDE en el lado alto, ROJO en el lado bajo (estilo Descent).
 
-import { state } from './state.js?v=0.5';
-import { TILE, CAMERA_MARGIN, ZOOM_MIN, ZOOM_MAX, ZOOM_DEFAULT, TOKEN_TALL, PROP_TALL } from './config.js?v=0.5';
-import { images, ATLAS_TILE, SPRITE_TILE } from './assets.js?v=0.5';
-import * as anim from './anim.js?v=0.5';
+import { state } from './state.js?v=0.7';
+import { TILE, CAMERA_MARGIN, ZOOM_MIN, ZOOM_MAX, ZOOM_DEFAULT, TOKEN_TALL, PROP_TALL } from './config.js?v=0.7';
+import { images, ATLAS_TILE, SPRITE_TILE } from './assets.js?v=0.7';
+import * as anim from './anim.js?v=0.7';
 
 function atlasCol(value, x, y) {
   if (value === 1) return 3;
@@ -205,17 +205,26 @@ function elevTint(h, strength = 1) {
   return null;
 }
 
-function drawActor(name, sheet, gx, gy, ts, fallback, show = true) {
-  const a = anim.resolve(name, gx, gy, ts);   // SIEMPRE avanza la animación...
-  if (!show) return;                           // ...aunque el actor esté en niebla y no se pinte
+function drawActor(name, sheet, gx, gy, ts, fallback, show = true, kind = 'legacy') {
+  const a = anim.resolve(name, gx, gy, ts, kind);   // SIEMPRE avanza la animación...
+  if (!show) return;                                 // ...aunque el actor esté en niebla y no se pinte
   const s = worldToScreen(a.cx, a.cy);
   const T = TILE * zoom;
-  if (sheet) {
-    // Ficha "de pie" (cenital): alto = TOKEN_TALL casillas; los pies quedan casi al
-    // fondo de su propia casilla, así que solo la cabeza asoma a la de arriba.
-    const size = T * TOKEN_TALL;
+  const size = T * TOKEN_TALL;
+  if (sheet && typeof sheet.width === 'number') {
+    // Sistema "legacy": una sola hoja de 4 fotogramas fijos.
     ctx.drawImage(sheet, a.frame * SPRITE_TILE, 0, SPRITE_TILE, SPRITE_TILE,
                   s.x - size/2, s.y + T*0.40 - size, size, size);
+  } else if (sheet && sheet[a.clip]) {
+    // Personaje con animaciones de verdad: la hoja del clip activo (idle/walk/attack/death),
+    // volteada horizontalmente si mira a la izquierda.
+    const img = sheet[a.clip];
+    const facing = a.facing || 1;
+    ctx.save();
+    ctx.translate(s.x, s.y + T*0.40 - size/2);
+    ctx.scale(facing, 1);
+    ctx.drawImage(img, a.frame * SPRITE_TILE, 0, SPRITE_TILE, SPRITE_TILE, -size/2, -size/2, size, size);
+    ctx.restore();
   } else {
     disc(s.x, s.y + 3, 16*zoom, 'rgba(0,0,0,.35)');
     disc(s.x, s.y, 15*zoom, fallback.body); ring(s.x, s.y, 15*zoom, fallback.edge, 2);
@@ -327,14 +336,22 @@ function draw(ts) {
 
   // Enemigos: cada uno con su sprite; su animación siempre avanza; se dibuja si está a la vista.
   for (const foe of state.foes) {
-    if (!foe.alive) continue;
+    if (!foe.alive && !foe.deathPlaying) continue;   // legacy: desaparece al instante, como siempre
     const vis = state.visible[foe.y] && state.visible[foe.y][foe.x];
     drawActor(foe.anim, images[foe.sprite] || images.enemy, foe.x, foe.y, ts,
-              { body:'#b5443a', edge:'#7d2a24', ink:'#2a0f0d', mark:'✕' }, vis);
+              { body:'#b5443a', edge:'#7d2a24', ink:'#2a0f0d', mark:'✕' }, vis, foe.sprite);
   }
 
   // Héroe (siempre visible).
-  drawActor('hero', images.hero, hero.x, hero.y, ts, { body:'#6f9c5a', edge:'#4d6f3d', ink:'#12200c', mark:'◊' });
+  // Postura del héroe: guardia si hay un enemigo vivo a 3 casillas o menos (Chebyshev).
+  let nearestFoeDist = Infinity;
+  for (const foe of state.foes) {
+    if (!foe.alive) continue;
+    const d = Math.max(Math.abs(foe.x - hero.x), Math.abs(foe.y - hero.y));
+    if (d < nearestFoeDist) nearestFoeDist = d;
+  }
+  anim.setStance('hero', nearestFoeDist <= 3 ? 'combat' : 'peace', 'hero');
+  drawActor('hero', images.hero, hero.x, hero.y, ts, { body:'#6f9c5a', edge:'#4d6f3d', ink:'#12200c', mark:'◊' }, true, 'hero');
 
   // Números flotantes de daño/curación.
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';

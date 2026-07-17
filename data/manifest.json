@@ -1,0 +1,22 @@
+{
+  "version": "0.6",
+  "updated": "2026-07-17",
+  "enemies": [
+    { "key": "enemy1", "label": "Esqueleto (básico)", "hp": 12, "atk": 4, "color": "#b5443a", "animated": true }
+  ],
+  "enemiesComingSoon": [
+    { "key": "enemy2", "label": "Esqueleto espada y escudo", "note": "más fuerte; en pausa hasta tener sus animaciones" },
+    { "key": "enemy3", "label": "Esqueleto con armadura",    "note": "más fuerte; en pausa hasta tener sus animaciones" }
+  ],
+  "props": [
+    { "key": "grave", "label": "Tumba",    "glyph": "†", "color": "#8a7a5c", "blocking": true  },
+    { "key": "chest", "label": "Cofre",    "glyph": "▪", "color": "#c99a3e", "blocking": true  },
+    { "key": "altar", "label": "Altar",    "glyph": "◆", "color": "#e08a3c", "blocking": true  },
+    { "key": "lever", "label": "Palanca",  "glyph": "/", "color": "#9aa0a8", "blocking": true  },
+    { "key": "orb",   "label": "Orbe",     "glyph": "●", "color": "#5aa8d8", "blocking": true  },
+    { "key": "table", "label": "Mesa",     "glyph": "▦", "color": "#a08858", "blocking": true  },
+    { "key": "item",  "label": "Objeto",   "glyph": "★", "color": "#e8d24c", "blocking": true  },
+    { "key": "trap",  "label": "Trampa",   "glyph": "▲", "color": "#a8382e", "blocking": false }
+  ]
+}
+

@@ -2,6 +2,21 @@
 
 Esquema: `0.X` = cambio grande · `0.X.Y` = cambio pequeño / fix.
 
+## 0.7 — el héroe cobra vida
+- El héroe ya tiene animaciones de verdad: idle normal, idle de combate, transición al entrar en guardia, caminar, dos ataques distintos (se alternan al azar), encajar un golpe, morir, lootear y activar (diferenciados: cofre/tumba/ítem usan lootear; palanca/altar/orbe/mesa usan activar).
+- Nueva "postura": el héroe pasa a guardia de combate en cuanto un enemigo vivo queda a 3 casillas o menos, con una animación de transición; vuelve a la postura de paz al alejarse.
+- Se guardan también las animaciones de "casteo" y "poción" del héroe, aunque todavía no están enganchadas a ningún efecto de juego.
+- Motor de animación ampliado para soportar acciones encadenadas sin que se pisen entre sí (por ejemplo, interrumpir un lootear con un activar).
+- Limpieza: retirados los sprites antiguos del héroe y del esqueleto básico que ya no se usaban.
+
+## 0.6 — animaciones de verdad para el esqueleto básico
+- Nuevo sistema de animación con nombre (idle, andar, atacar, morir), con distinto número de fotogramas y velocidad cada una; convive con el sistema antiguo de 4 poses (que sigue usando el héroe por ahora).
+- El esqueleto básico ("sin arma") ya anda, ataca y muere de verdad, dejando un montón de huesos permanente en el suelo tras la animación de muerte.
+- Los otros dos tipos de esqueleto (espada y escudo / con armadura) quedan reservados para más adelante como enemigos más fuertes; de momento el cementerio solo usa el esqueleto básico.
+- Se guarda también la animación de "casteo" del esqueleto, aunque todavía no está enganchada a ningún efecto de juego.
+- Nuevo `data/manifest.json`: lista de monstruos/objetos disponibles en esta versión, pensada para que el editor de niveles la lea en directo sin tener que regenerar la herramienta cada vez que cambie el contenido.
+- Los sprites de animación se giran automáticamente según hacia dónde se mueve o ataca el personaje (antes solo cambiaba de pose).
+
 ## 0.5 — cenital puro, zoom, altura real y mapas pintados a mano
 - Vista cenital pura (se abandona el 2.5D): el cementerio ahora tiene un fondo pintado a mano real, con la rejilla táctica encima.
 - Zoom con límites: pellizco de 2 dedos en móvil, rueda del ratón en PC. El punto bajo el dedo/cursor se queda fijo.

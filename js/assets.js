@@ -1,16 +1,39 @@
 // Precarga de imágenes. El juego espera a que estén listas antes de dibujar.
-// Añadir un asset nuevo = una línea en `sources`.
+// Dos formas de añadir un asset en `sources`:
+//   · una ruta de texto  -> imagen suelta (sistema "legacy" de 4 fotogramas).
+//   · un objeto {clip: ruta, ...} -> personaje con animaciones de verdad; se
+//     carga cada clip por separado y `images[key]` queda como { idle: <img>, ... }.
+// Qué claves tienen animaciones de verdad se define en ANIM_CLIPS (anim.js);
+// aquí solo hace falta indicar dónde está cada hoja.
 
-import { VERSION } from './config.js?v=0.5';
+import { VERSION } from './config.js?v=0.7';
 
-export const ATLAS_TILE = 128; // px por celda en el tileset fuente (dungeon.png)
+export const ATLAS_TILE = 128;  // px por celda en el tileset fuente (dungeon.png)
 export const SPRITE_TILE = 128; // px por fotograma en las hojas de sprites
 
 const sources = {
   tiles: './assets/tiles/dungeon.png',
-  hero: './assets/sprites/hero.png',
+  hero: {
+    idlepeace: './assets/sprites/hero/idlepeace.png',
+    idlecombat: './assets/sprites/hero/idlecombat.png',
+    stancechange: './assets/sprites/hero/stancechange.png',
+    walk: './assets/sprites/hero/walk.png',
+    attack1: './assets/sprites/hero/attack1.png',
+    attack2: './assets/sprites/hero/attack2.png',
+    hit: './assets/sprites/hero/hit.png',
+    loot: './assets/sprites/hero/loot.png',
+    activate: './assets/sprites/hero/activate.png',
+    death: './assets/sprites/hero/death.png',
+    // 'cast' y 'potion' se guardan pero no se usan todavía (sin efecto de juego asignado).
+  },
   enemy: './assets/sprites/enemy.png',
-  enemy1: './assets/sprites/enemy1.png',
+  enemy1: {
+    idle: './assets/sprites/enemy1/idle.png',
+    walk: './assets/sprites/enemy1/walk.png',
+    attack: './assets/sprites/enemy1/attack.png',
+    death: './assets/sprites/enemy1/death.png',
+    // 'cast' se guarda pero no se usa todavía (sin efecto de juego asignado).
+  },
   enemy2: './assets/sprites/enemy2.png',
   enemy3: './assets/sprites/enemy3.png',
   grave: './assets/props/grave.png',
@@ -32,7 +55,14 @@ function loadImage(src) {
 
 export async function loadAssets() {
   const entries = await Promise.all(
-    Object.entries(sources).map(async ([key, src]) => [key, await loadImage(src)])
+    Object.entries(sources).map(async ([key, src]) => {
+      if (typeof src === 'string') return [key, await loadImage(src)];
+      // conjunto de clips (personaje animado): cargar cada uno y devolver un objeto
+      const clipEntries = await Promise.all(
+        Object.entries(src).map(async ([clip, path]) => [clip, await loadImage(path)])
+      );
+      return [key, Object.fromEntries(clipEntries)];
+    })
   );
   for (const [key, img] of entries) images[key] = img;
   return images;

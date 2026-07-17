@@ -1,12 +1,13 @@
 // Reglas del juego: economía de Puntos de Acción (PA), interacción a distancia
 // y adyacente, trampas, niebla y salida de nivel. Agnóstico del dibujo.
 
-import { state, walkable, adjacent, distTo, isVisible, recomputeFog, computeReach, pathTo, reachCost, blockingTriggerAt, trapAt, stepNeighbors, foeAt, livingFoes } from './state.js?v=0.5';
-import { openEvent, syncHUD, log, gameOver } from './ui.js?v=0.5';
-import { t } from './i18n.js?v=0.5';
-import { MOVE_COST, ATTACK_COST } from './config.js?v=0.5';
-import * as anim from './anim.js?v=0.5';
-import * as audio from './audio.js?v=0.5';
+import { state, walkable, adjacent, distTo, isVisible, recomputeFog, computeReach, pathTo, reachCost, blockingTriggerAt, trapAt, stepNeighbors, foeAt, livingFoes } from './state.js?v=0.7';
+import { openEvent, syncHUD, log, gameOver } from './ui.js?v=0.7';
+import { t } from './i18n.js?v=0.7';
+import { MOVE_COST, ATTACK_COST } from './config.js?v=0.7';
+import * as anim from './anim.js?v=0.7';
+import { ANIM_CLIPS } from './anim.js?v=0.7';
+import * as audio from './audio.js?v=0.7';
 
 const sign = (n) => Math.sign(n);
 
@@ -32,7 +33,7 @@ function triggerTrap(trap) {
   const ev = state.events[trap.id];
   const dmg = ev.trapDmg || 4;
   trap.used = true;
-  anim.hurt('hero'); anim.floatAt(state.hero.x, state.hero.y, `−${dmg}`, '#e86a5c'); audio.fx('hurt');
+  anim.hurt('hero', 'hero'); anim.floatAt(state.hero.x, state.hero.y, `−${dmg}`, '#e86a5c'); audio.fx('hurt');
   state.hero.hp -= dmg;
   log(`<b>${t(ev.i18n + '.kicker')}</b> — ${t(ev.i18n + '.text')}`);
   syncHUD();
@@ -49,13 +50,15 @@ export function onTapTile(gx, gy) {
     if (!adjacent(hero, gx, gy)) return;
     if (hero.ap < ATTACK_COST) { log(t('log.noAP')); return; }
     hero.ap -= ATTACK_COST;
-    anim.attack('hero', sign(gx - hero.x), sign(gy - hero.y));
-    anim.hurt(target.anim); anim.floatAt(target.x, target.y, `−${hero.atk}`, '#e86a5c');
+    anim.attack('hero', sign(gx - hero.x), sign(gy - hero.y), 'hero');
+    anim.hurt(target.anim, target.sprite); anim.floatAt(target.x, target.y, `−${hero.atk}`, '#e86a5c');
     target.hp -= hero.atk;
     target.dormant = false;                 // si le pegas, despierta
     log(t('log.hitFoe', { dmg: hero.atk }));
     if (target.hp <= 0) {
-      audio.fx('kill'); target.alive = false; syncHUD();
+      audio.fx('kill'); target.alive = false;
+      if (ANIM_CLIPS[target.sprite]) { anim.die(target.anim); target.deathPlaying = true; }
+      syncHUD();
       if (livingFoes().length === 0) return gameOver('win');
     } else {
       audio.fx('attack'); syncHUD();
@@ -73,6 +76,9 @@ export function onTapTile(gx, gy) {
       const cost = state.events[tr.id].actionCost || 1;
       if (hero.ap < cost) { log(t('log.noAP')); return; }
       hero.ap -= cost; syncHUD();
+      const LOOT_TYPES = ['chest', 'grave', 'item'];
+      if (LOOT_TYPES.includes(tr.type)) anim.loot('hero', 'hero');
+      else anim.activateAnim('hero', 'hero');
       openEvent(tr);
     } else if (isVisible(gx, gy)) {
       showHint(tr);
@@ -90,6 +96,7 @@ export function onTapTile(gx, gy) {
       if (hero.ap < cost) { log(t('log.noAP')); return; }
       hero.ap -= cost; syncHUD();
       trapHere.used = true;
+      anim.activateAnim('hero', 'hero');
       log(`<b>${t(state.events[trapHere.id].i18n + '.kicker')}</b> — ${t('log.trapDisarm')}`);
       computeReach();
       if (hero.ap <= 0) endHeroTurn();
@@ -153,8 +160,8 @@ export function enemyAITurn() {
       if (adjacent(foe, hero.x, hero.y)) {
         if (ap < ATTACK_COST) break;
         ap -= ATTACK_COST;
-        anim.attack(foe.anim, sign(hero.x - foe.x), sign(hero.y - foe.y));
-        anim.hurt('hero'); anim.floatAt(hero.x, hero.y, `−${foe.atk}`, '#e86a5c'); audio.fx('hurt');
+        anim.attack(foe.anim, sign(hero.x - foe.x), sign(hero.y - foe.y), foe.sprite);
+        anim.hurt('hero', 'hero'); anim.floatAt(hero.x, hero.y, `−${foe.atk}`, '#e86a5c'); audio.fx('hurt');
         hero.hp -= foe.atk;
         log(t('log.hitHero', { dmg: foe.atk }));
         syncHUD();

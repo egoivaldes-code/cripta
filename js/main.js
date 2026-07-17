@@ -1,15 +1,15 @@
 // Punto de entrada. Carga idioma y datos, cablea módulos y arranca el bucle.
 
-import { state, initGame } from './state.js?v=0.5';
-import { initRenderer, startLoop, centerOnHero } from './render.js?v=0.5';
-import { onTapTile, bindDescend, startHeroTurn, endHeroTurn, afterInteract } from './rules.js?v=0.5';
-import { syncHUD, log, hideVeil, bindAfterInteract, bindRestart, applyStaticText } from './ui.js?v=0.5';
-import { loadAssets } from './assets.js?v=0.5';
-import { initialLang, loadLang, onLangChange, getLang, t } from './i18n.js?v=0.5';
-import * as anim from './anim.js?v=0.5';
-import * as audio from './audio.js?v=0.5';
-import { VERSION } from './config.js?v=0.5';
-import { assemble } from './mapgen.js?v=0.5';
+import { state, initGame } from './state.js?v=0.7';
+import { initRenderer, startLoop, centerOnHero } from './render.js?v=0.7';
+import { onTapTile, bindDescend, startHeroTurn, endHeroTurn, afterInteract } from './rules.js?v=0.7';
+import { syncHUD, log, hideVeil, bindAfterInteract, bindRestart, applyStaticText } from './ui.js?v=0.7';
+import { loadAssets } from './assets.js?v=0.7';
+import { initialLang, loadLang, onLangChange, getLang, t } from './i18n.js?v=0.7';
+import * as anim from './anim.js?v=0.7';
+import * as audio from './audio.js?v=0.7';
+import { VERSION } from './config.js?v=0.7';
+import { assemble } from './mapgen.js?v=0.7';
 
 // El ensamblador de losetas (mapgen.js) sigue disponible para niveles ALEATORIOS
 // futuros; esta función queda de reserva pero no se usa por ahora, ya que el
