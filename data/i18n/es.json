@@ -5,6 +5,7 @@
   "log.hitFoe": "Golpeas al acechador. −{dmg}",
   "log.hitHero": "El acechador te alcanza. −{dmg}",
   "log.descend": "Desciendes por la escalera…",
+  "log.levelMissing": "El camino sigue, pero más allá aún no hay nada construido.",
   "over.winKicker": "Victoria",
   "over.winTitle": "Acechador abatido",
   "over.winText": "Sales de la sala con {gold} ◆ y la respiración entera.",

@@ -2,6 +2,14 @@
 
 Esquema: `0.X` = cambio grande · `0.X.Y` = cambio pequeño / fix.
 
+## 0.9.1 — el cementerio, completo (fusión con el trabajo del otro chat)
+- Este chat había avanzado en paralelo el cementerio (terreno pintado, 7 esqueletos, 2 trampas, salida) y el color de los bordes de altura relativo al héroe, mientras este otro chat avanzaba la 0.8 y la 0.9 (héroe a escena, objetivo e interfaz movible). Esta versión fusiona ambos: parte del código real de la 0.9 y le añade lo que faltaba.
+- El cementerio ya tiene sus 7 esqueletos, 2 trampas y una salida (hacia "cripta_prueba"), colocados desde el editor de niveles. El terreno en sí ya coincidía en ambos chats.
+- Los bordes de los escalones dejan de ser fijos (antes: lado alto siempre verde, lado bajo siempre rojo). Ahora dependen de dónde está el héroe: si está más bajo que ese escalón, se ve en ROJO (desventaja); en cuanto sube a esa altura o más, el mismo borde pasa a VERDE (ventaja).
+- Protección nueva: si una salida apunta a un nivel que todavía no existe (como la actual, hacia "cripta_prueba"), el juego avisa con un mensaje en vez de quedarse colgado.
+- Verificado por dentro: nadie cae en un muro, no hay solapes entre héroe/enemigos/trampas/salida, y todo es alcanzable desde el punto de partida.
+- Retirado `assets/ui_kit/` del proyecto (era un banco de referencia de iconos sin recortar, pensado solo como consulta puntual, no para vivir en el repo; no lo usaba ningún código).
+
 ## 0.9 — objetivo y interfaz movible
 - La vida de los enemigos ya no es una sola barra genérica: cada enemigo vivo tiene su propia caja con su barra de vida, apiladas horizontalmente bajo el botón "Fin de turno".
 - Tocar una caja marca a ese enemigo como objetivo: aparece un icono de retícula sobre su cabeza en el mapa.

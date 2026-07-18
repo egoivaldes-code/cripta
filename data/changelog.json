@@ -1,6 +1,25 @@
 {
   "versions": [
     {
+      "v": "0.9.1",
+      "es": {
+        "title": "El cementerio, completo",
+        "notes": [
+          "El cementerio ya tiene sus 7 esqueletos, 2 trampas y una salida (hacia la próxima zona), colocados desde el editor de niveles.",
+          "Los bordes de los escalones ya no son fijos: ahora avisan en rojo si estás más bajo que esa altura, y cambian a verde en cuanto subes tú.",
+          "Si una salida lleva a una zona que aún no existe, el juego avisa con un mensaje en vez de quedarse colgado."
+        ]
+      },
+      "en": {
+        "title": "The cemetery, complete",
+        "notes": [
+          "The cemetery now has its 7 skeletons, 2 traps, and an exit (to the next area), placed from the level editor.",
+          "Elevation edges are no longer fixed: they now warn in red if you're lower than that height, and turn green once you climb up.",
+          "If an exit leads to an area that doesn't exist yet, the game shows a message instead of freezing."
+        ]
+      }
+    },
+    {
       "v": "0.9",
       "es": {
         "title": "Objetivo e interfaz movible",

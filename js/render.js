@@ -7,10 +7,10 @@
 // La altura de cada casilla se pinta con un tinte y, en los escalones, un
 // borde de color: VERDE en el lado alto, ROJO en el lado bajo (estilo Descent).
 
-import { state } from './state.js?v=0.9';
-import { TILE, CAMERA_MARGIN, ZOOM_MIN, ZOOM_MAX, ZOOM_DEFAULT, TOKEN_TALL, HERO_TALL, PROP_TALL } from './config.js?v=0.9';
-import { images, ATLAS_TILE, SPRITE_TILE } from './assets.js?v=0.9';
-import * as anim from './anim.js?v=0.9';
+import { state, elevAt } from './state.js?v=0.9.1';
+import { TILE, CAMERA_MARGIN, ZOOM_MIN, ZOOM_MAX, ZOOM_DEFAULT, TOKEN_TALL, HERO_TALL, PROP_TALL } from './config.js?v=0.9.1';
+import { images, ATLAS_TILE, SPRITE_TILE } from './assets.js?v=0.9.1';
+import * as anim from './anim.js?v=0.9.1';
 
 function atlasCol(value, x, y) {
   if (value === 1) return 3;
@@ -287,7 +287,11 @@ function draw(ts) {
     if (!state.visible[y][x]) { ctx.fillStyle = 'rgba(6,8,13,.62)'; ctx.fillRect(s.x - SEAM, s.y - SEAM, T + SEAM*2, T + SEAM*2); } // penumbra
   }
 
-  // Bordes de escalón (VERDE = lado alto, ROJO = lado bajo), estilo Descent.
+  // Bordes de escalón: el color depende de dónde está el HÉROE ahora mismo, no
+  // de qué lado del borde se mire. Si el héroe está más bajo que el lado alto
+  // de ese escalón, es una desventaja táctica (ROJO); si ya está a esa altura
+  // o más, tiene la ventaja (VERDE). Estilo Descent, pero relativo al jugador.
+  const heroElev = elevAt(hero.x, hero.y);
   const bt = Math.max(2, 4 * zoom);
   for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
     if (tiles[y][x] !== 0 || !state.explored[y][x]) continue;
@@ -299,7 +303,8 @@ function draw(ts) {
       if (nx < 0 || ny < 0 || nx >= state.cols || ny >= state.rows || tiles[ny][nx] !== 0) continue;
       const hh = elev[ny] ? elev[ny][nx] : 0;
       if (h === hh) continue;
-      ctx.fillStyle = h > hh ? 'rgba(90,200,90,.9)' : 'rgba(210,70,60,.9)';
+      const highSide = Math.max(h, hh);
+      ctx.fillStyle = heroElev >= highSide ? 'rgba(90,200,90,.9)' : 'rgba(210,70,60,.9)';
       if (dx === 1) ctx.fillRect(s.x + T - bt, s.y + 2, bt, T - 4);
       if (dx === -1) ctx.fillRect(s.x, s.y + 2, bt, T - 4);
       if (dy === 1) ctx.fillRect(s.x + 2, s.y + T - bt, T - 4, bt);

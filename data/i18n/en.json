@@ -5,6 +5,7 @@
   "log.hitFoe": "You strike the stalker. −{dmg}",
   "log.hitHero": "The stalker reaches you. −{dmg}",
   "log.descend": "You descend the stairs…",
+  "log.levelMissing": "The path continues, but nothing has been built beyond here yet.",
   "over.winKicker": "Victory",
   "over.winTitle": "Stalker slain",
   "over.winText": "You leave the room with {gold} ◆ and your breath intact.",

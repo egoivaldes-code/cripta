@@ -1,15 +1,15 @@
 // Punto de entrada. Carga idioma y datos, cablea módulos y arranca el bucle.
 
-import { state, initGame } from './state.js?v=0.9';
-import { initRenderer, startLoop, centerOnHero, toggleGrid, isGridOn } from './render.js?v=0.9';
-import { onTapTile, bindDescend, startHeroTurn, endHeroTurn, afterInteract } from './rules.js?v=0.9';
-import { syncHUD, log, hideVeil, bindAfterInteract, bindRestart, applyStaticText } from './ui.js?v=0.9';
-import { loadAssets } from './assets.js?v=0.9';
-import { initialLang, loadLang, onLangChange, getLang, t } from './i18n.js?v=0.9';
-import * as anim from './anim.js?v=0.9';
-import * as audio from './audio.js?v=0.9';
-import { VERSION } from './config.js?v=0.9';
-import { assemble } from './mapgen.js?v=0.9';
+import { state, initGame } from './state.js?v=0.9.1';
+import { initRenderer, startLoop, centerOnHero, toggleGrid, isGridOn } from './render.js?v=0.9.1';
+import { onTapTile, bindDescend, startHeroTurn, endHeroTurn, afterInteract } from './rules.js?v=0.9.1';
+import { syncHUD, log, hideVeil, bindAfterInteract, bindRestart, applyStaticText } from './ui.js?v=0.9.1';
+import { loadAssets } from './assets.js?v=0.9.1';
+import { initialLang, loadLang, onLangChange, getLang, t } from './i18n.js?v=0.9.1';
+import * as anim from './anim.js?v=0.9.1';
+import * as audio from './audio.js?v=0.9.1';
+import { VERSION } from './config.js?v=0.9.1';
+import { assemble } from './mapgen.js?v=0.9.1';
 
 // El ensamblador de losetas (mapgen.js) sigue disponible para niveles ALEATORIOS
 // futuros; esta función queda de reserva pero no se usa por ahora, ya que el
@@ -61,7 +61,11 @@ async function boot() {
   const levelCache = {};
   async function getLevel(name) {
     const file = name === 'level1' ? 'cemetery' : name;   // 'level1' = el cementerio (mapa fijo pintado)
-    if (!levelCache[file]) levelCache[file] = await fetch(`./data/levels/${file}.json?v=${VERSION}`).then(r => r.json());
+    if (!levelCache[file]) {
+      const res = await fetch(`./data/levels/${file}.json?v=${VERSION}`);
+      if (!res.ok) throw new Error(`Nivel "${file}" no encontrado (${res.status})`);
+      levelCache[file] = await res.json();
+    }
     return levelCache[file];
   }
 
@@ -80,9 +84,14 @@ async function boot() {
   function newGame() { loadLevel('level1'); }
   async function descend() {
     const c = { hp: state.hero.hp, maxHp: state.hero.maxHp, atk: state.hero.atk, gold: state.hero.gold };
-    audio.fx('descend');
-    await loadLevel(state.exit.to, c);
-    log(t('log.descend'));
+    try {
+      audio.fx('descend');
+      await loadLevel(state.exit.to, c);
+      log(t('log.descend'));
+    } catch (err) {
+      console.warn('No se pudo cargar el nivel de destino:', state.exit.to, err);
+      log(t('log.levelMissing'));
+    }
   }
 
   bindAfterInteract(afterInteract);
