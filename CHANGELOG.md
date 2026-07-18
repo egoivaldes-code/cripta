@@ -2,6 +2,12 @@
 
 Esquema: `0.X` = cambio grande · `0.X.Y` = cambio pequeño / fix.
 
+## 0.9 — objetivo y interfaz movible
+- La vida de los enemigos ya no es una sola barra genérica: cada enemigo vivo tiene su propia caja con su barra de vida, apiladas horizontalmente bajo el botón "Fin de turno".
+- Tocar una caja marca a ese enemigo como objetivo: aparece un icono de retícula sobre su cabeza en el mapa.
+- Nuevo pool de assets de interfaz estilo Diablo (`assets/ui_kit/`, con índice en `INDEX.md`) para ir sacando piezas en el futuro; el icono de objetivo ya sale de ahí.
+- Nueva función "Reposicionar interfaz" (en Ajustes): desbloquea todos los bloques de la interfaz, que se tiñen de verde y se pueden arrastrar donde se quiera (en móvil y PC). Un botón "Aplicar y cerrar" flotante ancla la nueva posición. Se recuerda entre partidas.
+
 ## 0.8 — el héroe, a escena
 - El héroe es notablemente más grande: la cabeza sobresale bien a la casilla de arriba.
 - Los idles (héroe y esqueleto) van más lentos y pausados en general.

@@ -105,5 +105,7 @@
   "ev.cripta.c0.r": "Las cadenas crujen a tu espalda.",
   "btn.grid": "Mostrar / ocultar rejilla",
   "btn.continue": "Continuar",
-  "splash.title": "Novedades"
+  "splash.title": "Novedades",
+  "btn.repositionUI": "Reposicionar interfaz",
+  "btn.applyLayout": "Aplicar y cerrar"
 }

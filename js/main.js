@@ -1,15 +1,15 @@
 // Punto de entrada. Carga idioma y datos, cablea módulos y arranca el bucle.
 
-import { state, initGame } from './state.js?v=0.8';
-import { initRenderer, startLoop, centerOnHero, toggleGrid, isGridOn } from './render.js?v=0.8';
-import { onTapTile, bindDescend, startHeroTurn, endHeroTurn, afterInteract } from './rules.js?v=0.8';
-import { syncHUD, log, hideVeil, bindAfterInteract, bindRestart, applyStaticText } from './ui.js?v=0.8';
-import { loadAssets } from './assets.js?v=0.8';
-import { initialLang, loadLang, onLangChange, getLang, t } from './i18n.js?v=0.8';
-import * as anim from './anim.js?v=0.8';
-import * as audio from './audio.js?v=0.8';
-import { VERSION } from './config.js?v=0.8';
-import { assemble } from './mapgen.js?v=0.8';
+import { state, initGame } from './state.js?v=0.9';
+import { initRenderer, startLoop, centerOnHero, toggleGrid, isGridOn } from './render.js?v=0.9';
+import { onTapTile, bindDescend, startHeroTurn, endHeroTurn, afterInteract } from './rules.js?v=0.9';
+import { syncHUD, log, hideVeil, bindAfterInteract, bindRestart, applyStaticText } from './ui.js?v=0.9';
+import { loadAssets } from './assets.js?v=0.9';
+import { initialLang, loadLang, onLangChange, getLang, t } from './i18n.js?v=0.9';
+import * as anim from './anim.js?v=0.9';
+import * as audio from './audio.js?v=0.9';
+import { VERSION } from './config.js?v=0.9';
+import { assemble } from './mapgen.js?v=0.9';
 
 // El ensamblador de losetas (mapgen.js) sigue disponible para niveles ALEATORIOS
 // futuros; esta función queda de reserva pero no se usa por ahora, ya que el
@@ -123,6 +123,8 @@ async function boot() {
   document.querySelectorAll('.langbtn').forEach(btn =>
     btn.addEventListener('click', () => loadLang(btn.dataset.lang)));
 
+  setupLayoutEditor();
+
   // Audio: se desbloquea con el primer toque (requisito del móvil).
   window.addEventListener('pointerdown', () => audio.unlock(), { once: true });
 
@@ -148,6 +150,61 @@ async function boot() {
 
 function markLang() {
   document.querySelectorAll('.langbtn').forEach(b => b.classList.toggle('on', b.dataset.lang === getLang()));
+}
+
+// --- Reposicionar interfaz: arrastrar los bloques del HUD y anclarlos donde
+// se dejen. El offset de cada bloque se guarda por separado (variables CSS
+// --dragX/--dragY propias de cada elemento) para no pisar el escalado de
+// --ui ni las media queries de pantallas estrechas, que siguen aplicando
+// igual encima del arrastre.
+const LAYOUT_KEY = 'cripta.layout';
+const LAYOUT_IDS = ['hud', 'topright', 'bottomright', 'log'];
+
+function loadLayoutOffsets() {
+  try { return JSON.parse(localStorage.getItem(LAYOUT_KEY) || '{}'); } catch { return {}; }
+}
+
+function setupLayoutEditor() {
+  const offsets = loadLayoutOffsets();
+
+  function applyOffset(id) {
+    const el = document.getElementById(id);
+    const o = offsets[id] || { x: 0, y: 0 };
+    el.style.setProperty('--dragX', o.x + 'px');
+    el.style.setProperty('--dragY', o.y + 'px');
+  }
+  LAYOUT_IDS.forEach(applyOffset);
+
+  let dragging = null;   // { id, el, startX, startY, baseX, baseY }
+
+  LAYOUT_IDS.forEach(id => {
+    const el = document.getElementById(id);
+    el.addEventListener('pointerdown', e => {
+      if (!document.body.classList.contains('layout-edit')) return;
+      el.setPointerCapture(e.pointerId);
+      const o = offsets[id] || { x: 0, y: 0 };
+      dragging = { id, el, startX: e.clientX, startY: e.clientY, baseX: o.x, baseY: o.y };
+    });
+    el.addEventListener('pointermove', e => {
+      if (!dragging || dragging.id !== id) return;
+      offsets[id] = { x: dragging.baseX + (e.clientX - dragging.startX), y: dragging.baseY + (e.clientY - dragging.startY) };
+      applyOffset(id);
+    });
+    const stopDrag = () => { if (dragging && dragging.id === id) dragging = null; };
+    el.addEventListener('pointerup', stopDrag);
+    el.addEventListener('pointercancel', stopDrag);
+  });
+
+  document.getElementById('repositionBtn').addEventListener('click', () => {
+    document.getElementById('settingsVeil').classList.remove('show');
+    document.body.classList.add('layout-edit');
+  });
+
+  document.getElementById('layoutApplyBtn').addEventListener('click', () => {
+    document.body.classList.remove('layout-edit');
+    dragging = null;
+    try { localStorage.setItem(LAYOUT_KEY, JSON.stringify(offsets)); } catch {}
+  });
 }
 
 boot().catch(err => {

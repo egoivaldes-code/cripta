@@ -1,13 +1,13 @@
 // Reglas del juego: economía de Puntos de Acción (PA), interacción a distancia
 // y adyacente, trampas, niebla y salida de nivel. Agnóstico del dibujo.
 
-import { state, walkable, adjacent, distTo, isVisible, recomputeFog, computeReach, pathTo, reachCost, blockingTriggerAt, trapAt, stepNeighbors, foeAt, livingFoes } from './state.js?v=0.8';
-import { openEvent, syncHUD, log, gameOver } from './ui.js?v=0.8';
-import { t } from './i18n.js?v=0.8';
-import { MOVE_COST, ATTACK_COST } from './config.js?v=0.8';
-import * as anim from './anim.js?v=0.8';
-import { ANIM_CLIPS } from './anim.js?v=0.8';
-import * as audio from './audio.js?v=0.8';
+import { state, walkable, adjacent, distTo, isVisible, recomputeFog, computeReach, pathTo, reachCost, blockingTriggerAt, trapAt, stepNeighbors, foeAt, livingFoes } from './state.js?v=0.9';
+import { openEvent, syncHUD, log, gameOver } from './ui.js?v=0.9';
+import { t } from './i18n.js?v=0.9';
+import { MOVE_COST, ATTACK_COST } from './config.js?v=0.9';
+import * as anim from './anim.js?v=0.9';
+import { ANIM_CLIPS } from './anim.js?v=0.9';
+import * as audio from './audio.js?v=0.9';
 
 const sign = (n) => Math.sign(n);
 
@@ -57,6 +57,7 @@ export function onTapTile(gx, gy) {
     log(t('log.hitFoe', { dmg: hero.atk }));
     if (target.hp <= 0) {
       audio.fx('kill'); target.alive = false;
+      if (state.targetFoe === target) state.targetFoe = null;
       if (ANIM_CLIPS[target.sprite]) { anim.die(target.anim); target.deathPlaying = true; }
       syncHUD();
       if (livingFoes().length === 0) return gameOver('win');

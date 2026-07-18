@@ -1,6 +1,27 @@
 {
   "versions": [
     {
+      "v": "0.9",
+      "es": {
+        "title": "Objetivo e interfaz movible",
+        "notes": [
+          "Cada enemigo vivo tiene ahora su propia caja de vida, apiladas bajo el botón de fin de turno.",
+          "Toca una caja para marcar a ese enemigo como objetivo: le sale una retícula sobre la cabeza.",
+          "Nueva función \"Reposicionar interfaz\" en Ajustes: desbloquea toda la interfaz para arrastrarla donde quieras, en móvil y PC.",
+          "Un botón \"Aplicar y cerrar\" ancla la nueva posición; se recuerda entre partidas."
+        ]
+      },
+      "en": {
+        "title": "Targeting and movable interface",
+        "notes": [
+          "Every living enemy now has its own health box, stacked under the end-turn button.",
+          "Tap a box to mark that enemy as your target: a reticle appears over its head.",
+          "New \"Reposition interface\" option in Settings: unlocks the whole UI to drag anywhere, on mobile and PC.",
+          "An \"Apply and close\" button locks in the new layout; it's remembered between sessions."
+        ]
+      }
+    },
+    {
       "v": "0.8",
       "es": {
         "title": "El héroe, a escena",

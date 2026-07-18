@@ -105,5 +105,7 @@
   "ev.cripta.c0.r": "The chains creak behind you.",
   "btn.grid": "Show / hide grid",
   "btn.continue": "Continue",
-  "splash.title": "What's new"
+  "splash.title": "What's new",
+  "btn.repositionUI": "Reposition interface",
+  "btn.applyLayout": "Apply and close"
 }

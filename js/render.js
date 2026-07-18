@@ -7,10 +7,10 @@
 // La altura de cada casilla se pinta con un tinte y, en los escalones, un
 // borde de color: VERDE en el lado alto, ROJO en el lado bajo (estilo Descent).
 
-import { state } from './state.js?v=0.8';
-import { TILE, CAMERA_MARGIN, ZOOM_MIN, ZOOM_MAX, ZOOM_DEFAULT, TOKEN_TALL, HERO_TALL, PROP_TALL } from './config.js?v=0.8';
-import { images, ATLAS_TILE, SPRITE_TILE } from './assets.js?v=0.8';
-import * as anim from './anim.js?v=0.8';
+import { state } from './state.js?v=0.9';
+import { TILE, CAMERA_MARGIN, ZOOM_MIN, ZOOM_MAX, ZOOM_DEFAULT, TOKEN_TALL, HERO_TALL, PROP_TALL } from './config.js?v=0.9';
+import { images, ATLAS_TILE, SPRITE_TILE } from './assets.js?v=0.9';
+import * as anim from './anim.js?v=0.9';
 
 function atlasCol(value, x, y) {
   if (value === 1) return 3;
@@ -215,7 +215,7 @@ function drawActor(name, sheet, gx, gy, ts, fallback, show = true, kind = 'legac
   if (!show) return;                                 // ...aunque el actor esté en niebla y no se pinte
   const s = worldToScreen(a.cx, a.cy);
   const T = TILE * zoom;
-  const size = T * tall;
+  const size = T * (a.dead ? tall * 0.5 : tall);   // el cadáver se queda a la mitad de tamaño que el personaje vivo
   if (sheet && typeof sheet.width === 'number') {
     // Sistema "legacy": una sola hoja de 4 fotogramas fijos.
     ctx.drawImage(sheet, a.frame * SPRITE_TILE, 0, SPRITE_TILE, SPRITE_TILE,
@@ -259,26 +259,32 @@ function draw(ts) {
     ctx.drawImage(bgImg, s0.x, s0.y, s1.x - s0.x, s1.y - s0.y);
   }
 
+  // Pequeño solape entre casillas adyacentes: sin esto, el redondeo de la
+  // cámara/zoom deja huecos de menos de 1px entre rellenos contiguos que se
+  // ven como una "malla fantasma" (sobre todo en la niebla y la penumbra),
+  // independiente de la rejilla real y de si está activada o no.
+  const SEAM = 0.75;
+
   for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
     const s = worldToScreen(x * TILE, y * TILE);
-    if (!state.explored[y][x]) { ctx.fillStyle = '#05060a'; ctx.fillRect(s.x, s.y, T, T); continue; } // niebla negra
+    if (!state.explored[y][x]) { ctx.fillStyle = '#05060a'; ctx.fillRect(s.x - SEAM, s.y - SEAM, T + SEAM*2, T + SEAM*2); continue; } // niebla negra
     const value = tiles[y][x];
     if (!bgImg) {
       if (atlas) ctx.drawImage(atlas, atlasCol(value, x, y) * ATLAS_TILE, 0, ATLAS_TILE, ATLAS_TILE, s.x, s.y, T, T);
-      else { ctx.fillStyle = value === 1 ? '#0e1016' : '#1b2029'; ctx.fillRect(s.x, s.y, T, T); }
+      else { ctx.fillStyle = value === 1 ? '#0e1016' : '#1b2029'; ctx.fillRect(s.x - SEAM, s.y - SEAM, T + SEAM*2, T + SEAM*2); }
     }
     if (value === 0) {
       // Tinte por altura (más suave sobre fondo pintado, para no tapar el arte).
       const tint = elevTint(elev[y] ? elev[y][x] : 0, bgImg ? 0.55 : 1);
-      if (tint) { ctx.fillStyle = tint; ctx.fillRect(s.x, s.y, T, T); }
+      if (tint) { ctx.fillStyle = tint; ctx.fillRect(s.x - SEAM, s.y - SEAM, T + SEAM*2, T + SEAM*2); }
       // Aviso de terreno difícil (matorrales, escombros...).
-      if (state.difficult[y] && state.difficult[y][x]) { ctx.fillStyle = 'rgba(155,89,182,.30)'; ctx.fillRect(s.x, s.y, T, T); }
+      if (state.difficult[y] && state.difficult[y][x]) { ctx.fillStyle = 'rgba(155,89,182,.30)'; ctx.fillRect(s.x - SEAM, s.y - SEAM, T + SEAM*2, T + SEAM*2); }
     }
     if (gridOn) {
       ctx.strokeStyle = bgImg ? 'rgba(255,255,255,.08)' : 'rgba(0,0,0,.28)'; ctx.lineWidth = 1;
       ctx.strokeRect(s.x + 0.5, s.y + 0.5, T - 1, T - 1);
     }
-    if (!state.visible[y][x]) { ctx.fillStyle = 'rgba(6,8,13,.62)'; ctx.fillRect(s.x, s.y, T, T); } // penumbra
+    if (!state.visible[y][x]) { ctx.fillStyle = 'rgba(6,8,13,.62)'; ctx.fillRect(s.x - SEAM, s.y - SEAM, T + SEAM*2, T + SEAM*2); } // penumbra
   }
 
   // Bordes de escalón (VERDE = lado alto, ROJO = lado bajo), estilo Descent.
@@ -352,6 +358,13 @@ function draw(ts) {
     const vis = state.visible[foe.y] && state.visible[foe.y][foe.x];
     drawActor(foe.anim, images[foe.sprite] || images.enemy, foe.x, foe.y, ts,
               { body:'#b5443a', edge:'#7d2a24', ink:'#2a0f0d', mark:'✕' }, vis, foe.sprite);
+
+    // Marcador de objetivo: el enemigo elegido en las cajas de vida (ui.js).
+    if (foe === state.targetFoe && foe.alive && vis && images.target) {
+      const s = worldToScreen(foe.x * TILE + TILE/2, foe.y * TILE + TILE/2);
+      const markW = T * 0.5, markH = markW * (images.target.height / images.target.width);
+      ctx.drawImage(images.target, s.x - markW/2, s.y - T*TOKEN_TALL - markH * 0.55, markW, markH);
+    }
   }
 
   // Héroe (siempre visible).
@@ -362,7 +375,7 @@ function draw(ts) {
     const d = Math.max(Math.abs(foe.x - hero.x), Math.abs(foe.y - hero.y));
     if (d < nearestFoeDist) nearestFoeDist = d;
   }
-  anim.setStance('hero', nearestFoeDist <= 3 ? 'combat' : 'peace', 'hero');
+  if (!anim.isMoving('hero')) anim.setStance('hero', nearestFoeDist <= 3 ? 'combat' : 'peace', 'hero');
   drawActor('hero', images.hero, hero.x, hero.y, ts, { body:'#6f9c5a', edge:'#4d6f3d', ink:'#12200c', mark:'◊' }, true, 'hero', HERO_TALL);
 
   // Números flotantes de daño/curación.

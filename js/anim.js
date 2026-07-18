@@ -6,7 +6,7 @@
 //     (paz/combate) que cambian solas según haya un enemigo cerca, con una transición.
 // Además: sacudida al recibir daño y números flotantes (daño/curación).
 
-import { TILE } from './config.js?v=0.8';
+import { TILE } from './config.js?v=0.9';
 
 const D_MOVE = 170;
 const D_ATTACK_LEGACY = 220;
@@ -188,6 +188,15 @@ export function floatAt(gx, gy, text, color) {
 
 export function active() {
   return Object.values(actors).some(a => a.anim);
+}
+
+// ¿Está este actor en mitad de un desplazamiento animado ahora mismo? Se usa
+// para no interrumpir el caminar con un cambio de postura (ver setStance):
+// si se interrumpe a medio camino, el sprite se queda clavado hasta que el
+// movimiento "termina" de golpe (efecto teletransporte).
+export function isMoving(name) {
+  const a = actors[name];
+  return !!(a && a.anim && (a.anim.type === 'move' || a.anim.type === 'path'));
 }
 
 // Devuelve { cx, cy, frame, hurt, facing, clip, dead } para dibujar.

@@ -11,7 +11,7 @@ export const ZOOM_DEFAULT = 1.0;
 
 // --- ficha del personaje (cenital puro): alto en fracción de casilla ---
 export const TOKEN_TALL = 1.15;  // tamaño base de un personaje (enemigos, etc.)
-export const HERO_TALL = 1.70;   // el héroe va notablemente más grande: la cabeza asoma bien a la casilla de arriba
+export const HERO_TALL = 1.58;   // el héroe va grande: la cabeza asoma a la casilla de arriba (bajado un punto desde 1.70)
 export const PROP_TALL = TOKEN_TALL / 2;  // objetos pequeños (lápidas...): mitad de una persona, sin salirse de su casilla
 
 // --- economía de puntos de acción (PA), estilo Descent/BG3 ---
@@ -23,4 +23,4 @@ export const DIFFICULT_EXTRA = 1;  // coste extra por entrar en terreno difícil
 export const ATTACK_COST = 2;  // coste de atacar (depende del arma; por ahora fijo)
 
 // --- versión (fuente única; también se usa para el cache-busting de assets) ---
-export const VERSION = '0.8';
+export const VERSION = '0.9';

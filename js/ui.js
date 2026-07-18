@@ -1,11 +1,11 @@
 // Capa DOM: HUD (con PA), cartas de evento, registro, fin de partida y ajustes.
 // Todo el texto visible pasa por t() (multiidioma). No dibuja en el canvas.
 
-import { state, nearestFoe } from './state.js?v=0.8';
-import { t } from './i18n.js?v=0.8';
-import * as anim from './anim.js?v=0.8';
-import * as audio from './audio.js?v=0.8';
-import { VERSION } from './config.js?v=0.8';
+import { state } from './state.js?v=0.9';
+import { t } from './i18n.js?v=0.9';
+import * as anim from './anim.js?v=0.9';
+import * as audio from './audio.js?v=0.9';
+import { VERSION } from './config.js?v=0.9';
 
 let afterInteract = () => {};
 let restart = () => {};
@@ -19,9 +19,7 @@ export function log(html) { $('log').innerHTML = html; }
 
 export function syncHUD() {
   const { hero } = state;
-  const foe = nearestFoe();
   $('hpHero').style.width = Math.max(0, hero.hp / hero.maxHp * 100) + '%';
-  $('hpFoe').style.width = foe ? Math.max(0, foe.hp / foe.maxHp * 100) + '%' : '0%';
   $('gold').textContent = hero.gold;
   // Puntos de acción: pips llenos/vacíos.
   const pips = $('apPips');
@@ -31,6 +29,26 @@ export function syncHUD() {
     d.className = 'pip' + (i < hero.ap ? ' on' : '');
     pips.appendChild(d);
   }
+  syncFoeRow();
+}
+
+// Una caja por enemigo vivo, con su propia barra de vida. Tocar una caja la
+// marca como objetivo (icono sobre su cabeza en el mapa; ver render.js).
+export function syncFoeRow() {
+  const row = $('foeRow');
+  row.innerHTML = '';
+  state.foes.forEach((foe, i) => {
+    if (!foe.alive) return;
+    const box = document.createElement('div');
+    box.className = 'foebox' + (state.targetFoe === foe ? ' selected' : '');
+    box.innerHTML = `<div class="mark">✕${i + 1}</div><div class="bar foe"><span style="width:${Math.max(0, foe.hp / foe.maxHp * 100)}%"></span></div>`;
+    box.title = t('hud.foe');
+    box.onclick = () => {
+      state.targetFoe = state.targetFoe === foe ? null : foe;
+      syncFoeRow();
+    };
+    row.appendChild(box);
+  });
 }
 
 export function hideVeil() { $('veil').classList.remove('show'); open = null; }
@@ -103,7 +121,6 @@ function renderOver(card, kind) {
 // Aplica los textos estáticos (y re-renderiza lo abierto). Se llama al cambiar idioma.
 export function applyStaticText() {
   $('heroName').textContent = t('hud.hero');
-  $('foeName').textContent = t('hud.foe');
   $('reset').title = t('btn.reset');
   $('gridBtn').title = t('btn.grid');
   $('endTurn').textContent = t('btn.endturn');
@@ -116,9 +133,12 @@ export function applyStaticText() {
   $('setMusicLabel').textContent = t('set.music');
   $('setFxLabel').textContent = t('set.fx');
   $('setClose').textContent = t('set.close');
+  $('repositionBtn').textContent = t('btn.repositionUI');
+  $('layoutApplyBtn').textContent = t('btn.applyLayout');
   $('verTag').textContent = 'v' + VERSION;
   $('verTagPanel').textContent = 'cripta v' + VERSION;
   $('splashTitle').textContent = t('splash.title');
   $('splashContinue').textContent = t('btn.continue');
   if (open) renderCard();
+  syncFoeRow();
 }

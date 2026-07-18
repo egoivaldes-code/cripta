@@ -2,7 +2,7 @@
 // Incluye niebla de guerra (explored/visible) y el alcance de movimiento
 // ligado a los Puntos de Acción (PA) restantes del héroe.
 
-import { SIGHT, AP_MAX, CLIMB_COST, MAX_CLIMB, DIFFICULT_EXTRA } from './config.js?v=0.8';
+import { SIGHT, AP_MAX, CLIMB_COST, MAX_CLIMB, DIFFICULT_EXTRA } from './config.js?v=0.9';
 
 export const state = {
   cols: 0, rows: 0,
@@ -16,6 +16,7 @@ export const state = {
   explored: [], visible: [],
   reach: { dist: [], from: [] },   // alcance de movimiento según PA restantes
   busy: false,
+  targetFoe: null,           // enemigo marcado como objetivo (referencia directa; null = ninguno)
 };
 
 const DIRS = [[0,-1],[0,1],[-1,0],[1,0]];
@@ -47,6 +48,7 @@ export function initGame(level, events) {
   state.explored = grid(state.rows, state.cols, false);
   state.visible = grid(state.rows, state.cols, false);
   state.busy = false;
+  state.targetFoe = null;
   recomputeFog();
   computeReach();
 }
