@@ -2,7 +2,7 @@
 // Incluye niebla de guerra (explored/visible) y el alcance de movimiento
 // ligado a los Puntos de Acción (PA) restantes del héroe.
 
-import { SIGHT, AP_MAX, CLIMB_COST, MAX_CLIMB, DIFFICULT_EXTRA } from './config.js?v=0.9.3';
+import { SIGHT, AP_MAX, CLIMB_COST, MAX_CLIMB, DIFFICULT_EXTRA } from './config.js?v=0.9.4';
 
 export const state = {
   cols: 0, rows: 0,
@@ -59,10 +59,19 @@ export function isWall(x, y) { return !inBounds(x, y) || state.tiles[y][x] === 1
 // Un trigger "mueble" (todo salvo trampa) ocupa su casilla: no se puede pisar,
 // se interactúa desde al lado. La trampa es un peligro de SUELO: sí se pisa.
 export function blockingTriggerAt(x, y) {
-  return state.triggers.find(t => !t.used && t.type !== 'trap' && t.x === x && t.y === y);
+  return state.triggers.find(t => !t.used && t.type !== 'trap' && !t.walkTrigger && t.x === x && t.y === y);
 }
 export function trapAt(x, y) {
   return state.triggers.find(t => !t.used && t.type === 'trap' && t.x === x && t.y === y);
+}
+// Objetos marcados como walkTrigger (p.ej. un evento de ambientación): no
+// bloquean su casilla y se disparan solos al pisarlos, como una trampa pero
+// sin daño — el efecto concreto lo decide quien lo dispare (ver rules.js).
+// Si además llevan triggerColumn, se disparan al cruzar CUALQUIER casilla de
+// su misma columna (x), no solo su casilla exacta.
+export function walkTriggerAt(x, y) {
+  return state.triggers.find(t => !t.used && t.walkTrigger &&
+    (t.triggerColumn ? t.x === x : (t.x === x && t.y === y)));
 }
 
 export function walkable(x, y) {

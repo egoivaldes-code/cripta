@@ -10,6 +10,19 @@ Esquema: `0.X` = cambio grande · `0.X.Y` = cambio pequeño / fix.
 - Verificado por dentro: nadie cae en un muro, no hay solapes entre héroe/enemigos/trampas/salida, y todo es alcanzable desde el punto de partida.
 - Retirado `assets/ui_kit/` del proyecto (era un banco de referencia de iconos sin recortar, pensado solo como consulta puntual, no para vivir en el repo; no lo usaba ningún código).
 
+## 0.9.4 — cofre animado, eventos de ambientación, editor con numeración y arreglos de niebla
+- Nuevo objeto animado de verdad: el **cofre** (idle=cerrado, se abre con su propia animación de 4 fotogramas y se queda abierto para siempre). Secuencia al interactuar: el héroe activa/inspecciona primero → se resuelve el evento o tarjeta que tenga (si tiene) → al resolverse, el héroe lootea y el cofre se abre visualmente.
+- Primer sistema de "objetos con animación propia" en `anim.js` (`openProp`), reutilizable para futuros props que necesiten abrirse/activarse con su propia hoja de fotogramas.
+- Blindaje: interactuar con un objeto que todavía no tiene un evento conectado en `events.json` (p.ej. un "Evento" recién colocado sin enlazar) ya no rompe el juego — muestra un mensaje neutro y no pasa nada más.
+- Nuevo tipo de objeto **"Evento"** en el manifiesto: un marcador sin comportamiento propio, pensado para colocar y conectar más adelante.
+- Nuevo tipo de disparo para objetos "Evento": `walkTrigger`. Si un trigger lo lleva, no bloquea su casilla y se activa solo al pisarla (como una trampa, pero sin daño) — hasta ahora todos los objetos no-trampa bloqueaban su casilla sin excepción. Además puede llevar `triggerColumn`: en vez de dispararse solo en su casilla exacta, se dispara al cruzar **cualquier casilla de su misma columna**, una sola vez aunque el camino la cruce varias veces en el mismo movimiento.
+- Nueva tarjeta narrativa (imagen + texto, sin opciones): se cierra al tocarla. Pensada para momentos de ambientación ("escuchas ruidos...", pistas de lo que hay más adelante) con una ilustración propia y el texto colocado en su hueco de pergamino.
+- Las cajas de vida de enemigos ya no aparecen si el enemigo está en niebla de guerra o en zona sin explorar (antes se veían igual estando despiertos aunque no los vieras).
+- La guardia de combate del héroe ya no se activa por enemigos ocultos en niebla/zona negra — solo cuenta a los que realmente ves.
+- Arreglada (de verdad esta vez) la dirección del esqueleto: su arte venía dibujado mirando hacia la izquierda de serie, al contrario que la convención asumida en el resto del código — por eso el espejo quedaba invertido. Añadida una tabla de corrección por tipo de personaje para este tipo de casos futuros.
+- Editor de niveles: Entrada y Salida pasan a ser herramientas separadas y ya admiten colocar varias de cada una (antes era una sola combinada). Todo lo que se coloca por duplicado se numera solo (Cofre 1, Cofre 2, Evento 1, Evento 2, Entrada 1, Entrada 2, Salida 1, Salida 2...), tanto en el propio mapa como en el JSON que se exporta.
+- Cementerio actualizado desde el editor: 8º esqueleto añadido, una segunda salida marcada (sin destino decidido aún, así que de momento no hace nada al pisarla) con un hueco nuevo en el muro norte para llegar hasta ella, y "Evento 1" conectado como primer evento de ambientación de prueba (se dispara al cruzar su columna). Verificado de nuevo: sin muros mal puestos, sin solapes, todo alcanzable.
+
 ## 0.9.3 — retoques de HUD, rejilla y escala del héroe
 - Arreglado: la barra de vida del héroe no bajaba visualmente (aunque el número sí cambiaba). Era un efecto colateral del número dentro de la barra: una regla de color le aplicaba fondo verde también al texto, que tapaba la barra real por encima. El número además se pone en rojo por debajo del 25% de vida.
 - La rejilla táctica empieza **apagada** por defecto, y aunque se active, ya no se dibuja sobre casillas en penumbra (solo sobre las que ves directamente).

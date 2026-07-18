@@ -6,7 +6,7 @@
 //     (paz/combate) que cambian solas según haya un enemigo cerca, con una transición.
 // Además: sacudida al recibir daño y números flotantes (daño/curación).
 
-import { TILE } from './config.js?v=0.9.3';
+import { TILE } from './config.js?v=0.9.4';
 
 const D_MOVE = 170;
 const D_ATTACK_LEGACY = 220;
@@ -16,6 +16,10 @@ const D_HURT = 300;   // duración de la sacudida (todos los personajes)
 // aquí, se dibuja con el sistema "legacy" de 4 fotogramas de siempre.
 // Los nombres de clip coinciden EXACTAMENTE con las claves cargadas en assets.js.
 export const ANIM_CLIPS = {
+  chest: {
+    idle: { frames: 1, fps: 1, loop: true  },
+    open: { frames: 4, fps: 6, loop: false },
+  },
   enemy1: {
     idle:   { frames: 6, fps: 1.8,  loop: true  },
     walk:   { frames: 8, fps: 10, loop: true  },
@@ -40,7 +44,7 @@ export const ANIM_CLIPS = {
 
 // Qué clip hace de idle normal / idle de combate / transición, por tipo (solo el
 // héroe tiene los dos idles; el esqueleto usa el mismo "idle" siempre).
-const IDLE_NAME = { enemy1: 'idle', hero: 'idlepeace' };
+const IDLE_NAME = { enemy1: 'idle', hero: 'idlepeace', chest: 'idle' };
 const IDLE_COMBAT_NAME = { hero: 'idlecombat' };
 const STANCECHANGE_NAME = { hero: 'stancechange' };
 // Variantes de ataque entre las que elegir al azar cada vez.
@@ -146,6 +150,17 @@ export function die(name) {
   a.anim = null;
 }
 
+// Para OBJETOS (no personajes): se reproduce el clip "open" una vez y se
+// queda congelado en el último fotograma para siempre (el cofre se ve abierto
+// desde entonces). Si el tipo no tiene clip "open", no hace nada.
+export function openProp(name, kind) {
+  const a = ensure(name, 0, 0);
+  if (!isAnimated(kind) || !ANIM_CLIPS[kind].open || a.opened) return;
+  commit(a);
+  a.opened = true;
+  setState(a, 'open');
+}
+
 // Marca la sacudida de daño (todos los personajes) y, si el tipo tiene clip "hit",
 // además reproduce la animación de encajar el golpe.
 export function hurt(name, kind) {
@@ -228,6 +243,14 @@ function resolveAnimated(a, clips, kind, ts, sx, sy, hurt) {
     const c = clips.death || { frames: 1, fps: 1 };
     const frame = Math.min(c.frames - 1, Math.max(0, Math.floor((ts - a.clipT0) * c.fps / 1000)));
     return { cx: a.px + sx, cy: a.py + sy, clip: 'death', frame, hurt, facing: a.facing, dead: true };
+  }
+
+  // Objeto (cofre...) ya abierto: se reproduce el clip "open" una vez y se
+  // queda congelado en su último fotograma para siempre.
+  if (a.opened) {
+    const c = clips.open || { frames: 1, fps: 1 };
+    const frame = Math.min(c.frames - 1, Math.max(0, Math.floor((ts - a.clipT0) * c.fps / 1000)));
+    return { cx: a.px + sx, cy: a.py + sy, clip: 'open', frame, hurt, facing: a.facing };
   }
 
   const an = a.anim;

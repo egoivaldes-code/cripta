@@ -80,6 +80,32 @@ artifact que se regenera cada vez que hace falta ampliarlo.
    start.foes/triggers/exit), y **siempre** corre la batería de pruebas de
    conectividad antes de dar nada por bueno (ver más abajo).
 
+**Numeración de entidades**: cada objeto colocado por duplicado (cofre,
+evento, tumba, entrada, salida...) se numera solo en el propio mapa y en el
+JSON exportado (`Cofre 1`, `Cofre 2`...), calculado por orden de colocación
+dentro de su mismo tipo (y subtipo, en el caso de los enemigos). El héroe no
+se numera (siempre hay uno). Entrada y Salida son herramientas separadas y
+ambas admiten varias unidades — de momento son solo referencia visual para
+el usuario, el motor real solo soporta UNA salida por nivel (`level.exit`).
+
+**Objetos sin evento conectado**: el motor real (`rules.js`) comprueba si
+existe `state.events[tr.id]` antes de abrir la tarjeta; si un objeto (p.ej.
+un "Evento" recién colocado, o un cofre al que aún no le has puesto datos en
+`events.json`) no tiene nada conectado, se muestra un mensaje neutro y no
+pasa nada más — no revienta el juego. Ten esto en cuenta al añadir objetos
+nuevos desde el editor: colócalos primero, pruébalos si quieres, y dile a
+Claude qué debe pasar en cada uno cuando quieras conectarlos de verdad.
+
+**Objetos que no bloquean y se disparan solos (`walkTrigger`)**: por defecto,
+cualquier trigger que no sea una trampa bloquea su casilla (hay que
+interactuar desde al lado). Si un trigger concreto lleva `walkTrigger:true`
+en el nivel, se comporta como una trampa (no bloquea, se activa solo al
+pisarlo) pero sin el mecanismo de daño/desarme — el efecto lo decide
+`triggerWalkEvent()` en `rules.js` según `state.events[tr.id].type`. Se usa
+para eventos de ambientación (tarjeta con imagen + texto, sin opciones, se
+cierra al tocarla — ver `openStoryCard`/`renderStoryCard` en `ui.js`), pero
+sirve para cualquier cosa que deba dispararse sola al pasar por encima.
+
 **Protecciones importantes descubiertas al construirla** (aplican a
 cualquier artifact HTML que se construya para este proyecto):
 - **`prompt()`, `confirm()` y `alert()` nativos del navegador NO funcionan**
@@ -179,6 +205,25 @@ Conviven dos sistemas mientras se migra el arte poco a poco:
 
 Para saber si un tipo de sprite usa animaciones de verdad, mira si aparece
 como clave en `ANIM_CLIPS` (en `anim.js`).
+
+**Objetos con animación propia (no personajes)**: el mismo sistema sirve para
+props como el cofre (`idle`=cerrado, `open`=se abre y se queda abierto para
+siempre). Se usa `anim.openProp(nombre, tipo)` en vez de `anim.die()`, con el
+mismo patrón de "se congela en el último fotograma para siempre" (`a.opened`,
+paralelo a `a.dying`). El nombre del actor para un objeto de mapa es
+`` `prop:${x}:${y}` `` (estable mientras el objeto no se mueva de casilla).
+`render.js` dibuja el objeto igual que a un personaje (resolviendo por
+`anim.resolve`) si su sprite tiene clips; si es una imagen suelta (tumba,
+cripta), sigue el camino estático de siempre.
+
+**Corrección de orientación nativa**: no todo el arte viene dibujado mirando
+hacia la derecha por defecto (la convención que asume el resto del código al
+decidir hacia dónde debe mirar un personaje). Si un personaje queda mirando
+siempre al lado contrario del que debería, antes de tocar la lógica de
+`facing`, comprueba si el ARTE en sí mira a la izquierda de serie — en ese
+caso, el arreglo es añadir una entrada a `NATIVE_FACING` en `render.js`
+(no tocar `anim.js`, que calcula la dirección "lógica" correctamente; el
+problema está solo en cómo se traduce esa dirección al volteo del dibujo).
 
 ## Técnica: procesar hojas de animación nuevas (Nano Banana → juego)
 

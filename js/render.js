@@ -7,11 +7,17 @@
 // La altura de cada casilla se pinta con un tinte y, en los escalones, un
 // borde de color: VERDE en el lado alto, ROJO en el lado bajo (estilo Descent).
 
-import { state, elevAt } from './state.js?v=0.9.3';
-import { isAITurnActive } from './rules.js?v=0.9.3';
-import { TILE, CAMERA_MARGIN, ZOOM_MIN, ZOOM_MAX, ZOOM_DEFAULT, TOKEN_TALL, HERO_TALL, PROP_TALL } from './config.js?v=0.9.3';
-import { images, ATLAS_TILE, SPRITE_TILE } from './assets.js?v=0.9.3';
-import * as anim from './anim.js?v=0.9.3';
+import { state, elevAt } from './state.js?v=0.9.4';
+import { isAITurnActive } from './rules.js?v=0.9.4';
+import { TILE, CAMERA_MARGIN, ZOOM_MIN, ZOOM_MAX, ZOOM_DEFAULT, TOKEN_TALL, HERO_TALL, PROP_TALL } from './config.js?v=0.9.4';
+import { images, ATLAS_TILE, SPRITE_TILE } from './assets.js?v=0.9.4';
+import * as anim from './anim.js?v=0.9.4';
+
+// Algunos artes vienen dibujados mirando a la izquierda de serie (en vez de a
+// la derecha, que es lo que se asume en el resto del código al calcular hacia
+// dónde debe mirar un personaje). Aquí se corrige por tipo: -1 = el arte nativo
+// mira a la izquierda (hay que invertir el volteo), 1 = ya mira a la derecha.
+const NATIVE_FACING = { enemy1: -1, hero: 1 };
 
 function atlasCol(value, x, y) {
   if (value === 1) return 3;
@@ -204,6 +210,7 @@ function glyphFor(type) {
     case 'trap':  return '▲';
     case 'grave': return '†';
     case 'crypt': return '⌂';
+    case 'event': return '!';
     default:      return '?';
   }
 }
@@ -229,7 +236,7 @@ function drawActor(name, sheet, gx, gy, ts, fallback, show = true, kind = 'legac
     // Personaje con animaciones de verdad: la hoja del clip activo (idle/walk/attack/death),
     // volteada horizontalmente si mira a la izquierda.
     const img = sheet[a.clip];
-    const facing = a.facing || 1;
+    const facing = (a.facing || 1) * (NATIVE_FACING[kind] || 1);
     ctx.save();
     ctx.translate(s.x, s.y + T*0.40 - size/2);
     ctx.scale(facing, 1);
@@ -340,16 +347,30 @@ function draw(ts) {
   // Puntos de evento (lápidas, criptas...) — billboard con arte real si lo hay.
   const glow = reduceMotion ? 0.6 : 0.5 + 0.5 * Math.sin(pulse * 2.6);
   for (const tr of triggers) {
-    if (tr.used || !state.explored[tr.y][tr.x]) continue;
+    const isChest = tr.type === 'chest';
+    if ((tr.used && !isChest) || !state.explored[tr.y][tr.x]) continue;
     if (tr.type === 'trap' && !tr.revealed) continue;   // invisible hasta que se descubre
     const s = worldToScreen(tr.x * TILE + TILE/2, tr.y * TILE + TILE/2);
     const on = state.visible[tr.y][tr.x];
     const art = tr.sprite ? images[tr.sprite] : null;
-    if (art) {
+    if (art && typeof art.width === 'number') {
+      // Objeto estático de una sola imagen (tumba, cripta...).
       const th = (tr.tall || PROP_TALL) * T, w = art.width * th / art.height;
       ctx.save();
       if (!on) ctx.globalAlpha = 0.55;
       ctx.drawImage(art, s.x - w/2, s.y - th + T*0.42, w, th);
+      ctx.restore();
+    } else if (art) {
+      // Objeto con animación de verdad (cofre: idle/open). Una vez abierto
+      // (tr.used) se queda congelado en el último fotograma para siempre.
+      const propName = `prop:${tr.x}:${tr.y}`;
+      const a = anim.resolve(propName, tr.x, tr.y, ts, tr.sprite);
+      if (tr.used && !a.opened) anim.openProp(propName, tr.sprite);
+      const img = art[a.clip];
+      const th = (tr.tall || PROP_TALL) * T, w = img.width * th / img.height;
+      ctx.save();
+      if (!on) ctx.globalAlpha = 0.55;
+      ctx.drawImage(img, a.frame * SPRITE_TILE, 0, SPRITE_TILE, SPRITE_TILE, s.x - w/2, s.y - th + T*0.42, w, th);
       ctx.restore();
     } else {
       disc(s.x, s.y, 20*zoom, `rgba(224,138,60,${(on ? 0.10 : 0.05) + 0.10 * glow})`);
@@ -383,6 +404,7 @@ function draw(ts) {
   let nearestFoeDist = Infinity;
   for (const foe of state.foes) {
     if (!foe.alive) continue;
+    if (!state.visible[foe.y] || !state.visible[foe.y][foe.x]) continue;   // en niebla/sin explorar: no cuenta
     const d = Math.max(Math.abs(foe.x - hero.x), Math.abs(foe.y - hero.y));
     if (d < nearestFoeDist) nearestFoeDist = d;
   }

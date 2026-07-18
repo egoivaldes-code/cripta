@@ -50,7 +50,7 @@
       1,
       1,
       1,
-      1,
+      0,
       1,
       1,
       1,
@@ -1558,6 +1558,16 @@
         "sprite": "enemy1",
         "dormant": true,
         "wakeR": 3
+      },
+      {
+        "x": 9,
+        "y": 6,
+        "hp": 12,
+        "maxHp": 12,
+        "atk": 4,
+        "sprite": "enemy1",
+        "dormant": true,
+        "wakeR": 3
       }
     ]
   },
@@ -1573,6 +1583,14 @@
       "y": 3,
       "id": "trampa",
       "type": "trap"
+    },
+    {
+      "x": 13,
+      "y": 6,
+      "id": "evento_1",
+      "type": "event",
+      "walkTrigger": true,
+      "triggerColumn": true
     }
   ],
   "exit": {

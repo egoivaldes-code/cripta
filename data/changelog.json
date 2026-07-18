@@ -1,6 +1,32 @@
 {
   "versions": [
     {
+      "v": "0.9.4",
+      "es": {
+        "title": "Cofres, eventos y editor con numeración",
+        "notes": [
+          "Nuevo cofre animado: se abre de verdad al interactuar (primero lo inspeccionas, luego se resuelve lo que tenga dentro, y se abre mientras lo saqueas).",
+          "Las cajas de vida y la guardia de combate ya no reaccionan a enemigos ocultos en niebla de guerra.",
+          "Arreglada de verdad la dirección del esqueleto al mirar al héroe.",
+          "El editor de niveles numera automáticamente cada objeto que repites (Cofre 1, Cofre 2...), y separa Entrada y Salida para poder poner varias de cada una.",
+          "Nuevo tipo de evento que se dispara solo al cruzar su columna en el mapa (no bloquea, no hace daño, salta una sola vez), pensado para momentos de ambientación con una ilustración propia.",
+          "Primer evento de este tipo ya colocado en el cementerio."
+        ]
+      },
+      "en": {
+        "title": "Chests, events and numbered editor",
+        "notes": [
+          "New animated chest: it really opens when you interact with it (you inspect it first, then whatever is inside resolves, then it opens as you loot it).",
+          "Health boxes and combat stance no longer react to enemies hidden in the fog of war.",
+          "Really fixed the skeleton facing direction toward the hero.",
+          "The level editor now auto-numbers repeated objects (Chest 1, Chest 2...) and splits Entrance/Exit so you can place several of each.",
+          "New event type that triggers by crossing its column on the map (no blocking, no damage, fires only once), meant for atmospheric moments with their own illustration.",
+          "First event of this kind already placed in the cemetery."
+        ]
+      },
+      "title": "Cofres, eventos y editor con numeración"
+    },
+    {
       "v": "0.9.3",
       "es": {
         "title": "Retoques de interfaz y escala",

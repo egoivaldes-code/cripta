@@ -133,6 +133,20 @@ body.layout-edit .layoutApplyBtn{ display:block; }
 .card h2,.panel h2{ margin:0 0 10px; font-family:Georgia,"Times New Roman",serif; font-weight:600; font-size:22px; line-height:1.1; color:var(--bone); }
 .card p{ margin:0 0 16px; font-size:13.5px; line-height:1.5; color:#bdb9ab; }
 .choices{ display:flex; flex-direction:column; gap:8px; }
+
+/* Tarjeta narrativa (imagen + texto, sin opciones): se cierra al tocarla. */
+.card.story{ max-width:520px; padding:0; overflow:hidden; border-left:none; cursor:pointer; }
+.card.story .storywrap{ position:relative; width:100%; line-height:0; }
+.card.story img{ display:block; width:100%; height:auto; }
+.card.story .storytext{ position:absolute; left:64%; right:5%; top:12%; bottom:20%;
+  display:flex; align-items:center; justify-content:center; text-align:center;
+  font-family:Georgia,"Times New Roman",serif; font-size:14px; line-height:1.55;
+  color:#2a2015; text-shadow:0 1px 0 rgba(255,255,255,.3); }
+.card.story .storyhint{ position:absolute; left:64%; right:5%; bottom:6%; text-align:center;
+  font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:#5a4a30; opacity:.85; }
+@media (max-width:420px){
+  .card.story .storytext{ font-size:12.5px; top:10%; bottom:22%; }
+}
 .choice{ text-align:left; width:100%; background:var(--stone-900); color:var(--bone);
   border:1px solid var(--steel); border-radius:4px; font:inherit; font-size:13px; padding:11px 13px; cursor:pointer;
   display:flex; justify-content:space-between; align-items:center; gap:10px; transition:border-color .12s, background .12s; }

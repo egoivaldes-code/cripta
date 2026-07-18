@@ -122,5 +122,10 @@
         "effect": {}
       }
     ]
+  },
+  "evento_1": {
+    "type": "story",
+    "image": "story_cemetery_noises",
+    "i18n": "ev.evento1"
   }
 }

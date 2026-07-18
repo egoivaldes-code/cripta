@@ -1,11 +1,12 @@
 // Capa DOM: HUD (con PA), cartas de evento, registro, fin de partida y ajustes.
 // Todo el texto visible pasa por t() (multiidioma). No dibuja en el canvas.
 
-import { state } from './state.js?v=0.9.3';
-import { t } from './i18n.js?v=0.9.3';
-import * as anim from './anim.js?v=0.9.3';
-import * as audio from './audio.js?v=0.9.3';
-import { VERSION } from './config.js?v=0.9.3';
+import { state } from './state.js?v=0.9.4';
+import { t } from './i18n.js?v=0.9.4';
+import * as anim from './anim.js?v=0.9.4';
+import * as audio from './audio.js?v=0.9.4';
+import { VERSION } from './config.js?v=0.9.4';
+import { images } from './assets.js?v=0.9.4';
 
 let afterInteract = () => {};
 let restart = () => {};
@@ -46,6 +47,7 @@ export function syncFoeRow() {
   row.innerHTML = '';
   state.foes.forEach((foe) => {
     if (!foe.alive || foe.dormant) return;
+    if (!state.visible[foe.y] || !state.visible[foe.y][foe.x]) return;   // en niebla/sin explorar: no se ve su caja
     const box = document.createElement('div');
     box.className = 'foebox' + (state.targetFoe === foe ? ' selected' : '');
     const name = t('enemy.' + foe.sprite);
@@ -78,11 +80,23 @@ export function openTrapCard(trap) {
   audio.fx('ui');
 }
 
+// Evento de ambientación (imagen + texto, sin opciones): se cierra al tocar
+// en cualquier parte de la tarjeta. `ev` es la entrada de events.json (con
+// ev.image = clave del asset y ev.i18n = prefijo de sus textos).
+export function openStoryCard(ev) {
+  state.busy = true;
+  open = { type: 'story', ev };
+  renderCard();
+  $('veil').classList.add('show');
+  audio.fx('ui');
+}
+
 function renderCard() {
   if (!open) return;
   const card = $('card');
   if (open.type === 'over') { renderOver(card, open.kind); return; }
   if (open.type === 'trap') { renderTrapCard(card, open.trap); return; }
+  if (open.type === 'story') { renderStoryCard(card, open.ev); return; }
 
   const ev = state.events[open.trig.id];
   const b = ev.i18n;
@@ -101,6 +115,24 @@ function renderCard() {
     btn.onclick = () => resolveChoice(open.trig, ch, i, b);
     box.appendChild(btn);
   });
+}
+
+function renderStoryCard(card, ev) {
+  card.classList.add('story');
+  const img = images[ev.image];
+  const src = img ? img.src : '';
+  card.innerHTML =
+    `<div class="storywrap">
+       <img src="${src}" alt="">
+       <div class="storytext">${t(ev.i18n + '.text')}</div>
+       <div class="storyhint">${t('ui.clickContinue')}</div>
+     </div>`;
+  card.onclick = () => {
+    card.classList.remove('story');
+    card.onclick = null;
+    state.busy = false;
+    hideVeil();
+  };
 }
 
 function renderTrapCard(card, trap) {
@@ -135,7 +167,7 @@ function resolveChoice(trig, ch, i, b) {
   log(t(`${b}.c${i}.r`));
   state.busy = false;
   if (hero.hp <= 0) return gameOver('lose');
-  afterInteract();
+  afterInteract(trig);
 }
 
 export function gameOver(kind) {

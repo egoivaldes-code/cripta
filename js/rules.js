@@ -1,13 +1,13 @@
 // Reglas del juego: economía de Puntos de Acción (PA), interacción a distancia
 // y adyacente, trampas, niebla y salida de nivel. Agnóstico del dibujo.
 
-import { state, walkable, adjacent, distTo, isVisible, recomputeFog, computeReach, pathTo, reachCost, blockingTriggerAt, trapAt, stepNeighbors, foeAt, livingFoes } from './state.js?v=0.9.3';
-import { openEvent, openTrapCard, syncHUD, log, gameOver } from './ui.js?v=0.9.3';
-import { t } from './i18n.js?v=0.9.3';
-import { MOVE_COST, ATTACK_COST } from './config.js?v=0.9.3';
-import * as anim from './anim.js?v=0.9.3';
-import { ANIM_CLIPS } from './anim.js?v=0.9.3';
-import * as audio from './audio.js?v=0.9.3';
+import { state, walkable, adjacent, distTo, isVisible, recomputeFog, computeReach, pathTo, reachCost, blockingTriggerAt, trapAt, walkTriggerAt, stepNeighbors, foeAt, livingFoes } from './state.js?v=0.9.4';
+import { openEvent, openTrapCard, openStoryCard, syncHUD, log, gameOver } from './ui.js?v=0.9.4';
+import { t } from './i18n.js?v=0.9.4';
+import { MOVE_COST, ATTACK_COST } from './config.js?v=0.9.4';
+import * as anim from './anim.js?v=0.9.4';
+import { ANIM_CLIPS } from './anim.js?v=0.9.4';
+import * as audio from './audio.js?v=0.9.4';
 
 const sign = (n) => Math.sign(n);
 
@@ -24,6 +24,7 @@ export function startHeroTurn() {
 // Muestra la pista ambigua de un objeto visto a distancia (gratis, sin PA).
 function showHint(tr) {
   const ev = state.events[tr.id];
+  if (!ev) return;   // sin evento conectado todavía: no hay pista que mostrar
   log(`<b>${t(ev.i18n + '.kicker')}</b> — ${t(ev.i18n + '.hint')}`);
   audio.fx('ui');
 }
@@ -38,6 +39,17 @@ function triggerTrap(trap) {
   log(`<b>${t(ev.i18n + '.kicker')}</b> — ${t(ev.i18n + '.text')}`);
   syncHUD();
   if (state.hero.hp <= 0) gameOver('lose');
+}
+
+// Evento de ambientación que se dispara solo al pisar su casilla (no bloquea,
+// no hace daño). Si no tiene datos conectados en events.json, no hace nada
+// (en vez de romper el juego) para poder colocar "Eventos" de prueba sin miedo.
+function triggerWalkEvent(tr) {
+  const ev = state.events[tr.id];
+  if (!ev) return;
+  tr.used = true;
+  if (ev.type === 'story') { openStoryCard(ev); return; }
+  log(`<b>${t(ev.i18n + '.kicker')}</b> — ${t(ev.i18n + '.text')}`);
 }
 
 // Las trampas son invisibles hasta que el héroe TERMINA un movimiento justo
@@ -107,17 +119,28 @@ export function onTapTile(gx, gy) {
     return;
   }
 
-  // --- ¿Objeto (cofre, altar, palanca, orbe, mesa)? Adyacente = interactuar; a distancia = pista. ---
+  // --- ¿Objeto (cofre, altar, palanca, orbe, mesa, evento...)? Adyacente =
+  // interactuar; a distancia = pista. Si todavía no tiene un evento conectado
+  // en events.json (p.ej. un "Evento" recién colocado en el editor, sin
+  // enlazar aún), no revienta: se avisa con un mensaje neutro y no pasa nada más. ---
   const tr = blockingTriggerAt(gx, gy);
   if (tr) {
     const d = distTo(hero, gx, gy);
     if (d <= 1) {
-      const cost = state.events[tr.id].actionCost || 1;
+      const ev = state.events[tr.id];
+      if (!ev) { log(t('log.noEventYet')); anim.activateAnim('hero', 'hero'); return; }
+      const cost = ev.actionCost || 1;
       if (hero.ap < cost) { log(t('log.noAP')); return; }
       hero.ap -= cost; syncHUD();
-      const LOOT_TYPES = ['chest', 'grave', 'item'];
-      if (LOOT_TYPES.includes(tr.type)) anim.loot('hero', 'hero');
-      else anim.activateAnim('hero', 'hero');
+      if (tr.type === 'chest') {
+        // El cofre se abre DESPUÉS de resolver la tarjeta (ver afterInteract);
+        // aquí solo se reproduce la animación de activar/inspeccionar.
+        anim.activateAnim('hero', 'hero');
+      } else if (['grave', 'item'].includes(tr.type)) {
+        anim.loot('hero', 'hero');
+      } else {
+        anim.activateAnim('hero', 'hero');
+      }
       openEvent(tr);
     } else if (isVisible(gx, gy)) {
       showHint(tr);
@@ -151,9 +174,12 @@ export function onTapTile(gx, gy) {
   syncHUD();
 
   // ¿Se cruza con alguna trampa sin desarmar por el camino? Se activa sola.
+  // Lo mismo para los eventos de ambientación marcados como walkTrigger.
   for (const cell of path.slice(1)) {
     const trap = trapAt(cell.x, cell.y);
     if (trap) triggerTrap(trap);
+    const wt = walkTriggerAt(cell.x, cell.y);
+    if (wt) triggerWalkEvent(wt);
   }
 
   if (state.exit && gx === state.exit.x && gy === state.exit.y) { onDescend(); return; }
@@ -164,7 +190,13 @@ export function onTapTile(gx, gy) {
 
 // Se llama tras resolver la carta de un objeto (ui.js). El coste ya se
 // descontó al abrirlo; aquí solo se refresca todo y se cierra turno si toca.
-export function afterInteract() {
+// Si era un cofre, aquí es cuando se abre de verdad (lootear + su propia
+// animación), después del evento/tarjeta que hubiera, tal como se pidió.
+export function afterInteract(trig) {
+  if (trig && trig.type === 'chest') {
+    anim.loot('hero', 'hero');
+    anim.openProp(`prop:${trig.x}:${trig.y}`, 'chest');
+  }
   computeReach();
   if (state.hero.hp > 0 && state.hero.ap <= 0) endHeroTurn();
 }

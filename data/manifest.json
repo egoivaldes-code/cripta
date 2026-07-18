@@ -1,5 +1,5 @@
 {
-  "version": "0.9.1",
+  "version": "0.9.4",
   "updated": "2026-07-17",
   "enemies": [
     { "key": "enemy1", "label": "Esqueleto (básico)", "hp": 12, "atk": 4, "color": "#b5443a", "animated": true }
@@ -16,7 +16,8 @@
     { "key": "orb",   "label": "Orbe",     "glyph": "●", "color": "#5aa8d8", "blocking": true  },
     { "key": "table", "label": "Mesa",     "glyph": "▦", "color": "#a08858", "blocking": true  },
     { "key": "item",  "label": "Objeto",   "glyph": "★", "color": "#e8d24c", "blocking": true  },
-    { "key": "trap",  "label": "Trampa",   "glyph": "▲", "color": "#a8382e", "blocking": false }
+    { "key": "trap",  "label": "Trampa",   "glyph": "▲", "color": "#a8382e", "blocking": false },
+    { "key": "event", "label": "Evento",   "glyph": "!", "color": "#c94cd0", "blocking": false }
   ]
 }
 
