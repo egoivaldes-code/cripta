@@ -23,4 +23,4 @@ export const DIFFICULT_EXTRA = 1;  // coste extra por entrar en terreno difícil
 export const ATTACK_COST = 2;  // coste de atacar (depende del arma; por ahora fijo)
 
 // --- versión (fuente única; también se usa para el cache-busting de assets) ---
-export const VERSION = '0.9.1';
+export const VERSION = '0.9.2';

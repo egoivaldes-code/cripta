@@ -1,6 +1,29 @@
 {
   "versions": [
     {
+      "v": "0.9.2",
+      "es": {
+        "title": "Trampas invisibles y ritmo de combate",
+        "notes": [
+          "Las cajas de vida de los enemigos ya muestran su nombre (Esqueleto) y solo aparecen los que están despiertos o en combate contigo.",
+          "La barra de vida del héroe muestra ahora el número exacto de puntos de vida.",
+          "Nuevo marcador de objetivo, más nítido.",
+          "Los turnos de los enemigos cercanos ya no parecen instantáneos: cada acción se ve antes de pasar a la siguiente.",
+          "Las trampas son invisibles hasta que pasas justo al lado (no en diagonal). Al descubrirlas, puedes intentar desactivarlas: 50% de acierto, 50% de que te lleves la mitad del daño."
+        ]
+      },
+      "en": {
+        "title": "Invisible traps and combat pacing",
+        "notes": [
+          "Enemy health boxes now show their name (Skeleton) and only appear for enemies that are awake or in combat with you.",
+          "The hero health bar now shows the exact hit point number.",
+          "New, cleaner target marker.",
+          "Nearby enemy turns no longer look instant: each action plays out before the next one starts.",
+          "Traps are invisible until you end a move right next to one (not diagonally). Once found, you can try to disarm it: 50% success, 50% chance of taking half the damage."
+        ]
+      }
+    },
+    {
       "v": "0.9.1",
       "es": {
         "title": "El cementerio, completo",

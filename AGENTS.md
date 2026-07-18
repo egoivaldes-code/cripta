@@ -5,6 +5,35 @@ primera vez entienda rápido cómo está montado, sin tener que releer todo el
 código. Si cambias algo estructural (arquitectura, convenciones, herramientas
 nuevas), actualiza también este archivo.
 
+## ⚠️ Protocolo anti-desincronización (léelo primero, en serio)
+
+El usuario a veces trabaja el mismo proyecto en **varios chats en paralelo**.
+Ya ha pasado una vez que dos chats avanzaran versiones distintas desde el
+mismo punto (uno hizo 0.7.1→0.7.3 con el cementerio y la altura relativa;
+otro hizo 0.8→0.9 con el héroe a escena y la interfaz movible) sin que
+ninguno de los dos supiera del otro, y hubo que fusionar a mano.
+
+Para no repetirlo:
+
+1. **Al empezar a trabajar en una versión nueva, pregunta primero si esta es
+   la última realmente subida al repo**, sobre todo si el usuario lleva un
+   rato sin mandar un zip nuevo o si retoma la conversación tras una pausa
+   larga. Un simple "¿esto sigue siendo lo último o has tocado algo en otro
+   chat?" ahorra mucho lío.
+2. **Si el usuario sube un zip nuevo diciendo "vamos por la X.X"**, trátalo
+   como la fuente de verdad: compara con lo que tengas en local (`diff -rq`),
+   identifica qué cambió, y fusiona explícitamente lo que solo exista en tu
+   copia hacia esa base nueva. No asumas que tu copia estaba al día.
+3. **Este archivo (`AGENTS.md`) y `CHANGELOG.md` son el punto de partida
+   seguro.** Si te incorporas a este proyecto sin más contexto, léelos
+   enteros antes de tocar nada. Mantenlos actualizados según avances: si
+   creas una herramienta, una convención o una protección nueva, se anota
+   aquí en el mismo turno en que la creas, no "para luego".
+4. Después de fusionar o de cualquier cambio de bulto, **corre la batería de
+   pruebas de conectividad/solapes** (ver más abajo) sobre el resultado final
+   antes de empaquetar, aunque ya la hubieras corrido antes en una rama
+   distinta.
+
 ## Qué es esto
 
 Cripta es un juego de rol táctico cenital (rejilla, estilo Descent 2), con
@@ -19,6 +48,77 @@ De cara al futuro: la idea es que compilarlo a app (Capacitor/Electron,
 archivos, sin tocar el juego en sí. Por eso: **rutas siempre relativas**,
 nunca nada atado a un dominio o a GitHub Pages, y toda la carga de datos vía
 `fetch()`/`import` normal (nada de asumir `file://`).
+
+## El editor de niveles (herramienta aparte, fuera del juego)
+
+Existe un archivo HTML independiente (`cripta_editor_niveles.html`, generado
+por Claude, NO vive en el repo del juego) que el usuario abre en su móvil
+para preparar niveles sin escribir código. No es parte del juego: es un
+artifact que se regenera cada vez que hace falta ampliarlo.
+
+**Qué hace:**
+- Pinta terreno sobre la imagen real de un mapa (transitable / obstáculo /
+  elevado / difícil), casilla a casilla.
+- Coloca/quita héroe, enemigos (con desplegable de tipo), y objetos (tumba,
+  cofre, altar, palanca, orbe, mesa, ítem, trampa, entrada/salida).
+- Permite subir mapas nuevos (calcula sola la rejilla a partir de una celda
+  "cómoda", sin depender de que el tamaño de casilla encaje exacto en píxeles).
+- Todo se guarda solo (persistent storage del artifact), incluidos los mapas
+  subidos.
+- Lee `data/manifest.json` **en directo** desde la web publicada
+  (`egoivaldes-code.github.io/cripta/data/manifest.json`) para saber qué
+  enemigos/objetos existen en la versión actual, con una copia de respaldo
+  embebida por si no hay conexión. Así, cuando se añade un monstruo u objeto
+  nuevo al juego, solo hay que actualizar ese único archivo — no hay que
+  regenerar la herramienta entera cada vez.
+
+**Flujo de trabajo:**
+1. El usuario pinta/coloca en la herramienta.
+2. Pulsa "Exportar" → "Copiar JSON" → pega el resultado en el chat.
+3. Claude convierte ese JSON (`grid` + `entities`) al formato real de
+   `data/levels/<nombre>.json` (tiles/elev/difficult/background/start.hero/
+   start.foes/triggers/exit), y **siempre** corre la batería de pruebas de
+   conectividad antes de dar nada por bueno (ver más abajo).
+
+**Protecciones importantes descubiertas al construirla** (aplican a
+cualquier artifact HTML que se construya para este proyecto):
+- **`prompt()`, `confirm()` y `alert()` nativos del navegador NO funcionan**
+  dentro del entorno donde corren los artifacts (sandboxed iframe, sin
+  `allow-modals`). Si necesitas pedir texto o confirmar algo, hay que
+  construir un modal propio con HTML/CSS/JS (ver `#modalBack`/`#modalBox` en
+  la herramienta como referencia). Un `prompt()` ahí simplemente no hace
+  nada — no falla con un error visible, así que este bug puede pasar
+  desapercibido si no se prueba explícitamente esa función.
+- **Pintar/tocar vs arrastrar cámara**: si un `pointerdown` dispara la acción
+  inmediatamente, el primer toque de cualquier intento de arrastre se
+  interpreta como pintura. Solución: no actuar hasta `pointerup`, y solo si
+  el movimiento desde el `pointerdown` fue menor a un umbral (~10px); si
+  se superó, se entiende que el usuario quería mover la cámara, no pintar.
+- **Layout en móvil**: mejor un `body` en columna flex a pantalla completa
+  (`height:100dvh`) con las barras como `flex:none` y el área de mapa como
+  `flex:1`, que calcular alturas fijas a mano — se adapta solo si cambia el
+  contenido de las barras.
+
+## Protocolo de pruebas antes de empaquetar (obligatorio)
+
+Antes de dar cualquier cambio de nivel, mapa o lógica de juego por bueno,
+verificar con un script de Node (no hace falta navegador para esto) copiando
+el módulo relevante y quitando los `?v=X.X` de los imports:
+
+- **Cualquier nivel nuevo o editado**: héroe/enemigos/trampas/salida no caen
+  en un muro, no se solapan entre sí, y son alcanzables desde el punto de
+  partida (BFS/Dijkstra con las reglas reales de `stepNeighbors`, no un BFS
+  ingenuo — la regla de no cortar esquinas en diagonal puede dejar rincones
+  inalcanzables que un BFS simple no detectaría).
+- **Cambios en `anim.js`**: probar el ciclo completo de cada animación
+  (idle en bucle, transición de postura, ataque que vuelve solo a idle,
+  golpe que interrumpe correctamente otra acción en curso, muerte que se
+  congela para siempre) usando el reloj real (`performance.now()`), no
+  marcas de tiempo inventadas — desincronizan el test consigo mismo.
+- **Cambios de movimiento/altura**: verificar que subir cuesta más PA, que
+  un desnivel de sobra bloquea, y que la diagonal no corta esquinas.
+- Repetir la batería completa (no solo el test nuevo) tras cualquier fusión
+  entre versiones divergentes, como recuerda el protocolo anti-desincronización.
 
 ## Mapa de módulos (`js/`)
 
@@ -80,6 +180,39 @@ Conviven dos sistemas mientras se migra el arte poco a poco:
 Para saber si un tipo de sprite usa animaciones de verdad, mira si aparece
 como clave en `ANIM_CLIPS` (en `anim.js`).
 
+## Técnica: procesar hojas de animación nuevas (Nano Banana → juego)
+
+El usuario genera arte con Nano Banana (fondo magenta `#FF00FF`, varias poses
+en fila). Antes de meterlo al juego, el proceso que ha demostrado ser fiable:
+
+1. **Quitar el magenta** por color (no por transparencia, Nano Banana no la
+   da): `r>140 and b>70 and g<115 and (r-g)>55`.
+2. **Nunca recortar por ancho igual** (`i*ancho/N`). Las espadas, capas y
+   miembros de una pose casi siempre invaden el hueco del vecino, y un corte
+   recto se lleva un trozo ajeno o dispersa el propio. En su lugar, **recortar
+   por pieza conectada** (`scipy.ndimage.label`): cada figura es su propia
+   isla de píxeles. Si el nº de piezas detectadas no coincide con el nº de
+   poses esperado, casi siempre es porque dos piezas se tocan (un cruce de
+   espadas) — separar visualmente esos casos a mano si hace falta.
+3. **Enmascarar, no solo recortar el rectángulo**: al recortar la caja de una
+   pieza, poner a transparente cualquier píxel de la caja que pertenezca a
+   OTRA etiqueta (puede haber solape de cajas aunque las piezas no se toquen).
+4. **Una sola escala para todo el personaje**, nunca "ajustar cada fotograma
+   a la misma altura de destino". Si se hace lo segundo, agacharse/alzar la
+   espada por encima de la cabeza *cambia el tamaño aparente* del personaje
+   entre fotogramas (la pose más alta se ve "más pequeña" al forzarla al
+   mismo alto). Se mide la altura del cuerpo en una pose neutral (p.ej. el
+   primer fotograma del idle) UNA vez, y esa misma escala se aplica a todos
+   los fotogramas de todas las animaciones de ese personaje.
+5. Animaciones especiales en 2 filas (p.ej. una secuencia de muerte con
+   "de pie" arriba y "tumbado" abajo): la frontera real entre filas casi
+   nunca es exactamente la mitad del alto de la imagen; buscarla por la
+   franja de filas con cobertura de píxeles ≈0 más cercana a la mitad.
+6. Verificación automática antes de mirar nada a ojo: ningún fotograma con
+   cobertura de píxeles casi nula (recorte vacío) ni que toque el borde del
+   lienzo de 128×128 (indicio de recorte real, salvo que sea justo el borde
+   exacto sin perder píxeles — comprobar visualmente ese caso límite).
+
 ## Técnica: arreglar sprites que "tiemblan"
 
 Si un personaje oscila de lado a lado durante una animación en bucle (sobre
@@ -95,6 +228,17 @@ Eso enseña el centro (`cx`) y la base (`bottom`) de cada fotograma. Si varían
 entre fotogramas que deberían estar alineados, quita `--dry-run` para
 recentrar de verdad (ver `tools/recenter_sprite.py` para más opciones, como
 `--vertical` si además hay que alinear la base).
+
+## Técnica: que los turnos de la IA no parezcan instantáneos
+
+Si una función de turno de enemigo hace varias acciones seguidas (moverse
+varias veces, acercarse y atacar) todas en la misma función síncrona, cada
+`anim.move()`/`anim.attack()` **pisa** la animación anterior antes de que el
+siguiente fotograma llegue a pintarla — visualmente parece que todo pasa
+de golpe. La solución es hacer la función de turno `async` y meter un
+`await sleep(ms)` entre acción y acción (ver `enemyAITurn` en `rules.js`),
+con un flag tipo `aiTurnActive` que bloquee los toques del jugador mientras
+tanto (además de los ya existentes `state.busy`/`anim.active()`).
 
 ## Subir de versión
 
@@ -120,7 +264,18 @@ y `data/changelog.json` (splash del juego, en es/en) para esa versión.
 
 ## Pendiente / próximos pasos posibles
 
-Ver `CHANGELOG.md` y el resumen de contexto del proyecto para el historial
-completo. A grandes rasgos, sigue pendiente: terminar de pintar el terreno
-de la "cripta de prueba", enganchar `cast`/`potion` a efectos de juego,
-animar a los otros dos tipos de esqueleto, y pulir el editor de niveles.
+Ver `CHANGELOG.md` y `data/changelog.json` para el historial completo. A
+grandes rasgos, sigue pendiente:
+- Terminar de pintar el terreno y las entidades de la "cripta de prueba" en
+  el editor de niveles (la salida del cementerio ya apunta ahí, pero el
+  archivo `data/levels/cripta_prueba.json` todavía no existe — si se pisa
+  esa salida, el juego avisa con un mensaje en vez de romperse, pero no lleva
+  a ningún sitio real todavía).
+- Enganchar `cast`/`potion` (héroe y esqueleto) a algún efecto de juego real.
+- Animar a los otros dos tipos de esqueleto (espada+escudo, con armadura)
+  cuando lleguen sus sprites — hoy están desactivados en el manifiesto.
+- Usar el ensamblador de losetas (`mapgen.js`) para un nivel aleatorio.
+- Sacar iconos sueltos del pool de UI estilo Diablo que el usuario subió
+  (Claude guarda una copia de referencia fuera del repo; el pool en sí no
+  vive en el proyecto para no hincharlo — pedir a Claude si hace falta algo
+  de ahí).

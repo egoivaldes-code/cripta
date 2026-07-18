@@ -1,16 +1,18 @@
 // Capa DOM: HUD (con PA), cartas de evento, registro, fin de partida y ajustes.
 // Todo el texto visible pasa por t() (multiidioma). No dibuja en el canvas.
 
-import { state } from './state.js?v=0.9.1';
-import { t } from './i18n.js?v=0.9.1';
-import * as anim from './anim.js?v=0.9.1';
-import * as audio from './audio.js?v=0.9.1';
-import { VERSION } from './config.js?v=0.9.1';
+import { state } from './state.js?v=0.9.2';
+import { t } from './i18n.js?v=0.9.2';
+import * as anim from './anim.js?v=0.9.2';
+import * as audio from './audio.js?v=0.9.2';
+import { VERSION } from './config.js?v=0.9.2';
 
 let afterInteract = () => {};
 let restart = () => {};
+let onAttemptDisarm = () => {};
 export function bindAfterInteract(fn) { afterInteract = fn; }
 export function bindRestart(fn) { restart = fn; }
+export function bindAttemptDisarm(fn) { onAttemptDisarm = fn; }
 
 const $ = id => document.getElementById(id);
 let open = null; // { type:'event', trig } | { type:'over', kind } | null
@@ -20,6 +22,7 @@ export function log(html) { $('log').innerHTML = html; }
 export function syncHUD() {
   const { hero } = state;
   $('hpHero').style.width = Math.max(0, hero.hp / hero.maxHp * 100) + '%';
+  $('hpHeroText').textContent = `${Math.max(0, hero.hp)}/${hero.maxHp}`;
   $('gold').textContent = hero.gold;
   // Puntos de acción: pips llenos/vacíos.
   const pips = $('apPips');
@@ -32,17 +35,18 @@ export function syncHUD() {
   syncFoeRow();
 }
 
-// Una caja por enemigo vivo, con su propia barra de vida. Tocar una caja la
+// Una caja por cada enemigo despierto (dormido = todavía sin descubrir, no
+// sale aquí), con su nombre y su propia barra de vida. Tocar una caja la
 // marca como objetivo (icono sobre su cabeza en el mapa; ver render.js).
 export function syncFoeRow() {
   const row = $('foeRow');
   row.innerHTML = '';
-  state.foes.forEach((foe, i) => {
-    if (!foe.alive) return;
+  state.foes.forEach((foe) => {
+    if (!foe.alive || foe.dormant) return;
     const box = document.createElement('div');
     box.className = 'foebox' + (state.targetFoe === foe ? ' selected' : '');
-    box.innerHTML = `<div class="mark">✕${i + 1}</div><div class="bar foe"><span style="width:${Math.max(0, foe.hp / foe.maxHp * 100)}%"></span></div>`;
-    box.title = t('hud.foe');
+    const name = t('enemy.' + foe.sprite);
+    box.innerHTML = `<div class="fname">${name}</div><div class="bar foe"><span style="width:${Math.max(0, foe.hp / foe.maxHp * 100)}%"></span></div>`;
     box.onclick = () => {
       state.targetFoe = state.targetFoe === foe ? null : foe;
       syncFoeRow();
@@ -61,10 +65,21 @@ export function openEvent(trig) {
   audio.fx('coins');
 }
 
+// Trampa ya descubierta: pregunta si se quiere intentar desactivar (50/50),
+// en vez de desactivarla directo. Usa la misma tarjeta visual que los eventos.
+export function openTrapCard(trap) {
+  state.busy = true;
+  open = { type: 'trap', trap };
+  renderCard();
+  $('veil').classList.add('show');
+  audio.fx('ui');
+}
+
 function renderCard() {
   if (!open) return;
   const card = $('card');
   if (open.type === 'over') { renderOver(card, open.kind); return; }
+  if (open.type === 'trap') { renderTrapCard(card, open.trap); return; }
 
   const ev = state.events[open.trig.id];
   const b = ev.i18n;
@@ -83,6 +98,27 @@ function renderCard() {
     btn.onclick = () => resolveChoice(open.trig, ch, i, b);
     box.appendChild(btn);
   });
+}
+
+function renderTrapCard(card, trap) {
+  const ev = state.events[trap.id];
+  const b = ev.i18n;
+  card.innerHTML =
+    `<div class="kicker">${t(b + '.kicker')}</div>
+     <h2>${t(b + '.disarmTitle')}</h2>
+     <p>${t(b + '.disarmQuestion')}</p>
+     <div class="choices"></div>`;
+  const box = card.querySelector('.choices');
+  const yes = document.createElement('button');
+  yes.className = 'choice';
+  yes.innerHTML = `<span>${t('ui.yes')}</span>`;
+  yes.onclick = () => { hideVeil(); onAttemptDisarm(trap); };
+  const no = document.createElement('button');
+  no.className = 'choice';
+  no.innerHTML = `<span>${t('ui.no')}</span>`;
+  no.onclick = () => { state.busy = false; hideVeil(); };
+  box.appendChild(yes);
+  box.appendChild(no);
 }
 
 function resolveChoice(trig, ch, i, b) {

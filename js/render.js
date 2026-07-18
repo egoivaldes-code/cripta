@@ -7,10 +7,11 @@
 // La altura de cada casilla se pinta con un tinte y, en los escalones, un
 // borde de color: VERDE en el lado alto, ROJO en el lado bajo (estilo Descent).
 
-import { state, elevAt } from './state.js?v=0.9.1';
-import { TILE, CAMERA_MARGIN, ZOOM_MIN, ZOOM_MAX, ZOOM_DEFAULT, TOKEN_TALL, HERO_TALL, PROP_TALL } from './config.js?v=0.9.1';
-import { images, ATLAS_TILE, SPRITE_TILE } from './assets.js?v=0.9.1';
-import * as anim from './anim.js?v=0.9.1';
+import { state, elevAt } from './state.js?v=0.9.2';
+import { isAITurnActive } from './rules.js?v=0.9.2';
+import { TILE, CAMERA_MARGIN, ZOOM_MIN, ZOOM_MAX, ZOOM_DEFAULT, TOKEN_TALL, HERO_TALL, PROP_TALL } from './config.js?v=0.9.2';
+import { images, ATLAS_TILE, SPRITE_TILE } from './assets.js?v=0.9.2';
+import * as anim from './anim.js?v=0.9.2';
 
 function atlasCol(value, x, y) {
   if (value === 1) return 3;
@@ -137,7 +138,7 @@ function bindPointer() {
     pts.delete(e.pointerId);
     if (pinch && pts.size < 2) pinch = null;
     if (p && e.pointerId === p.id) {
-      if (!p.moved && !state.busy && !anim.active() && pts.size === 0) {   // toque limpio
+      if (!p.moved && !state.busy && !anim.active() && !isAITurnActive() && pts.size === 0) {   // toque limpio
         const rect = canvas.getBoundingClientRect();
         const w = screenToWorld(e.clientX - rect.left, e.clientY - rect.top);
         const gx = Math.floor(w.x / TILE), gy = Math.floor(w.y / TILE);
@@ -313,7 +314,7 @@ function draw(ts) {
   }
 
   // Rango de movimiento (relleno ámbar) y enemigo atacable.
-  if (!state.busy && !anim.active() && !userPanning) {
+  if (!state.busy && !anim.active() && !isAITurnActive() && !userPanning) {
     const d = state.reach.dist;
     for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
       if (d[y] && d[y][x] > 0) {
@@ -336,6 +337,7 @@ function draw(ts) {
   const glow = reduceMotion ? 0.6 : 0.5 + 0.5 * Math.sin(pulse * 2.6);
   for (const tr of triggers) {
     if (tr.used || !state.explored[tr.y][tr.x]) continue;
+    if (tr.type === 'trap' && !tr.revealed) continue;   // invisible hasta que se descubre
     const s = worldToScreen(tr.x * TILE + TILE/2, tr.y * TILE + TILE/2);
     const on = state.visible[tr.y][tr.x];
     const art = tr.sprite ? images[tr.sprite] : null;

@@ -10,6 +10,14 @@ Esquema: `0.X` = cambio grande · `0.X.Y` = cambio pequeño / fix.
 - Verificado por dentro: nadie cae en un muro, no hay solapes entre héroe/enemigos/trampas/salida, y todo es alcanzable desde el punto de partida.
 - Retirado `assets/ui_kit/` del proyecto (era un banco de referencia de iconos sin recortar, pensado solo como consulta puntual, no para vivir en el repo; no lo usaba ningún código).
 
+## 0.9.2 — trampas invisibles, ritmo de la IA y limpieza del HUD
+- Documento `AGENTS.md` ampliado con el protocolo anti-desincronización entre chats, el editor de niveles (antes no aparecía), las protecciones de artifacts (prompt/confirm bloqueados) y el protocolo de pruebas obligatorio.
+- Las cajas de vida de enemigos ahora muestran su nombre real (p.ej. "Esqueleto") en vez de una etiqueta genérica, y solo aparecen los enemigos ya despiertos/en combate (los dormidos no se ven hasta que despiertan).
+- La barra de vida del héroe muestra el valor numérico (p.ej. "18/26") dentro de la propia barra; las de los enemigos no llevan número.
+- Nuevo marcador de objetivo (el anterior se veía mal recortado).
+- Los turnos de los enemigos ya no parecen instantáneos cuando encadenan varias acciones seguidas (acercarse y atacar, por ejemplo): cada acción espera un poco a que se vea antes de pasar a la siguiente. Se bloquean los toques del jugador mientras la IA está actuando.
+- Las trampas son invisibles hasta que el héroe termina un movimiento justo al lado (arriba/abajo/izquierda/derecha; en diagonal no se descubren). Al revelarse, tocarlas abre una tarjeta de confirmación ("¿Intentar desactivar el mecanismo?"): 50% de acierto la quita sin más, 50% de fallo hace la mitad del daño de pisarla. Pisarla directamente sin haberla revelado sigue haciendo el daño completo, como siempre.
+
 ## 0.9 — objetivo y interfaz movible
 - La vida de los enemigos ya no es una sola barra genérica: cada enemigo vivo tiene su propia caja con su barra de vida, apiladas horizontalmente bajo el botón "Fin de turno".
 - Tocar una caja marca a ese enemigo como objetivo: aparece un icono de retícula sobre su cabeza en el mapa.
