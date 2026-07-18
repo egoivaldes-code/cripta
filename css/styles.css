@@ -26,9 +26,9 @@ body{
 .bar{ height:9px; border-radius:2px; background:#000; overflow:hidden; border:1px solid #000; position:relative; }
 .bar.hero{ height:14px; }
 .bar > span{ display:block; height:100%; transition:width .25s ease; }
-.bar.hero > span{ background:linear-gradient(var(--moss),#4d6f3d); }
+.bar.hero > span.fill{ background:linear-gradient(var(--moss),#4d6f3d); }
 .bar.foe  > span{ background:linear-gradient(var(--blood),#7d2a24); }
-.bar .hptext{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+.bar .hptext{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:none;
   font-size:9px; line-height:1; color:#fff; text-shadow:0 1px 1px rgba(0,0,0,.85); pointer-events:none; }
 .stat{ display:flex; align-items:center; gap:5px; font-size:13px; padding-left:10px; border-left:1px solid var(--steel); }
 .stat b{ color:var(--gold); font-weight:600; }
@@ -43,17 +43,21 @@ body{
 .skipturn:hover{ border-color:var(--ember); color:var(--ember); }
 
 /* Cajas individuales de vida de enemigo, una por enemigo vivo, bajo "Fin de turno". */
-.foeRow{ display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; max-width:220px; }
-.foebox{ display:flex; flex-direction:column; gap:3px; width:52px; padding:5px 6px;
+.foeRow{ display:flex; flex-wrap:wrap; gap:7px; margin-top:6px; max-width:280px; }
+.foebox{ display:flex; flex-direction:column; gap:3px; width:76px; padding:6px 7px;
   background:rgba(26,30,39,.82); border:1px solid var(--steel); border-radius:6px;
   backdrop-filter:blur(3px); cursor:pointer; }
 .foebox:hover{ border-color:var(--ember); }
 .foebox.selected{ border-color:var(--ember); box-shadow:0 0 0 1px var(--ember); }
 .foebox .mark{ font-size:11px; text-align:center; color:var(--bone-dim); line-height:1; }
 .foebox.selected .mark{ color:var(--ember); }
-.foebox .fname{ font-size:9.5px; text-align:center; color:var(--bone-dim); line-height:1.15;
+.foebox .fname{ font-size:10px; text-align:center; color:var(--bone-dim); line-height:1.15;
   white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .foebox.selected .fname{ color:var(--ember); }
+/* Fila reservada para iconos de buffo (encima de la vida) y debuffo (debajo).
+   Vacías de momento; en cuanto haya iconos, se rellenan sin tocar el layout. */
+.foebox .buffs, .foebox .debuffs{ display:flex; gap:2px; justify-content:center; min-height:10px; }
+.foebox .bar.foe{ height:11px; }
 
 /* --- Modo "reposicionar interfaz": cada bloque se tiñe de verde y se puede
    arrastrar; el botón de abajo lo ancla todo en su sitio nuevo. --- */

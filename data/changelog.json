@@ -1,6 +1,35 @@
 {
   "versions": [
     {
+      "v": "0.9.3",
+      "es": {
+        "title": "Retoques de interfaz y escala",
+        "notes": [
+          "Arreglada la barra de vida del héroe: ya baja visualmente al recibir daño (antes solo cambiaba el número). El número se pone en rojo por debajo del 25% de vida.",
+          "La rejilla táctica empieza apagada por defecto, y ya no se ve sobre zonas en penumbra.",
+          "Corregida la escala del héroe: todas sus animaciones miden ahora lo mismo (antes la guardia de combate se veía más pequeña que el resto).",
+          "Los enemigos siempre miran hacia el héroe, estén dormidos o despiertos.",
+          "Cajas de vida de enemigos más grandes, con hueco para futuros buffos y debuffos.",
+          "Marcador de objetivo nuevo, más nítido.",
+          "Arreglado el \"teletransporte\" al moverte varias casillas: la cámara ya tarda lo mismo que tu propio recorrido, en vez de adelantarse.",
+          "Arreglado de verdad el temblor del esqueleto en \"quieto\": ahora se recentra por la cabeza (más estable), no por el cuerpo entero."
+        ]
+      },
+      "en": {
+        "title": "Interface and scale tweaks",
+        "notes": [
+          "Fixed the hero health bar: it now visibly drops when taking damage (before, only the number changed). The number turns red below 25% health.",
+          "The tactical grid starts off by default, and no longer shows over dimmed (out-of-sight) tiles.",
+          "Fixed the hero scale mismatch: all animations are now the same size (combat stance used to look smaller than the rest).",
+          "Enemies now always face the hero, whether asleep or awake.",
+          "Bigger enemy health boxes, with room reserved for future buffs and debuffs.",
+          "New, sharper target marker.",
+          "Fixed the movement \"teleport\" feeling: the camera now takes as long as your actual walk, instead of rushing ahead.",
+          "Really fixed the skeleton's idle jitter: now recentered by head position (more stable) instead of the whole body."
+        ]
+      }
+    },
+    {
       "v": "0.9.2",
       "es": {
         "title": "Trampas invisibles y ritmo de combate",

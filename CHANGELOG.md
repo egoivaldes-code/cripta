@@ -10,6 +10,18 @@ Esquema: `0.X` = cambio grande · `0.X.Y` = cambio pequeño / fix.
 - Verificado por dentro: nadie cae en un muro, no hay solapes entre héroe/enemigos/trampas/salida, y todo es alcanzable desde el punto de partida.
 - Retirado `assets/ui_kit/` del proyecto (era un banco de referencia de iconos sin recortar, pensado solo como consulta puntual, no para vivir en el repo; no lo usaba ningún código).
 
+## 0.9.3 — retoques de HUD, rejilla y escala del héroe
+- Arreglado: la barra de vida del héroe no bajaba visualmente (aunque el número sí cambiaba). Era un efecto colateral del número dentro de la barra: una regla de color le aplicaba fondo verde también al texto, que tapaba la barra real por encima. El número además se pone en rojo por debajo del 25% de vida.
+- La rejilla táctica empieza **apagada** por defecto, y aunque se active, ya no se dibuja sobre casillas en penumbra (solo sobre las que ves directamente).
+- Arreglado el desajuste de escala entre las animaciones del héroe: `idlecombat` medía visiblemente más pequeño que `idlepeace`/`caminar`/`activar` (herencia de un reprocesado en otro chat). Reescaladas todas las animaciones a la escala de `idlecombat`.
+- Los enemigos (dormidos o despiertos) ahora miran siempre hacia el héroe.
+- Cajas de vida de enemigos más grandes y anchas, con una fila reservada encima (buffos) y debajo (debuffos) de la vida, vacías por ahora.
+- Nuevo marcador de objetivo, más nítido que el anterior (que se veía mal recortado).
+- Arreglado el "teletransporte" del héroe al moverse varias casillas: la cámara perseguía al héroe siempre en 260ms fijos, sin importar cuántas casillas recorriera; si el propio recorrido tardaba más (320ms por casilla), la cámara llegaba antes que el personaje y daba la sensación de salto. Ahora la cámara tarda lo mismo que el recorrido real.
+- Reforzado `move`/`movePath` con el mismo "asentado" de posición que ya tenían `atacar`/`golpear`/etc., por si dos acciones llegan a solaparse.
+- Reafirmada (y verificada con una prueba) la orientación de los enemigos hacia el héroe.
+- Arreglado de verdad el temblor del esqueleto básico en "quieto": el arreglo anterior centraba por el CUERPO ENTERO (incluida la espada), y como el brazo compensaba, el promedio salía centrado aunque la CABEZA se desplazara hasta 8px de un fotograma a otro — eso es lo que se veía como "bailar". Recentrado ahora por la posición real de la cabeza (mucho más estable que el cuerpo completo con un arma que se mueve). Mismo arreglo aplicado a "caminar" y "castear", que tenían el mismo problema.
+
 ## 0.9.2 — trampas invisibles, ritmo de la IA y limpieza del HUD
 - Documento `AGENTS.md` ampliado con el protocolo anti-desincronización entre chats, el editor de niveles (antes no aparecía), las protecciones de artifacts (prompt/confirm bloqueados) y el protocolo de pruebas obligatorio.
 - Las cajas de vida de enemigos ahora muestran su nombre real (p.ej. "Esqueleto") en vez de una etiqueta genérica, y solo aparecen los enemigos ya despiertos/en combate (los dormidos no se ven hasta que despiertan).

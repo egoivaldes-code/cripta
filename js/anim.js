@@ -6,7 +6,7 @@
 //     (paz/combate) que cambian solas según haya un enemigo cerca, con una transición.
 // Además: sacudida al recibir daño y números flotantes (daño/curación).
 
-import { TILE } from './config.js?v=0.9.2';
+import { TILE } from './config.js?v=0.9.3';
 
 const D_MOVE = 170;
 const D_ATTACK_LEGACY = 220;
@@ -86,6 +86,7 @@ function setState(a, state) {
 
 export function move(name, fromGX, fromGY, toGX, toGY) {
   const a = ensure(name, fromGX, fromGY);
+  commit(a);   // asienta cualquier animación previa sin terminar (evita saltos si se encadena)
   a.px = center(fromGX); a.py = center(fromGY);
   if (toGX !== fromGX) a.facing = toGX > fromGX ? 1 : -1;
   setState(a, 'walk');
@@ -96,6 +97,7 @@ export function move(name, fromGX, fromGY, toGX, toGY) {
 // Desliza por un camino de varias casillas (rango de movimiento). cells: [{x,y}...]
 export function movePath(name, cells) {
   const a = ensure(name, cells[0].x, cells[0].y);
+  commit(a);   // asienta cualquier animación previa sin terminar (evita saltos si se encadena)
   const pts = cells.map(c => ({ x: center(c.x), y: center(c.y) }));
   const dx = pts[pts.length-1].x - pts[0].x;
   if (dx !== 0) a.facing = dx > 0 ? 1 : -1;

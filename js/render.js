@@ -7,11 +7,11 @@
 // La altura de cada casilla se pinta con un tinte y, en los escalones, un
 // borde de color: VERDE en el lado alto, ROJO en el lado bajo (estilo Descent).
 
-import { state, elevAt } from './state.js?v=0.9.2';
-import { isAITurnActive } from './rules.js?v=0.9.2';
-import { TILE, CAMERA_MARGIN, ZOOM_MIN, ZOOM_MAX, ZOOM_DEFAULT, TOKEN_TALL, HERO_TALL, PROP_TALL } from './config.js?v=0.9.2';
-import { images, ATLAS_TILE, SPRITE_TILE } from './assets.js?v=0.9.2';
-import * as anim from './anim.js?v=0.9.2';
+import { state, elevAt } from './state.js?v=0.9.3';
+import { isAITurnActive } from './rules.js?v=0.9.3';
+import { TILE, CAMERA_MARGIN, ZOOM_MIN, ZOOM_MAX, ZOOM_DEFAULT, TOKEN_TALL, HERO_TALL, PROP_TALL } from './config.js?v=0.9.3';
+import { images, ATLAS_TILE, SPRITE_TILE } from './assets.js?v=0.9.3';
+import * as anim from './anim.js?v=0.9.3';
 
 function atlasCol(value, x, y) {
   if (value === 1) return 3;
@@ -19,7 +19,7 @@ function atlasCol(value, x, y) {
 }
 
 let ctx, canvas, VW = 0, VH = 0, pulse = 0, reduceMotion = false, onTap = () => {};
-let gridOn = true;   // rejilla (malla) visible; se puede ocultar con su botón
+let gridOn = false;   // rejilla (malla) visible; se puede activar con su botón
 
 // Alterna la malla visible/invisible y devuelve el nuevo estado (true = visible).
 export function toggleGrid() { gridOn = !gridOn; return gridOn; }
@@ -51,7 +51,7 @@ function heroTarget() {
   const vw = VW / zoom, vh = VH / zoom;
   return { x: clampX(state.hero.x * TILE + TILE/2 - vw/2), y: clampY(state.hero.y * TILE + TILE/2 - vh/2) };
 }
-function tweenTo(t) { camTween = { fromX: camera.x, fromY: camera.y, toX: t.x, toY: t.y, t0: performance.now(), dur: 260 }; }
+function tweenTo(t, dur = 260) { camTween = { fromX: camera.x, fromY: camera.y, toX: t.x, toY: t.y, t0: performance.now(), dur }; }
 
 export function centerOnHero(instant = false) {
   const t = heroTarget();
@@ -174,7 +174,11 @@ function loop(ts) {
 
 function updateCamera(ts) {
   if (!userPanning && (state.hero.x !== lastHeroX || state.hero.y !== lastHeroY)) {
-    lastHeroX = state.hero.x; lastHeroY = state.hero.y; tweenTo(heroTarget());
+    // Distancia real recorrida (con diagonales cuenta como 1 casilla, igual que el sprite):
+    // así la cámara tarda lo mismo en llegar que el propio personaje, en vez de adelantarse.
+    const steps = Math.max(Math.abs(state.hero.x - lastHeroX), Math.abs(state.hero.y - lastHeroY));
+    const dur = Math.min(1400, Math.max(260, steps * 320));
+    lastHeroX = state.hero.x; lastHeroY = state.hero.y; tweenTo(heroTarget(), dur);
   }
   if (camTween) {
     const e = easeInOut(Math.min(1, (ts - camTween.t0) / camTween.dur));
@@ -281,7 +285,7 @@ function draw(ts) {
       // Aviso de terreno difícil (matorrales, escombros...).
       if (state.difficult[y] && state.difficult[y][x]) { ctx.fillStyle = 'rgba(155,89,182,.30)'; ctx.fillRect(s.x - SEAM, s.y - SEAM, T + SEAM*2, T + SEAM*2); }
     }
-    if (gridOn) {
+    if (gridOn && state.visible[y][x]) {
       ctx.strokeStyle = bgImg ? 'rgba(255,255,255,.08)' : 'rgba(0,0,0,.28)'; ctx.lineWidth = 1;
       ctx.strokeRect(s.x + 0.5, s.y + 0.5, T - 1, T - 1);
     }
@@ -357,8 +361,8 @@ function draw(ts) {
   // Enemigos: cada uno con su sprite; su animación siempre avanza; se dibuja si está a la vista.
   for (const foe of state.foes) {
     if (!foe.alive && !foe.deathPlaying) continue;   // legacy: desaparece al instante, como siempre
-    // En combate (despierto y vivo) el enemigo mira siempre hacia el héroe.
-    if (foe.alive && !foe.dormant) {
+    // El enemigo siempre mira hacia el héroe (dormido o despierto).
+    if (foe.alive) {
       const fdx = hero.x - foe.x;
       if (fdx !== 0) anim.face(foe.anim, fdx > 0 ? 1 : -1);
     }

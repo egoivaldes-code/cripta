@@ -229,6 +229,21 @@ entre fotogramas que deberían estar alineados, quita `--dry-run` para
 recentrar de verdad (ver `tools/recenter_sprite.py` para más opciones, como
 `--vertical` si además hay que alinear la base).
 
+**Ojo con centrar por el CUERPO ENTERO cuando hay un arma o un brazo que se
+mueve.** Si el personaje sostiene algo (espada, escudo) que se balancea de
+un lado a otro entre fotogramas, el centro de la caja del cuerpo ENTERO
+puede salir "centrado" de casualidad porque el arma compensa el desplazamiento
+real del torso/cabeza — y aun así se ve temblar, porque lo que el ojo
+sigue es la cabeza, no el promedio de toda la silueta. Si el arreglo de arriba
+no elimina el temblor del todo, mide el centro de solo la CABEZA (la franja
+superior del contenido, no toda la caja) fotograma a fotograma, y recentra
+por ahí en su lugar. Además: este truco falla en poses que cambian mucho de
+postura dentro del mismo clip (una embestida, una caída) — ahí "la cabeza"
+puede no ser detectable de forma fiable con una franja fija, y forzar un
+recentrado agresivo puede cortar contenido por el borde. Comprueba siempre
+cobertura de píxeles y bordes tras recentrar (como en el resto de la hoja) y,
+si un fotograma sale mal, mejor no tocarlo que arriesgarse a romperlo.
+
 ## Técnica: que los turnos de la IA no parezcan instantáneos
 
 Si una función de turno de enemigo hace varias acciones seguidas (moverse
