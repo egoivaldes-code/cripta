@@ -102,5 +102,8 @@
   "ev.cripta.text": "The door is barred with rusted chains. It won't budge for now.",
   "ev.cripta.c0": "Step back",
   "ev.cripta.c0.tag": "—",
-  "ev.cripta.c0.r": "The chains creak behind you."
+  "ev.cripta.c0.r": "The chains creak behind you.",
+  "btn.grid": "Show / hide grid",
+  "btn.continue": "Continue",
+  "splash.title": "What's new"
 }

@@ -6,7 +6,7 @@
 //     (paz/combate) que cambian solas según haya un enemigo cerca, con una transición.
 // Además: sacudida al recibir daño y números flotantes (daño/curación).
 
-import { TILE } from './config.js?v=0.7';
+import { TILE } from './config.js?v=0.8';
 
 const D_MOVE = 170;
 const D_ATTACK_LEGACY = 220;
@@ -17,14 +17,14 @@ const D_HURT = 300;   // duración de la sacudida (todos los personajes)
 // Los nombres de clip coinciden EXACTAMENTE con las claves cargadas en assets.js.
 export const ANIM_CLIPS = {
   enemy1: {
-    idle:   { frames: 6, fps: 5,  loop: true  },
+    idle:   { frames: 6, fps: 1.8,  loop: true  },
     walk:   { frames: 8, fps: 10, loop: true  },
     attack: { frames: 8, fps: 14, loop: false },
     death:  { frames: 9, fps: 10, loop: false },
   },
   hero: {
-    idlepeace:    { frames: 6, fps: 4,  loop: true  },
-    idlecombat:   { frames: 6, fps: 6,  loop: true  },
+    idlepeace:    { frames: 6, fps: 1.6, loop: true },
+    idlecombat:   { frames: 6, fps: 2.6,  loop: true  },
     stancechange: { frames: 5, fps: 12, loop: false },
     walk:         { frames: 6, fps: 10, loop: true  },
     attack1:      { frames: 5, fps: 15, loop: false },
@@ -101,7 +101,7 @@ export function movePath(name, cells) {
   if (dx !== 0) a.facing = dx > 0 ? 1 : -1;
   a.px = pts[0].x; a.py = pts[0].y;
   setState(a, 'walk');
-  a.anim = { type: 'path', t0: performance.now(), segDur: 145, pts };
+  a.anim = { type: 'path', t0: performance.now(), segDur: 320, pts };
 }
 
 // `kind` (opcional) identifica el tipo de sprite: si tiene animaciones de verdad,
@@ -170,6 +170,15 @@ export function setStance(name, stance, kind) {
   } else {
     a.stance = stance;   // vuelta a paz (o cambio inmediato si no estaba en idle/walk)
   }
+}
+
+// Orienta a un actor hacia una dirección (1 = derecha, -1 = izquierda) sin lanzar
+// ninguna animación. Se usa para que los enemigos miren al héroe mientras combaten.
+// No toca a un actor que está muriendo (para no voltear el cadáver).
+export function face(name, dir) {
+  const a = actors[name];
+  if (!a || !dir || a.dying) return;
+  a.facing = dir;
 }
 
 // Número flotante sobre una casilla (p.ej. "−6" en rojo, "+10" en verde).

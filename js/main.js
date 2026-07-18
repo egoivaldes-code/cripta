@@ -1,15 +1,15 @@
 // Punto de entrada. Carga idioma y datos, cablea módulos y arranca el bucle.
 
-import { state, initGame } from './state.js?v=0.7';
-import { initRenderer, startLoop, centerOnHero } from './render.js?v=0.7';
-import { onTapTile, bindDescend, startHeroTurn, endHeroTurn, afterInteract } from './rules.js?v=0.7';
-import { syncHUD, log, hideVeil, bindAfterInteract, bindRestart, applyStaticText } from './ui.js?v=0.7';
-import { loadAssets } from './assets.js?v=0.7';
-import { initialLang, loadLang, onLangChange, getLang, t } from './i18n.js?v=0.7';
-import * as anim from './anim.js?v=0.7';
-import * as audio from './audio.js?v=0.7';
-import { VERSION } from './config.js?v=0.7';
-import { assemble } from './mapgen.js?v=0.7';
+import { state, initGame } from './state.js?v=0.8';
+import { initRenderer, startLoop, centerOnHero, toggleGrid, isGridOn } from './render.js?v=0.8';
+import { onTapTile, bindDescend, startHeroTurn, endHeroTurn, afterInteract } from './rules.js?v=0.8';
+import { syncHUD, log, hideVeil, bindAfterInteract, bindRestart, applyStaticText } from './ui.js?v=0.8';
+import { loadAssets } from './assets.js?v=0.8';
+import { initialLang, loadLang, onLangChange, getLang, t } from './i18n.js?v=0.8';
+import * as anim from './anim.js?v=0.8';
+import * as audio from './audio.js?v=0.8';
+import { VERSION } from './config.js?v=0.8';
+import { assemble } from './mapgen.js?v=0.8';
 
 // El ensamblador de losetas (mapgen.js) sigue disponible para niveles ALEATORIOS
 // futuros; esta función queda de reserva pero no se usa por ahora, ya que el
@@ -30,15 +30,33 @@ function buildRandomCemeteryLevel(seed) {
   };
 }
 
+let changelog = { versions: [] };   // notas de versión (se rellena en boot(); se pinta en renderSplash())
+
+// Pinta la pantalla de novedades: notas de cada versión, de más nueva a más vieja.
+// Se llama al arrancar y también al cambiar de idioma (para repintar en el idioma nuevo).
+function renderSplash() {
+  if (!changelog.versions.length) return;
+  const lang = getLang();
+  const body = document.getElementById('splashBody');
+  body.innerHTML = changelog.versions.map(v => {
+    const loc = v[lang] || v.es;
+    const notes = loc.notes.map(n => `<li>${n}</li>`).join('');
+    return `<div class="rel"><div class="rel-ver">v${v.v}</div><div class="rel-title">${loc.title}</div><ul>${notes}</ul></div>`;
+  }).join('');
+}
+
 async function boot() {
   // Idioma primero (los textos) y assets/datos en paralelo.
-  onLangChange(() => { applyStaticText(); markLang(); });
+  onLangChange(() => { applyStaticText(); markLang(); renderSplash(); });
   await loadLang(initialLang());
 
-  const [events] = await Promise.all([
+  const [events, cl] = await Promise.all([
     fetch(`./data/events.json?v=${VERSION}`).then(r => r.json()),
+    fetch(`./data/changelog.json?v=${VERSION}`).then(r => r.json()).catch(() => ({ versions: [] })),
     loadAssets().catch(err => console.warn('Assets:', err.message)),
   ]);
+  changelog = cl;
+  renderSplash();
 
   const levelCache = {};
   async function getLevel(name) {
@@ -82,6 +100,19 @@ async function boot() {
   });
   document.getElementById('recenter').addEventListener('click', () => centerOnHero(false));
   document.getElementById('hudRow').addEventListener('click', () => centerOnHero(false));
+
+  // Pantalla de novedades: el botón Continuar la cierra y, de paso, hace de
+  // primer toque para desbloquear el audio (importante en móvil).
+  document.getElementById('splashContinue').addEventListener('click', () => {
+    document.getElementById('splash').classList.remove('show');
+    audio.unlock();
+  });
+
+  // Rejilla: alterna visible/invisible y refleja el estado en el propio botón.
+  const gridBtn = document.getElementById('gridBtn');
+  function syncGridBtn(on) { gridBtn.classList.toggle('off', !on); gridBtn.setAttribute('aria-pressed', String(on)); }
+  syncGridBtn(isGridOn());
+  gridBtn.addEventListener('click', () => syncGridBtn(toggleGrid()));
 
   // Ajustes
   const settingsVeil = document.getElementById('settingsVeil');

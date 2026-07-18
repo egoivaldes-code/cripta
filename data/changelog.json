@@ -1,0 +1,128 @@
+{
+  "versions": [
+    {
+      "v": "0.8",
+      "es": {
+        "title": "El héroe, a escena",
+        "notes": [
+          "El héroe se ve más grande: ahora su cabeza asoma a la casilla de arriba.",
+          "Las animaciones de reposo (idle) son más lentas y calmadas.",
+          "Los enemigos te miran siempre de frente mientras están en combate.",
+          "Arreglada la animación de reposo del esqueleto: ya no se balancea de lado ni arrastra trocitos sueltos.",
+          "El héroe camina entre casillas un poco más despacio.",
+          "Nuevo botón (abajo a la derecha) para mostrar u ocultar la rejilla.",
+          "Nueva pantalla de novedades al arrancar: esta misma, con las notas de cada versión."
+        ]
+      },
+      "en": {
+        "title": "The hero takes the stage",
+        "notes": [
+          "The hero looks bigger now: their head peeks into the tile above.",
+          "Idle animations are slower and calmer.",
+          "Enemies always face you while in combat.",
+          "Fixed the skeleton's idle: it no longer sways sideways or drags stray bits.",
+          "The hero walks between tiles a bit more slowly.",
+          "New button (bottom right) to show or hide the grid.",
+          "New what's-new screen on startup: this one, with the notes for each version."
+        ]
+      }
+    },
+    {
+      "v": "0.7",
+      "es": {
+        "title": "El héroe cobra vida",
+        "notes": [
+          "El héroe ya tiene animaciones de verdad: reposo normal, reposo de combate, caminar, dos ataques que se alternan, encajar un golpe, morir, saquear y activar.",
+          "Entra en guardia solo cuando un enemigo se acerca a 3 casillas o menos, con una transición.",
+          "Se guardan también sus animaciones de casteo y de poción (aún sin efecto)."
+        ]
+      },
+      "en": {
+        "title": "The hero comes alive",
+        "notes": [
+          "The hero now has real animations: normal idle, combat idle, walk, two alternating attacks, taking a hit, dying, looting and activating.",
+          "They draw their guard on their own when an enemy comes within 3 tiles, with a transition.",
+          "Cast and potion animations are stored too (no effect yet)."
+        ]
+      }
+    },
+    {
+      "v": "0.6",
+      "es": {
+        "title": "El esqueleto se mueve",
+        "notes": [
+          "El esqueleto básico ya anda, ataca y muere de verdad, dejando un montón de huesos permanente al caer.",
+          "Los sprites se giran según hacia dónde miran.",
+          "Los otros dos esqueletos (espada y armadura) quedan reservados para más adelante."
+        ]
+      },
+      "en": {
+        "title": "The skeleton moves",
+        "notes": [
+          "The basic skeleton now walks, attacks and dies for real, leaving a permanent pile of bones when it falls.",
+          "Sprites now turn to face where they're heading.",
+          "The other two skeletons (sword and armor) are reserved for later."
+        ]
+      }
+    },
+    {
+      "v": "0.5",
+      "es": {
+        "title": "Vista cenital, zoom y altura",
+        "notes": [
+          "Vista totalmente cenital, con el cementerio pintado a mano.",
+          "Zoom con límites: pellizco en móvil, rueda del ratón en PC.",
+          "Altura de verdad: subir cuesta el doble; un desnivel grande es un precipicio. Bordes verde (arriba) y rojo (abajo).",
+          "Terreno difícil que cuesta más cruzar pero no bloquea."
+        ]
+      },
+      "en": {
+        "title": "Top-down view, zoom and height",
+        "notes": [
+          "Fully top-down view, with a hand-painted cemetery.",
+          "Zoom with limits: pinch on mobile, mouse wheel on PC.",
+          "Real height: climbing costs double; a big drop is a cliff. Green (high) and red (low) edges.",
+          "Difficult terrain that costs more to cross but doesn't block."
+        ]
+      }
+    },
+    {
+      "v": "0.4",
+      "es": {
+        "title": "El cementerio",
+        "notes": [
+          "Nuevo escenario: un cementerio con muro de piedra, lápidas y criptas.",
+          "Tres esqueletos que despiertan al acercarte.",
+          "Las tumbas a veces guardan monedas; las criptas están selladas por ahora."
+        ]
+      },
+      "en": {
+        "title": "The cemetery",
+        "notes": [
+          "New setting: a cemetery with a stone wall, gravestones and crypts.",
+          "Three skeletons that wake up as you approach.",
+          "Graves sometimes hold coins; crypts are sealed for now."
+        ]
+      }
+    },
+    {
+      "v": "0.1 – 0.3",
+      "es": {
+        "title": "Los cimientos",
+        "notes": [
+          "Base jugable con Puntos de Acción por turno.",
+          "Sonido real: efectos, ambiente de bosque y algún búho.",
+          "Movimiento en diagonal con regla anti-esquina."
+        ]
+      },
+      "en": {
+        "title": "The foundations",
+        "notes": [
+          "Playable base with Action Points per turn.",
+          "Real sound: effects, forest ambience and the odd owl.",
+          "Diagonal movement with an anti-corner rule."
+        ]
+      }
+    }
+  ]
+}

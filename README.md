@@ -1,7 +1,9 @@
 # Cripta — táctico de Puntos de Acción + eventos
 
-Versión: 0.3.1 (ver `CHANGELOG.md`). Juego para móvil y PC, multiidioma.
+Versión: 0.8 (ver `CHANGELOG.md`). Juego para móvil y PC, multiidioma.
 Sin build step. Módulos ES nativos + datos en JSON.
+
+> Para arquitectura, convenciones y herramientas de desarrollo, ver `AGENTS.md`.
 
 ## Combate: Puntos de Acción (PA)
 
@@ -34,11 +36,9 @@ nueva, el número de la URL cambia y el navegador **siempre** descarga la
 versión nueva con una recarga normal — no hace falta modo incógnito ni borrar
 caché a mano.
 
-Al preparar una versión nueva: cambiar `VERSION` en `js/config.js`, y
-actualizar ese mismo número en cada `?v=...` de los `import` (todos los
-`js/*.js`), en `index.html` (script y link) y en `js/assets.js`. Es un
-cambio mecánico (buscar y reemplazar el número de versión anterior por el
-nuevo en todos los archivos), pero tiene que quedar igual en todos los sitios.
+Para subir de versión, usa `tools/bump_version.py` (ver `AGENTS.md`) en vez
+de tocarlo a mano: actualiza `VERSION`, la constante en `js/config.js` y
+todos los `?v=...` del proyecto de una sola vez, sin riesgo de dejarse uno.
 
 ## Estructura
 

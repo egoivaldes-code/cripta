@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Cripta</title>
-<link rel="stylesheet" href="./css/styles.css?v=0.7">
+<link rel="stylesheet" href="./css/styles.css?v=0.8">
 </head>
 <body>
 <div id="game">
@@ -32,6 +32,7 @@
   <div class="ui bottomright">
     <div class="vertag" id="verTag"></div>
     <div class="fabcol">
+      <button class="fab" id="gridBtn" aria-label="Rejilla">▦</button>
       <button class="fab" id="settingsBtn" aria-label="Ajustes">⚙</button>
       <button class="fab" id="recenter" aria-label="Centrar">⌖</button>
     </div>
@@ -67,8 +68,18 @@
 
   <!-- Carta de evento -->
   <div class="veil" id="veil"><div class="card" id="card"></div></div>
+
+  <!-- Pantalla de novedades al arrancar. El botón Continuar queda anclado arriba
+       (no scrollea) y hace de primer toque para activar el sonido. -->
+  <div class="splash show" id="splash">
+    <div class="splash-head">
+      <button class="primary" id="splashContinue"></button>
+      <div class="splash-title" id="splashTitle"></div>
+    </div>
+    <div class="splash-body" id="splashBody"></div>
+  </div>
 </div>
 
-<script type="module" src="./js/main.js?v=0.7"></script>
+<script type="module" src="./js/main.js?v=0.8"></script>
 </body>
 </html>

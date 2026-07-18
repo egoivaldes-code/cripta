@@ -2,6 +2,15 @@
 
 Esquema: `0.X` = cambio grande · `0.X.Y` = cambio pequeño / fix.
 
+## 0.8 — el héroe, a escena
+- El héroe es notablemente más grande: la cabeza sobresale bien a la casilla de arriba.
+- Los idles (héroe y esqueleto) van más lentos y pausados en general.
+- Caminar entre casillas con el héroe ahora es más lento y pausado (solo afecta al héroe, no a los enemigos).
+- Arreglado el esqueleto básico: su animación de "quieto" tenía los fotogramas descuadrados (el personaje temblaba de lado a lado); recentrados con la misma técnica ya usada en los sprites del héroe.
+- Comprobado: los enemigos despiertos siempre miran hacia el héroe en combate (ya funcionaba, no hacía falta tocar código).
+- Nuevo botón (abajo a la derecha, junto a Ajustes y Centrar) para mostrar u ocultar la rejilla táctica.
+- Nueva pantalla de novedades al arrancar: muestra las notas de cada versión (de más nueva a más vieja), con scroll propio y un botón "Continuar" anclado arriba que también desbloquea el audio en móvil.
+
 ## 0.7 — el héroe cobra vida
 - El héroe ya tiene animaciones de verdad: idle normal, idle de combate, transición al entrar en guardia, caminar, dos ataques distintos (se alternan al azar), encajar un golpe, morir, lootear y activar (diferenciados: cofre/tumba/ítem usan lootear; palanca/altar/orbe/mesa usan activar).
 - Nueva "postura": el héroe pasa a guardia de combate en cuanto un enemigo vivo queda a 3 casillas o menos, con una animación de transición; vuelve a la postura de paz al alejarse.

@@ -7,10 +7,10 @@
 // La altura de cada casilla se pinta con un tinte y, en los escalones, un
 // borde de color: VERDE en el lado alto, ROJO en el lado bajo (estilo Descent).
 
-import { state } from './state.js?v=0.7';
-import { TILE, CAMERA_MARGIN, ZOOM_MIN, ZOOM_MAX, ZOOM_DEFAULT, TOKEN_TALL, PROP_TALL } from './config.js?v=0.7';
-import { images, ATLAS_TILE, SPRITE_TILE } from './assets.js?v=0.7';
-import * as anim from './anim.js?v=0.7';
+import { state } from './state.js?v=0.8';
+import { TILE, CAMERA_MARGIN, ZOOM_MIN, ZOOM_MAX, ZOOM_DEFAULT, TOKEN_TALL, HERO_TALL, PROP_TALL } from './config.js?v=0.8';
+import { images, ATLAS_TILE, SPRITE_TILE } from './assets.js?v=0.8';
+import * as anim from './anim.js?v=0.8';
 
 function atlasCol(value, x, y) {
   if (value === 1) return 3;
@@ -18,6 +18,11 @@ function atlasCol(value, x, y) {
 }
 
 let ctx, canvas, VW = 0, VH = 0, pulse = 0, reduceMotion = false, onTap = () => {};
+let gridOn = true;   // rejilla (malla) visible; se puede ocultar con su botón
+
+// Alterna la malla visible/invisible y devuelve el nuevo estado (true = visible).
+export function toggleGrid() { gridOn = !gridOn; return gridOn; }
+export function isGridOn() { return gridOn; }
 
 const camera = { x: 0, y: 0 };   // SIEMPRE en coordenadas de mundo (px a zoom 1)
 let zoom = ZOOM_DEFAULT;
@@ -205,12 +210,12 @@ function elevTint(h, strength = 1) {
   return null;
 }
 
-function drawActor(name, sheet, gx, gy, ts, fallback, show = true, kind = 'legacy') {
+function drawActor(name, sheet, gx, gy, ts, fallback, show = true, kind = 'legacy', tall = TOKEN_TALL) {
   const a = anim.resolve(name, gx, gy, ts, kind);   // SIEMPRE avanza la animación...
   if (!show) return;                                 // ...aunque el actor esté en niebla y no se pinte
   const s = worldToScreen(a.cx, a.cy);
   const T = TILE * zoom;
-  const size = T * TOKEN_TALL;
+  const size = T * tall;
   if (sheet && typeof sheet.width === 'number') {
     // Sistema "legacy": una sola hoja de 4 fotogramas fijos.
     ctx.drawImage(sheet, a.frame * SPRITE_TILE, 0, SPRITE_TILE, SPRITE_TILE,
@@ -269,8 +274,10 @@ function draw(ts) {
       // Aviso de terreno difícil (matorrales, escombros...).
       if (state.difficult[y] && state.difficult[y][x]) { ctx.fillStyle = 'rgba(155,89,182,.30)'; ctx.fillRect(s.x, s.y, T, T); }
     }
-    ctx.strokeStyle = bgImg ? 'rgba(255,255,255,.08)' : 'rgba(0,0,0,.28)'; ctx.lineWidth = 1;
-    ctx.strokeRect(s.x + 0.5, s.y + 0.5, T - 1, T - 1);
+    if (gridOn) {
+      ctx.strokeStyle = bgImg ? 'rgba(255,255,255,.08)' : 'rgba(0,0,0,.28)'; ctx.lineWidth = 1;
+      ctx.strokeRect(s.x + 0.5, s.y + 0.5, T - 1, T - 1);
+    }
     if (!state.visible[y][x]) { ctx.fillStyle = 'rgba(6,8,13,.62)'; ctx.fillRect(s.x, s.y, T, T); } // penumbra
   }
 
@@ -337,6 +344,11 @@ function draw(ts) {
   // Enemigos: cada uno con su sprite; su animación siempre avanza; se dibuja si está a la vista.
   for (const foe of state.foes) {
     if (!foe.alive && !foe.deathPlaying) continue;   // legacy: desaparece al instante, como siempre
+    // En combate (despierto y vivo) el enemigo mira siempre hacia el héroe.
+    if (foe.alive && !foe.dormant) {
+      const fdx = hero.x - foe.x;
+      if (fdx !== 0) anim.face(foe.anim, fdx > 0 ? 1 : -1);
+    }
     const vis = state.visible[foe.y] && state.visible[foe.y][foe.x];
     drawActor(foe.anim, images[foe.sprite] || images.enemy, foe.x, foe.y, ts,
               { body:'#b5443a', edge:'#7d2a24', ink:'#2a0f0d', mark:'✕' }, vis, foe.sprite);
@@ -351,7 +363,7 @@ function draw(ts) {
     if (d < nearestFoeDist) nearestFoeDist = d;
   }
   anim.setStance('hero', nearestFoeDist <= 3 ? 'combat' : 'peace', 'hero');
-  drawActor('hero', images.hero, hero.x, hero.y, ts, { body:'#6f9c5a', edge:'#4d6f3d', ink:'#12200c', mark:'◊' }, true, 'hero');
+  drawActor('hero', images.hero, hero.x, hero.y, ts, { body:'#6f9c5a', edge:'#4d6f3d', ink:'#12200c', mark:'◊' }, true, 'hero', HERO_TALL);
 
   // Números flotantes de daño/curación.
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';

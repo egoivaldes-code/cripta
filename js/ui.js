@@ -1,11 +1,11 @@
 // Capa DOM: HUD (con PA), cartas de evento, registro, fin de partida y ajustes.
 // Todo el texto visible pasa por t() (multiidioma). No dibuja en el canvas.
 
-import { state, nearestFoe } from './state.js?v=0.7';
-import { t } from './i18n.js?v=0.7';
-import * as anim from './anim.js?v=0.7';
-import * as audio from './audio.js?v=0.7';
-import { VERSION } from './config.js?v=0.7';
+import { state, nearestFoe } from './state.js?v=0.8';
+import { t } from './i18n.js?v=0.8';
+import * as anim from './anim.js?v=0.8';
+import * as audio from './audio.js?v=0.8';
+import { VERSION } from './config.js?v=0.8';
 
 let afterInteract = () => {};
 let restart = () => {};
@@ -105,6 +105,7 @@ export function applyStaticText() {
   $('heroName').textContent = t('hud.hero');
   $('foeName').textContent = t('hud.foe');
   $('reset').title = t('btn.reset');
+  $('gridBtn').title = t('btn.grid');
   $('endTurn').textContent = t('btn.endturn');
   $('settingsBtn').title = t('btn.settings');
   $('recenter').title = t('btn.recenter');
@@ -117,5 +118,7 @@ export function applyStaticText() {
   $('setClose').textContent = t('set.close');
   $('verTag').textContent = 'v' + VERSION;
   $('verTagPanel').textContent = 'cripta v' + VERSION;
+  $('splashTitle').textContent = t('splash.title');
+  $('splashContinue').textContent = t('btn.continue');
   if (open) renderCard();
 }

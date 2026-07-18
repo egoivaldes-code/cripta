@@ -102,5 +102,8 @@
   "ev.cripta.text": "La puerta está trabada con cadenas oxidadas. Por ahora no cede.",
   "ev.cripta.c0": "Alejarte",
   "ev.cripta.c0.tag": "—",
-  "ev.cripta.c0.r": "Las cadenas crujen a tu espalda."
+  "ev.cripta.c0.r": "Las cadenas crujen a tu espalda.",
+  "btn.grid": "Mostrar / ocultar rejilla",
+  "btn.continue": "Continuar",
+  "splash.title": "Novedades"
 }
