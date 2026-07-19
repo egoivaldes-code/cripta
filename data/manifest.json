@@ -1,9 +1,11 @@
 {
-  "version": "0.10",
+  "version": "0.11",
   "updated": "2026-07-18",
   "enemies": [
     { "key": "enemy1", "label": "Esqueleto (básico)", "hp": 12, "atk": 4, "color": "#b5443a", "animated": true },
-    { "key": "enemy4", "label": "Esqueleto arquero", "hp": 9, "atk": 3, "color": "#5fae7a", "animated": true, "range": 4, "note": "dispara a 4 casillas; huye si te acercas; más fuerte rodeado de esqueletos" }
+    { "key": "enemy4", "label": "Esqueleto arquero", "hp": 9, "atk": 3, "color": "#5fae7a", "animated": true, "range": 4, "note": "dispara a 4 casillas; huye si te acercas; más fuerte rodeado de esqueletos" },
+    { "key": "enemy5", "label": "Espectro", "hp": 16, "atk": 4, "color": "#6ab0c9", "animated": true, "note": "cuerpo a cuerpo; se cura al golpear si tiene otros no-muertos cerca (hasta 30%)" },
+    { "key": "enemy6", "label": "Esqueleto mago", "hp": 14, "atk": 4, "color": "#b06bd6", "animated": true, "range": 4, "note": "dispara daño de sombras a distancia; resucita esqueletos cerca del héroe; al despertar lanza Llamada Sepulcral" }
   ],
   "enemiesComingSoon": [
     { "key": "enemy2", "label": "Esqueleto espada y escudo", "note": "más fuerte; en pausa hasta tener sus animaciones" },

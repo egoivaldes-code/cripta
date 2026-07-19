@@ -1,6 +1,28 @@
 {
   "versions": [
     {
+      "v": "0.11",
+      "es": {
+        "title": "Espectro, Esqueleto Mago y HUD ambientado",
+        "notes": [
+          "Nuevo enemigo: Espectro. Pelea cuerpo a cuerpo y se cura al golpear si tiene otros no-muertos cerca (hasta un 30% del daño hecho); si está solo, busca compañía antes que enfrentarse solo al héroe.",
+          "Nuevo enemigo: Esqueleto Mago. Ataca a distancia con daño de sombras (número morado), resucita esqueletos cerca del héroe (hasta controlar 3; el tercero siempre es arquero), y al entrar en acción por primera vez lanza Llamada Sepulcral: atrae a su lado a todo no-muerto vivo en un buen radio.",
+          "Interfaz ambientada con temática de cuero, metal y pergamino: barras de vida, puntos de acción, cajas de enemigo, ventanas de evento, botones y cursor en PC, todo con el nuevo estilo.",
+          "Arreglado un enlace de salida roto entre el cementerio y la siguiente cripta (apuntaba a un archivo que ya no existía)."
+        ]
+      },
+      "en": {
+        "title": "Spectre, Skeleton Mage and themed HUD",
+        "notes": [
+          "New enemy: Spectre. Fights in melee and heals on hit if other undead are nearby (up to 30% of the damage dealt); if alone, it seeks company before facing the hero by itself.",
+          "New enemy: Skeleton Mage. Attacks at range with shadow damage (purple number), raises skeletons near the hero (up to 3 controlled; the third is always an archer), and casts Sepulchral Call the first time it acts: pulls every living undead within a wide radius to its side.",
+          "Themed interface with a leather, metal and parchment look: health and action-point bars, enemy boxes, event windows, buttons and the PC cursor all got the new style.",
+          "Fixed a broken exit link between the cemetery and the next crypt (it pointed to a file that no longer existed)."
+        ]
+      },
+      "title": "Espectro, Esqueleto Mago y HUD ambientado"
+    },
+    {
       "v": "0.10",
       "es": {
         "title": "Esqueleto arquero y mejoras de PC",

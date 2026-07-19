@@ -2,7 +2,7 @@
 // Incluye niebla de guerra (explored/visible) y el alcance de movimiento
 // ligado a los Puntos de Acción (PA) restantes del héroe.
 
-import { SIGHT, AP_MAX, CLIMB_COST, MAX_CLIMB, DIFFICULT_EXTRA } from './config.js?v=0.10';
+import { SIGHT, AP_MAX, CLIMB_COST, MAX_CLIMB, DIFFICULT_EXTRA } from './config.js?v=0.11';
 
 export const state = {
   cols: 0, rows: 0,
@@ -36,7 +36,7 @@ export function initGame(level, events) {
   state.hero = { ...level.start.hero, ap: AP_MAX, apMax: AP_MAX };
   const foeList = level.start.foes || (level.start.foe ? [level.start.foe] : []);
   state.foes = foeList.map((f, i) => ({
-    ...f, alive: true, apMax: AP_MAX,
+    ...f, alive: true, apMax: f.apMax != null ? f.apMax : AP_MAX,
     anim: 'foe' + i,                       // nombre único para su animación
     sprite: f.sprite || 'enemy',           // qué imagen usa
     dormant: f.dormant === true,           // empieza quieto hasta que te acercas

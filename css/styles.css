@@ -24,28 +24,37 @@ body{
 .hud .who{ display:flex; flex-direction:column; gap:4px; min-width:92px; }
 .hud .name{ font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--bone-dim); }
 .bar{ height:9px; border-radius:2px; background:#000; overflow:hidden; border:1px solid #000; position:relative; }
-.bar.hero{ height:14px; }
+.bar.hero{ height:14px; background:#000 url(../assets/ui/bar_hp_hero.png) center/100% 100% no-repeat; border:none; }
+.bar.foe { background:#000 url(../assets/ui/bar_hp_foe.png) center/100% 100% no-repeat; border:none; }
 .bar > span{ display:block; height:100%; transition:width .25s ease; }
-.bar.hero > span.fill{ background:linear-gradient(var(--moss),#4d6f3d); }
-.bar.foe  > span{ background:linear-gradient(var(--blood),#7d2a24); }
+/* La barra siempre muestra el arte completo (cuero+metal+relleno rojo); lo que
+   "baja" al perder vida es esta cubierta oscura que avanza desde la derecha,
+   como una sombra comiéndose la parte perdida. */
+.bar.hero > span.fill{ position:absolute; top:0; right:0; height:100%;
+  background:linear-gradient(to left, rgba(3,4,7,.95), rgba(3,4,7,.55)); }
+.bar.foe  > span{ position:absolute; top:0; right:0; height:100%;
+  background:linear-gradient(to left, rgba(3,4,7,.95), rgba(3,4,7,.55)); }
 .bar .hptext{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:none;
   font-size:9px; line-height:1; color:#fff; text-shadow:0 1px 1px rgba(0,0,0,.85); pointer-events:none; }
 .stat{ display:flex; align-items:center; gap:5px; font-size:13px; padding-left:10px; border-left:1px solid var(--steel); }
 .stat b{ color:var(--gold); font-weight:600; }
+.goldIcon{ width:16px; height:16px; object-fit:contain; }
 .ap{ display:flex; gap:5px; align-items:center; padding-left:10px; border-left:1px solid var(--steel); }
-.pip{ width:10px; height:10px; border-radius:50%; background:#000; border:1px solid var(--steel); }
-.pip.on{ background:var(--ember); border-color:var(--ember); }
+.pip{ width:14px; height:14px; background:url(../assets/ui/pip_off.png) center/contain no-repeat; }
+.pip.on{ background-image:url(../assets/ui/pip_on.png); }
 
 /* Botón de turno: justo debajo de la vida, ancho completo del HUD */
-.skipturn{ width:100%; background:rgba(26,30,39,.82); color:var(--bone);
-  border:1px solid var(--steel); border-radius:6px; backdrop-filter:blur(3px);
+.skipturn{ width:100%; color:var(--bone);
+  background:linear-gradient(rgba(9,10,14,.5),rgba(9,10,14,.5)), url(../assets/ui/skipturn_plaque.png);
+  background-size:100% 100%; border:1px solid var(--steel); border-radius:6px; backdrop-filter:blur(3px);
   font:inherit; font-size:12.5px; letter-spacing:.04em; padding:8px 10px; cursor:pointer; }
 .skipturn:hover{ border-color:var(--ember); color:var(--ember); }
 
 /* Cajas individuales de vida de enemigo, una por enemigo vivo, bajo "Fin de turno". */
 .foeRow{ display:flex; flex-wrap:wrap; gap:7px; margin-top:6px; max-width:280px; }
 .foebox{ display:flex; flex-direction:column; gap:3px; width:76px; padding:6px 7px;
-  background:rgba(26,30,39,.82); border:1px solid var(--steel); border-radius:6px;
+  background:linear-gradient(rgba(9,10,14,.6),rgba(9,10,14,.6)), url(../assets/ui/foebox_frame.png);
+  background-size:100% 100%; border:1px solid var(--steel); border-radius:6px;
   backdrop-filter:blur(3px); cursor:pointer; }
 .foebox:hover{ border-color:var(--ember); }
 .foebox.selected{ border-color:var(--ember); box-shadow:0 0 0 1px var(--ember); }
@@ -123,15 +132,17 @@ body.layout-edit .layoutApplyBtn{ display:block; }
 .veil.show{ display:flex; }
 @keyframes fade{ from{opacity:0} to{opacity:1} }
 
+
 .card,.panel{ width:100%; max-width:360px;
-  background:linear-gradient(180deg,var(--stone-700),var(--stone-800));
-  border:1px solid var(--steel); border-radius:5px; box-shadow:0 18px 40px rgba(0,0,0,.55);
-  padding:18px; animation:rise .22s cubic-bezier(.2,.8,.2,1) both; }
+  background:linear-gradient(180deg,rgba(36,42,54,.25),rgba(26,30,39,.35)), url(../assets/ui/card_frame.png);
+  background-size:100% 100%; background-repeat:no-repeat;
+  border:none; border-radius:5px; box-shadow:0 18px 40px rgba(0,0,0,.55);
+  padding:22px 26px; animation:rise .22s cubic-bezier(.2,.8,.2,1) both; }
 .card{ border-left:3px solid var(--ember); }
 @keyframes rise{ from{opacity:0; transform:translateY(10px)} to{opacity:1; transform:none} }
-.card .kicker{ font-size:10px; letter-spacing:.22em; text-transform:uppercase; color:var(--ember); margin-bottom:6px; }
-.card h2,.panel h2{ margin:0 0 10px; font-family:Georgia,"Times New Roman",serif; font-weight:600; font-size:22px; line-height:1.1; color:var(--bone); }
-.card p{ margin:0 0 16px; font-size:13.5px; line-height:1.5; color:#bdb9ab; }
+.card .kicker{ font-size:10px; letter-spacing:.22em; text-transform:uppercase; color:var(--ember); margin-bottom:6px; text-align:center; }
+.card h2,.panel h2{ margin:0 0 10px; font-family:Georgia,"Times New Roman",serif; font-weight:600; font-size:22px; line-height:1.1; color:var(--bone); text-align:center; }
+.card p{ margin:0 0 16px; font-size:13.5px; line-height:1.5; color:#bdb9ab; text-align:center; }
 .choices{ display:flex; flex-direction:column; gap:8px; }
 
 /* Tarjeta narrativa (imagen + texto, sin opciones): se cierra al tocarla. */
@@ -147,17 +158,21 @@ body.layout-edit .layoutApplyBtn{ display:block; }
 @media (max-width:420px){
   .card.story .storytext{ font-size:12.5px; top:10%; bottom:22%; }
 }
-.choice{ text-align:left; width:100%; background:var(--stone-900); color:var(--bone);
+.choice{ text-align:left; width:100%; color:var(--bone);
+  background:linear-gradient(rgba(9,10,14,.55),rgba(9,10,14,.55)), url(../assets/ui/choice_plaque.png);
+  background-size:100% 100%; background-repeat:no-repeat;
   border:1px solid var(--steel); border-radius:4px; font:inherit; font-size:13px; padding:11px 13px; cursor:pointer;
-  display:flex; justify-content:space-between; align-items:center; gap:10px; transition:border-color .12s, background .12s; }
-.choice:hover{ border-color:var(--ember); background:#171b23; }
+  display:flex; justify-content:space-between; align-items:center; gap:10px; transition:border-color .12s, filter .12s; }
+.choice:hover{ border-color:var(--ember); filter:brightness(1.2); }
 .choice:active{ transform:translateY(1px); }
 .choice .tag{ font-size:11px; color:var(--bone-dim); white-space:nowrap; }
 .choice .tag.dmg{ color:var(--blood); } .choice .tag.heal{ color:var(--moss); } .choice .tag.gold{ color:var(--gold); }
 
 .banner{ text-align:center; }
 .banner h2{ color:var(--ember); }
-.banner .again,.primary{ margin-top:6px; background:var(--ember); color:#1a1206; border:none; border-radius:4px;
+.banner .again,.primary{ margin-top:6px; color:var(--bone); border:none; border-radius:4px;
+  background:linear-gradient(rgba(255,255,255,.08),rgba(255,255,255,.08)), url(../assets/ui/skipturn_plaque.png);
+  background-size:100% 100%; background-repeat:no-repeat;
   font:inherit; font-weight:600; font-size:13px; padding:11px 20px; cursor:pointer; letter-spacing:.04em; }
 
 .panel label{ display:block; font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--bone-dim); margin:14px 0 6px; }

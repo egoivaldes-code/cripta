@@ -1,13 +1,13 @@
 // Reglas del juego: economía de Puntos de Acción (PA), interacción a distancia
 // y adyacente, trampas, niebla y salida de nivel. Agnóstico del dibujo.
 
-import { state, walkable, adjacent, distTo, isVisible, recomputeFog, computeReach, pathTo, reachCost, blockingTriggerAt, trapAt, walkTriggerAt, stepNeighbors, foeAt, livingFoes, losClear } from './state.js?v=0.10';
-import { openEvent, openTrapCard, openStoryCard, syncHUD, log, gameOver } from './ui.js?v=0.10';
-import { t } from './i18n.js?v=0.10';
-import { MOVE_COST, ATTACK_COST } from './config.js?v=0.10';
-import * as anim from './anim.js?v=0.10';
-import { ANIM_CLIPS } from './anim.js?v=0.10';
-import * as audio from './audio.js?v=0.10';
+import { state, walkable, adjacent, distTo, isVisible, recomputeFog, computeReach, pathTo, reachCost, blockingTriggerAt, trapAt, walkTriggerAt, stepNeighbors, foeAt, livingFoes, losClear } from './state.js?v=0.11';
+import { openEvent, openTrapCard, openStoryCard, syncHUD, log, gameOver } from './ui.js?v=0.11';
+import { t } from './i18n.js?v=0.11';
+import { MOVE_COST, ATTACK_COST } from './config.js?v=0.11';
+import * as anim from './anim.js?v=0.11';
+import { ANIM_CLIPS } from './anim.js?v=0.11';
+import * as audio from './audio.js?v=0.11';
 
 const sign = (n) => Math.sign(n);
 
@@ -219,7 +219,200 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 let aiTurnActive = false;
 export function isAITurnActive() { return aiTurnActive; }
 
-// --- Enemigos a distancia (arquero) ------------------------------------------
+// --- Espectro (enemy5): cuerpo a cuerpo con robo de vida en grupo -----------
+// PA 4, golpe a 2 PA. Si al golpear tiene OTROS enemigos vivos a 2 casillas o
+// menos, se cura un 10% del daño hecho por cada uno (tope 30% con 3+). Solo
+// enemigos: si está solo, no cura nada, simplemente pega. Si está solo Y no
+// está ya pegado al héroe, prefiere acercarse a otro compañero antes que al
+// héroe (buscando compañía para poder robar vida), no directamente al héroe.
+const SPECTRE_COST = 2;
+const SHADOW_COLOR = '#b06bd6';
+const HEAL_COLOR = '#6bd68f';
+
+function nearestAlly(foe) {
+  let best = null, bd = Infinity;
+  for (const f of state.foes) {
+    if (!f.alive || f === foe) continue;
+    const d = distTo(foe, f.x, f.y);
+    if (d < bd) { bd = d; best = f; }
+  }
+  return best;
+}
+
+async function spectreTurn(foe) {
+  const { hero } = state;
+  let ap = foe.apMax;
+  while (ap > 0) {
+    if (adjacent(foe, hero.x, hero.y)) {
+      if (ap < SPECTRE_COST) break;
+      ap -= SPECTRE_COST;
+      const dmg = foe.atk;
+      anim.attack(foe.anim, sign(hero.x - foe.x), sign(hero.y - foe.y), foe.sprite);
+      anim.hurt('hero', 'hero'); anim.floatAt(hero.x, hero.y, `−${dmg}`, '#e86a5c'); audio.fx('hurt');
+      hero.hp -= dmg;
+      log(t('log.hitHero', { dmg }));
+      const allies = livingFoes().filter(f => f !== foe && distTo(f, foe.x, foe.y) <= 2).length;
+      if (allies > 0) {
+        const healPct = Math.min(3, allies) * 0.10;
+        const healed = Math.max(1, Math.round(dmg * healPct));
+        foe.hp = Math.min(foe.maxHp, foe.hp + healed);
+        anim.floatAt(foe.x, foe.y, `+${healed}`, HEAL_COLOR);
+      }
+      syncHUD();
+      if (hero.hp <= 0) { gameOver('lose'); return true; }
+      await sleep(320);
+      continue;
+    }
+    if (ap < MOVE_COST) break;
+    const ally = nearestAlly(foe);
+    // Solo: sin compañía a 2 casillas, se acerca a otro no-muerto en vez de
+    // ir directo al héroe (busca compañía antes que pelear en solitario).
+    const isolated = !livingFoes().some(f => f !== foe && distTo(f, foe.x, foe.y) <= 2);
+    let target = hero;
+    if (isolated && ally) target = ally;
+    const cur = distTo(foe, target.x, target.y);
+    const step = stepNeighbors(foe.x, foe.y)
+      .map(([x, y, cost]) => ({ x, y, cost }))
+      .filter(p => !(p.x === hero.x && p.y === hero.y) && p.cost <= ap)
+      .map(p => ({ ...p, d: distTo(target, p.x, p.y) }))
+      .sort((a, b) => a.d - b.d)[0];
+    if (!step || step.d >= cur) break;
+    doMove(foe, step);
+    ap -= step.cost;
+    await sleep(190);
+  }
+  return false;
+}
+
+// --- Esqueleto Mago (enemy6): invocador a distancia -------------------------
+// PA 6, se mueve hasta 4 casillas por turno. Ataca a distancia (igual que el
+// arquero) a 3 PA, pero con daño de sombras (número morado) en vez de físico.
+// A menos de 4 casillas del héroe, cada 2 turnos suyos resucita un esqueleto
+// (2 PA) junto a él, hasta controlar 3 a la vez; el 3º que invoque siempre es
+// arquero. Al entrar en acción por primera vez, antes de nada, lanza Llamada
+// Sepulcral: todo no-muerto vivo a 20 casillas o menos se teleporta lo más
+// cerca posible de él (sin pasar de 4 casillas), gastando el turno entero.
+const MAGE_RANGE = 4, MAGE_SHOOT_COST = 3, MAGE_SUMMON_COST = 2, MAGE_MAX_MOVE = 4;
+const MAGE_SUMMON_RADIUS = 4, MAGE_SUMMON_EVERY = 2, MAGE_MAX_SKELETONS = 3;
+const MAGE_CALL_RANGE = 20, MAGE_CALL_GATHER = 4;
+
+// Casillas libres cerca de (ox,oy), más cercanas primero (para colocar invocaciones).
+function freeTilesNear(ox, oy, maxDist) {
+  const { hero } = state;
+  const seen = new Set([`${ox},${oy}`]);
+  let frontier = [[ox, oy, 0]];
+  const out = [];
+  while (frontier.length) {
+    const next = [];
+    for (const [x, y, d] of frontier) {
+      if (d > 0 && !(x === hero.x && y === hero.y) && walkable(x, y)) out.push({ x, y, d });
+      if (d >= maxDist) continue;
+      for (const [nx, ny] of stepNeighbors(x, y)) {
+        const key = `${nx},${ny}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        next.push([nx, ny, d + 1]);
+      }
+    }
+    frontier = next;
+  }
+  out.sort((a, b) => a.d - b.d);
+  return out;
+}
+
+function spawnSkeleton(mage) {
+  const spot = freeTilesNear(mage.x, mage.y, 1)[0];
+  if (!spot) return null;
+  mage.summonCount = (mage.summonCount || 0) + 1;
+  const isArcher = mage.summonCount === 3;
+  const foe = {
+    x: spot.x, y: spot.y, alive: true,
+    hp: isArcher ? 9 : 12, maxHp: isArcher ? 9 : 12, atk: isArcher ? 3 : 4,
+    sprite: isArcher ? 'enemy4' : 'enemy1', apMax: 4,
+    anim: 'foe' + state.foes.length, dormant: false, wakeR: 0,
+    summonedBy: mage,
+  };
+  state.foes.push(foe);
+  anim.floatAt(spot.x, spot.y, '✚', HEAL_COLOR);
+  return foe;
+}
+
+// Llamada Sepulcral: reúne a todo no-muerto vivo (menos el propio mago) que
+// esté a MAGE_CALL_RANGE casillas o menos, colocándolo lo más cerca posible
+// del mago sin pasar de MAGE_CALL_GATHER casillas (teletransporte instantáneo:
+// es un efecto mágico, no gasta el PA de esos enemigos).
+function castSepulchralCall(mage) {
+  const targets = state.foes.filter(f => f.alive && f !== mage && distTo(mage, f.x, f.y) <= MAGE_CALL_RANGE);
+  if (!targets.length) return;
+  const spots = freeTilesNear(mage.x, mage.y, MAGE_CALL_GATHER);
+  const claimed = new Set();
+  // los que estaban más lejos se colocan primero, para que se queden con el
+  // hueco más próximo al mago (parece más "llamada urgente" para esos).
+  targets.sort((a, b) => distTo(mage, b.x, b.y) - distTo(mage, a.x, a.y));
+  for (const f of targets) {
+    const spot = spots.find(s => !claimed.has(`${s.x},${s.y}`));
+    if (!spot) break;
+    claimed.add(`${spot.x},${spot.y}`);
+    f.x = spot.x; f.y = spot.y;
+    f.dormant = false;
+    anim.floatAt(spot.x, spot.y, '↷', SHADOW_COLOR);
+  }
+  log(t('log.sepulchralCall'));
+}
+
+async function mageTurn(foe) {
+  const { hero } = state;
+
+  // Primera vez que actúa: Llamada Sepulcral, gasta el turno entero.
+  if (!foe.castOpening) {
+    foe.castOpening = true;
+    castSepulchralCall(foe);
+    await sleep(420);
+    return false;
+  }
+
+  let ap = foe.apMax, moved = 0, summonedThisTurn = false;
+  while (ap > 0) {
+    const controlled = livingFoes().filter(f => f.summonedBy === foe).length;
+    foe.turnsSinceSummon = (foe.turnsSinceSummon || 0) + (summonedThisTurn ? 0 : 0); // (se actualiza abajo, una vez)
+    const dueToSummon = !summonedThisTurn && distTo(foe, hero.x, hero.y) < MAGE_SUMMON_RADIUS
+      && (foe.turnsSinceSummon || 0) >= MAGE_SUMMON_EVERY
+      && controlled < MAGE_MAX_SKELETONS && (foe.summonCount || 0) < MAGE_MAX_SKELETONS;
+
+    if (dueToSummon && ap >= MAGE_SUMMON_COST) {
+      ap -= MAGE_SUMMON_COST;
+      spawnSkeleton(foe);
+      foe.turnsSinceSummon = 0;
+      summonedThisTurn = true;
+      syncHUD();
+      await sleep(300);
+      continue;
+    }
+
+    const d = distTo(foe, hero.x, hero.y);
+    if (d <= MAGE_RANGE && ap >= MAGE_SHOOT_COST && losClear(foe.x, foe.y, hero.x, hero.y)) {
+      ap -= MAGE_SHOOT_COST;
+      anim.attack(foe.anim, sign(hero.x - foe.x), sign(hero.y - foe.y), foe.sprite);
+      anim.hurt('hero', 'hero'); anim.floatAt(hero.x, hero.y, `−${foe.atk}`, SHADOW_COLOR); audio.fx('hurt');
+      hero.hp -= foe.atk;
+      log(t('log.hitHero', { dmg: foe.atk }));
+      syncHUD();
+      if (hero.hp <= 0) { gameOver('lose'); return true; }
+      await sleep(320);
+      continue;
+    }
+
+    if (ap >= MOVE_COST && moved < MAGE_MAX_MOVE) {
+      const step = approachStep(foe, ap);
+      if (step) { doMove(foe, step); ap -= step.cost; moved++; await sleep(190); continue; }
+    }
+    break;
+  }
+  if (!summonedThisTurn) foe.turnsSinceSummon = (foe.turnsSinceSummon || 0) + 1;
+  return false;
+}
+
+
 // Config por tipo de sprite: alcance de tiro y a qué distancia el héroe se
 // considera "demasiado cerca" y toca huir. Un sprite que no esté aquí pelea
 // cuerpo a cuerpo (comportamiento de siempre).
@@ -383,7 +576,11 @@ export async function enemyAITurn() {
       }
 
       const cfg = RANGED_CFG[foe.sprite];
-      const heroDied = cfg ? await archerTurn(foe, cfg) : await meleeTurn(foe);
+      let heroDied;
+      if (foe.sprite === 'enemy5') heroDied = await spectreTurn(foe);
+      else if (foe.sprite === 'enemy6') heroDied = await mageTurn(foe);
+      else if (cfg) heroDied = await archerTurn(foe, cfg);
+      else heroDied = await meleeTurn(foe);
       if (heroDied) return;
     }
   } finally {

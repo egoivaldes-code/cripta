@@ -7,17 +7,17 @@
 // La altura de cada casilla se pinta con un tinte y, en los escalones, un
 // borde de color: VERDE en el lado alto, ROJO en el lado bajo (estilo Descent).
 
-import { state, elevAt, pathTo, foeAt, blockingTriggerAt, adjacent } from './state.js?v=0.10';
-import { isAITurnActive } from './rules.js?v=0.10';
-import { TILE, CAMERA_MARGIN, ZOOM_MIN, ZOOM_MAX, ZOOM_DEFAULT, TOKEN_TALL, HERO_TALL, PROP_TALL } from './config.js?v=0.10';
-import { images, ATLAS_TILE, SPRITE_TILE } from './assets.js?v=0.10';
-import * as anim from './anim.js?v=0.10';
+import { state, elevAt, pathTo, foeAt, blockingTriggerAt, adjacent } from './state.js?v=0.11';
+import { isAITurnActive } from './rules.js?v=0.11';
+import { TILE, CAMERA_MARGIN, ZOOM_MIN, ZOOM_MAX, ZOOM_DEFAULT, TOKEN_TALL, HERO_TALL, PROP_TALL } from './config.js?v=0.11';
+import { images, ATLAS_TILE, SPRITE_TILE } from './assets.js?v=0.11';
+import * as anim from './anim.js?v=0.11';
 
 // Algunos artes vienen dibujados mirando a la izquierda de serie (en vez de a
 // la derecha, que es lo que se asume en el resto del código al calcular hacia
 // dónde debe mirar un personaje). Aquí se corrige por tipo: -1 = el arte nativo
 // mira a la izquierda (hay que invertir el volteo), 1 = ya mira a la derecha.
-const NATIVE_FACING = { enemy1: -1, enemy4: 1, hero: 1 };
+const NATIVE_FACING = { enemy1: -1, enemy4: 1, enemy5: 1, enemy6: 1, hero: 1 };
 
 function atlasCol(value, x, y) {
   if (value === 1) return 3;
@@ -90,7 +90,9 @@ function updateCursor() {
     else if (state.reach.dist[hoverGY] && state.reach.dist[hoverGY][hoverGX] > 0) actionable = true; // moverse
     else { const tr = blockingTriggerAt(hoverGX, hoverGY); if (tr && Math.max(Math.abs(hero.x-hoverGX),Math.abs(hero.y-hoverGY))<=1) actionable = true; }
   }
-  canvas.style.cursor = actionable ? 'pointer' : (userPanning ? 'grabbing' : 'grab');
+  canvas.style.cursor = actionable
+    ? "url('./assets/ui/cursor_action.png') 4 4, pointer"
+    : (userPanning ? 'grabbing' : 'grab');
 }
 
 export function initRenderer(canvasEl, tapHandler) {

@@ -1616,6 +1616,6 @@
   "exit": {
     "x": 29,
     "y": 2,
-    "to": "cripta_prueba"
+    "to": "cripta"
   }
 }

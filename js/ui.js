@@ -1,12 +1,12 @@
 // Capa DOM: HUD (con PA), cartas de evento, registro, fin de partida y ajustes.
 // Todo el texto visible pasa por t() (multiidioma). No dibuja en el canvas.
 
-import { state } from './state.js?v=0.10';
-import { t } from './i18n.js?v=0.10';
-import * as anim from './anim.js?v=0.10';
-import * as audio from './audio.js?v=0.10';
-import { VERSION } from './config.js?v=0.10';
-import { images } from './assets.js?v=0.10';
+import { state } from './state.js?v=0.11';
+import { t } from './i18n.js?v=0.11';
+import * as anim from './anim.js?v=0.11';
+import * as audio from './audio.js?v=0.11';
+import { VERSION } from './config.js?v=0.11';
+import { images } from './assets.js?v=0.11';
 
 let afterInteract = () => {};
 let restart = () => {};
@@ -23,7 +23,7 @@ export function log(html) { $('log').innerHTML = html; }
 export function syncHUD() {
   const { hero } = state;
   const pct = hero.hp / hero.maxHp;
-  $('hpHero').style.width = Math.max(0, pct * 100) + '%';
+  $('hpHero').style.width = Math.max(0, (1 - pct) * 100) + '%';
   const hpText = $('hpHeroText');
   hpText.textContent = `${Math.max(0, hero.hp)}/${hero.maxHp}`;
   hpText.style.color = pct < 0.25 ? '#e86a5c' : '#fff';
@@ -51,7 +51,7 @@ export function syncFoeRow() {
     const box = document.createElement('div');
     box.className = 'foebox' + (state.targetFoe === foe ? ' selected' : '');
     const name = t('enemy.' + foe.sprite);
-    box.innerHTML = `<div class="buffs"></div><div class="fname">${name}</div><div class="bar foe"><span style="width:${Math.max(0, foe.hp / foe.maxHp * 100)}%"></span></div><div class="debuffs"></div>`;
+    box.innerHTML = `<div class="buffs"></div><div class="fname">${name}</div><div class="bar foe"><span style="width:${Math.max(0, (1 - foe.hp / foe.maxHp) * 100)}%"></span></div><div class="debuffs"></div>`;
     box.onclick = () => {
       state.targetFoe = state.targetFoe === foe ? null : foe;
       syncFoeRow();
