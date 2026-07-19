@@ -2,6 +2,18 @@
 
 Esquema: `0.X` = cambio grande · `0.X.Y` = cambio pequeño / fix.
 
+## 0.10 — esqueleto arquero y mejoras de PC
+- Nuevo enemigo **enemy4** (esqueleto arquero): arte propio (idle/walk/attack/death, 6/8/8/8 fotogramas), registrado en `assets.js`, `anim.js` (ANIM_CLIPS, IDLE_NAME, ATTACK_VARIANTS) y `render.js` (NATIVE_FACING=1, mira a la derecha de serie).
+- IA propia en `rules.js` (`archerTurn`, separado de `meleeTurn`): dispara a distancia 4 si tiene línea de tiro despejada (reutiliza `losClear`, ahora exportada desde `state.js`); si el héroe está a ≤2 casillas huye alejándose al máximo (prioriza acercarse a otro esqueleto que quede en el lado de huida, y casillas más despejadas para no encerrarse); el disparo cuesta 3 PA de 4, así que con el héroe pegado retrocede 1 casilla y aun así dispara. Daño = `atk` (3) + 1 por cada esqueleto vivo a ≤2 casillas del arquero (tope +4).
+- 2 arqueros colocados en el cementerio (24,4) y (26,4), junto al esqueleto ya existente en (25,6), para poder probar el bonus de grupo. Verificado con BFS real (nada en muro, sin solapes, todo alcanzable).
+- Batería de 8 pruebas headless (Node, sin DOM) en `archerTurn`/`meleeTurn`: disparo a distancia, huida, bloqueo por muro, bonus de grupo, regresión de melé, y retroceso+disparo con 3 PA. Todas en verde.
+- Nombre `enemy.enemy4` añadido a `data/i18n/es.json` y `en.json`; alta en `data/manifest.json` para que el editor de niveles lo ofrezca.
+- Interfaz/PC: escala de `--ui` por defecto según `window.innerWidth` (solo si no hay preferencia guardada en `localStorage`); vista previa de camino (`pathTo`) y cambio de cursor (`pointer`/`grab`) en `pointermove` cuando `e.pointerType === 'mouse'`; `@media (pointer:fine) and (min-width:900px)` agranda `.card`/`.panel`/`.card.story` solo en ese caso.
+- `anim.floatAt`: duración 850ms→1400ms, recorrido 22px→30px (números de daño más lentos).
+- Cooldown de 1000ms entre ataques del héroe en `onTapTile` (variable `lastHeroAttackAt`), para que dos toques seguidos no encadenen golpes sin transición visual.
+- Terreno difícil: quitado el tinte morado permanente sobre el suelo; ahora se pinta solo dentro del bloque de la malla de movimiento (mismo bucle que el relleno ámbar), coloreando de morado las casillas difíciles alcanzables en vez de ámbar.
+- Corregido el fotograma 4 de `hero/attack2.png` (se veía más pequeño que el resto de la animación): reescalado x1.15 anclado por los pies.
+
 ## 0.9.1 — el cementerio, completo (fusión con el trabajo del otro chat)
 - Este chat había avanzado en paralelo el cementerio (terreno pintado, 7 esqueletos, 2 trampas, salida) y el color de los bordes de altura relativo al héroe, mientras este otro chat avanzaba la 0.8 y la 0.9 (héroe a escena, objetivo e interfaz movible). Esta versión fusiona ambos: parte del código real de la 0.9 y le añade lo que faltaba.
 - El cementerio ya tiene sus 7 esqueletos, 2 trampas y una salida (hacia "cripta_prueba"), colocados desde el editor de niveles. El terreno en sí ya coincidía en ambos chats.

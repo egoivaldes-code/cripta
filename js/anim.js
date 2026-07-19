@@ -6,7 +6,7 @@
 //     (paz/combate) que cambian solas según haya un enemigo cerca, con una transición.
 // Además: sacudida al recibir daño y números flotantes (daño/curación).
 
-import { TILE } from './config.js?v=0.9.4';
+import { TILE } from './config.js?v=0.10';
 
 const D_MOVE = 170;
 const D_ATTACK_LEGACY = 220;
@@ -26,6 +26,12 @@ export const ANIM_CLIPS = {
     attack: { frames: 8, fps: 14, loop: false },
     death:  { frames: 9, fps: 10, loop: false },
   },
+  enemy4: {   // esqueleto arquero
+    idle:   { frames: 6, fps: 1.8, loop: true  },
+    walk:   { frames: 8, fps: 10,  loop: true  },
+    attack: { frames: 8, fps: 14,  loop: false },
+    death:  { frames: 9, fps: 10,  loop: false },
+  },
   hero: {
     idlepeace:    { frames: 6, fps: 1.6, loop: true },
     idlecombat:   { frames: 6, fps: 2.6,  loop: true  },
@@ -44,11 +50,11 @@ export const ANIM_CLIPS = {
 
 // Qué clip hace de idle normal / idle de combate / transición, por tipo (solo el
 // héroe tiene los dos idles; el esqueleto usa el mismo "idle" siempre).
-const IDLE_NAME = { enemy1: 'idle', hero: 'idlepeace', chest: 'idle' };
+const IDLE_NAME = { enemy1: 'idle', enemy4: 'idle', hero: 'idlepeace', chest: 'idle' };
 const IDLE_COMBAT_NAME = { hero: 'idlecombat' };
 const STANCECHANGE_NAME = { hero: 'stancechange' };
 // Variantes de ataque entre las que elegir al azar cada vez.
-const ATTACK_VARIANTS = { enemy1: ['attack'], hero: ['attack1', 'attack2'] };
+const ATTACK_VARIANTS = { enemy1: ['attack'], enemy4: ['attack'], hero: ['attack1', 'attack2'] };
 
 const isAnimated = (kind) => !!ANIM_CLIPS[kind];
 
@@ -200,7 +206,7 @@ export function face(name, dir) {
 
 // Número flotante sobre una casilla (p.ej. "−6" en rojo, "+10" en verde).
 export function floatAt(gx, gy, text, color) {
-  floats.push({ x: center(gx), y: gy * TILE + TILE * 0.25, text, color, t0: performance.now(), dur: 850 });
+  floats.push({ x: center(gx), y: gy * TILE + TILE * 0.25, text, color, t0: performance.now(), dur: 1400 });
 }
 
 export function active() {
@@ -337,7 +343,7 @@ export function floatsNow(ts) {
     const f = floats[i];
     const p = (ts - f.t0) / f.dur;
     if (p >= 1) { floats.splice(i, 1); continue; }
-    out.push({ x: f.x, y: f.y - p * 22, alpha: 1 - p, text: f.text, color: f.color });
+    out.push({ x: f.x, y: f.y - p * 30, alpha: 1 - p, text: f.text, color: f.color });
   }
   return out;
 }

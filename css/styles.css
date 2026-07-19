@@ -171,6 +171,24 @@ body.layout-edit .layoutApplyBtn{ display:block; }
 
 @media (prefers-reduced-motion:reduce){ .veil,.card,.panel{ animation:none; } .bar>span{ transition:none; } }
 
+/* En PC (ratón real + pantalla ancha) las ventanas modales (evento, tarjeta
+   narrativa con imagen, ajustes...) se ven pequeñas si se dejan al mismo
+   tamaño que en móvil, donde el dedo está mucho más cerca de la pantalla.
+   Aquí se agrandan solo para ese caso; en móvil/tablet no cambia nada. */
+@media (pointer: fine) and (min-width: 900px) {
+  .card, .panel { max-width: 460px; padding: 24px; }
+  .card.story { max-width: 640px; }
+  .card .kicker { font-size: 12px; }
+  .card h2, .panel h2 { font-size: 26px; }
+  .card p { font-size: 15px; }
+  .choice { font-size: 14.5px; padding: 13px 15px; }
+  .choice .tag { font-size: 12px; }
+  .card.story .storytext { font-size: 16px; }
+  .card.story .storyhint { font-size: 11px; }
+  .panel label { font-size: 12px; }
+  .banner .again, .primary { font-size: 14.5px; padding: 13px 24px; }
+}
+
 /* --- Pantalla de novedades (splash) al arrancar --- */
 .splash{ position:absolute; inset:0; z-index:20; display:none; flex-direction:column;
   background:radial-gradient(120% 90% at 50% -10%, #14171f 0%, #05060a 70%); }

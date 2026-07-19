@@ -1,8 +1,9 @@
 {
-  "version": "0.9.4",
-  "updated": "2026-07-17",
+  "version": "0.10",
+  "updated": "2026-07-18",
   "enemies": [
-    { "key": "enemy1", "label": "Esqueleto (básico)", "hp": 12, "atk": 4, "color": "#b5443a", "animated": true }
+    { "key": "enemy1", "label": "Esqueleto (básico)", "hp": 12, "atk": 4, "color": "#b5443a", "animated": true },
+    { "key": "enemy4", "label": "Esqueleto arquero", "hp": 9, "atk": 3, "color": "#5fae7a", "animated": true, "range": 4, "note": "dispara a 4 casillas; huye si te acercas; más fuerte rodeado de esqueletos" }
   ],
   "enemiesComingSoon": [
     { "key": "enemy2", "label": "Esqueleto espada y escudo", "note": "más fuerte; en pausa hasta tener sus animaciones" },

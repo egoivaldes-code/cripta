@@ -1,15 +1,15 @@
 // Punto de entrada. Carga idioma y datos, cablea módulos y arranca el bucle.
 
-import { state, initGame } from './state.js?v=0.9.4';
-import { initRenderer, startLoop, centerOnHero, toggleGrid, isGridOn } from './render.js?v=0.9.4';
-import { onTapTile, bindDescend, startHeroTurn, endHeroTurn, afterInteract, attemptDisarm } from './rules.js?v=0.9.4';
-import { syncHUD, log, hideVeil, bindAfterInteract, bindRestart, bindAttemptDisarm, applyStaticText } from './ui.js?v=0.9.4';
-import { loadAssets } from './assets.js?v=0.9.4';
-import { initialLang, loadLang, onLangChange, getLang, t } from './i18n.js?v=0.9.4';
-import * as anim from './anim.js?v=0.9.4';
-import * as audio from './audio.js?v=0.9.4';
-import { VERSION } from './config.js?v=0.9.4';
-import { assemble } from './mapgen.js?v=0.9.4';
+import { state, initGame } from './state.js?v=0.10';
+import { initRenderer, startLoop, centerOnHero, toggleGrid, isGridOn } from './render.js?v=0.10';
+import { onTapTile, bindDescend, startHeroTurn, endHeroTurn, afterInteract, attemptDisarm } from './rules.js?v=0.10';
+import { syncHUD, log, hideVeil, bindAfterInteract, bindRestart, bindAttemptDisarm, applyStaticText } from './ui.js?v=0.10';
+import { loadAssets } from './assets.js?v=0.10';
+import { initialLang, loadLang, onLangChange, getLang, t } from './i18n.js?v=0.10';
+import * as anim from './anim.js?v=0.10';
+import * as audio from './audio.js?v=0.10';
+import { VERSION } from './config.js?v=0.10';
+import { assemble } from './mapgen.js?v=0.10';
 
 // El ensamblador de losetas (mapgen.js) sigue disponible para niveles ALEATORIOS
 // futuros; esta función queda de reserva pero no se usa por ahora, ya que el
@@ -140,11 +140,20 @@ async function boot() {
 
   // Escala de la interfaz (persistida)
   const gameEl = document.getElementById('game');
+  // Escala de la interfaz (persistida). La primera vez (sin preferencia
+  // guardada) se parte de un valor mayor en pantallas grandes/PC, para que no
+  // arranque diminuta en resoluciones altas; a partir de ahí, lo que el
+  // jugador toque con el deslizador manda y se recuerda.
+  function defaultUiForScreen() {
+    const w = window.innerWidth || 1280;
+    return Math.max(1, Math.min(1.6, w / 1400)).toFixed(2);
+  }
   const uiInput = document.getElementById('uiScale');
   function setUiScale(v) { gameEl.style.setProperty('--ui', v); try { localStorage.setItem('cripta.ui', v); } catch {} }
-  let savedUi = '1';
-  try { savedUi = localStorage.getItem('cripta.ui') || '1'; } catch {}
-  uiInput.value = savedUi; setUiScale(savedUi);
+  let savedUi = null;
+  try { savedUi = localStorage.getItem('cripta.ui'); } catch {}
+  const initialUi = savedUi || defaultUiForScreen();
+  uiInput.value = initialUi; setUiScale(initialUi);
   uiInput.addEventListener('input', e => setUiScale(e.target.value));
 
   // Volúmenes de música y efectos (persistidos)

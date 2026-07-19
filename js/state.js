@@ -2,7 +2,7 @@
 // Incluye niebla de guerra (explored/visible) y el alcance de movimiento
 // ligado a los Puntos de Acción (PA) restantes del héroe.
 
-import { SIGHT, AP_MAX, CLIMB_COST, MAX_CLIMB, DIFFICULT_EXTRA } from './config.js?v=0.9.4';
+import { SIGHT, AP_MAX, CLIMB_COST, MAX_CLIMB, DIFFICULT_EXTRA } from './config.js?v=0.10';
 
 export const state = {
   cols: 0, rows: 0,
@@ -123,7 +123,8 @@ export function isVisible(x, y) { return inBounds(x, y) && state.visible[y][x]; 
 export function isExplored(x, y) { return inBounds(x, y) && state.explored[y][x]; }
 
 // --- niebla de guerra (línea de visión con Bresenham; los muros bloquean) ---
-function losClear(x0, y0, x1, y1) {
+// Exportada porque el arquero la usa para saber si tiene el tiro despejado.
+export function losClear(x0, y0, x1, y1) {
   let dx = Math.abs(x1 - x0), dy = Math.abs(y1 - y0);
   let sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1;
   let err = dx - dy, x = x0, y = y0;

@@ -1,6 +1,34 @@
 {
   "versions": [
     {
+      "v": "0.10",
+      "es": {
+        "title": "Esqueleto arquero y mejoras de PC",
+        "notes": [
+          "Nuevo enemigo: esqueleto arquero. Dispara a distancia (hasta 4 casillas, si tiene línea de tiro despejada), huye si te acercas demasiado buscando refugio junto a otros esqueletos, y pega más cuanto más rodeado está de otros no-muertos.",
+          "En PC: al pasar el ratón por una casilla se dibuja el camino que recorrerías si tocas ahí, y el cursor cambia a puntero sobre cualquier casilla donde tocar haga algo.",
+          "En PC/pantallas grandes: la interfaz arranca con un tamaño acorde a la resolución (antes empezaba diminuta en pantallas altas), y las ventanas de eventos, imagen y texto se ven más grandes.",
+          "Los números de daño flotan más despacio, para dar tiempo a leerlos.",
+          "Un segundo de margen entre golpe y golpe del héroe, para que no se encadenen dos ataques sin verse.",
+          "Arreglada la escala de un fotograma del segundo ataque del héroe, que se veía más pequeño de la cuenta.",
+          "El terreno difícil (matorrales, escombros...) ya no se pinta de morado todo el rato: ahora se marca solo dentro de la malla de movimiento, cuando estás decidiendo dónde ir."
+        ]
+      },
+      "en": {
+        "title": "Skeleton archer and PC improvements",
+        "notes": [
+          "New enemy: skeleton archer. Shoots from range (up to 4 tiles, with a clear line of sight), flees if you get too close by seeking shelter near other skeletons, and hits harder the more undead allies are nearby.",
+          "On PC: hovering over a tile now draws the path you'd take if you tapped there, and the cursor turns into a pointer over any tile where tapping does something.",
+          "On PC/large screens: the interface now starts at a size that matches your resolution (it used to start tiny on tall screens), and event/image/text windows are bigger.",
+          "Damage numbers float more slowly, giving you time to read them.",
+          "A one-second gap between the hero's attacks, so two hits can't chain without being seen.",
+          "Fixed the scale of one frame in the hero's second attack, which looked smaller than it should.",
+          "Difficult terrain (bushes, rubble...) is no longer painted purple all the time: it's now marked only inside the movement mesh, while you're deciding where to go."
+        ]
+      },
+      "title": "Esqueleto arquero y mejoras de PC"
+    },
+    {
       "v": "0.9.4",
       "es": {
         "title": "Cofres, eventos y editor con numeración",

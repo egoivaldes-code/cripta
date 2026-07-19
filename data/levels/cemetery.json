@@ -1568,6 +1568,26 @@
         "sprite": "enemy1",
         "dormant": true,
         "wakeR": 3
+      },
+      {
+        "x": 24,
+        "y": 4,
+        "hp": 9,
+        "maxHp": 9,
+        "atk": 3,
+        "sprite": "enemy4",
+        "dormant": true,
+        "wakeR": 5
+      },
+      {
+        "x": 26,
+        "y": 4,
+        "hp": 9,
+        "maxHp": 9,
+        "atk": 3,
+        "sprite": "enemy4",
+        "dormant": true,
+        "wakeR": 5
       }
     ]
   },

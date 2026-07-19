@@ -6,7 +6,7 @@
 // Qué claves tienen animaciones de verdad se define en ANIM_CLIPS (anim.js);
 // aquí solo hace falta indicar dónde está cada hoja.
 
-import { VERSION } from './config.js?v=0.9.4';
+import { VERSION } from './config.js?v=0.10';
 
 export const ATLAS_TILE = 128;  // px por celda en el tileset fuente (dungeon.png)
 export const SPRITE_TILE = 128; // px por fotograma en las hojas de sprites
@@ -36,6 +36,12 @@ const sources = {
   },
   enemy2: './assets/sprites/enemy2.png',
   enemy3: './assets/sprites/enemy3.png',
+  enemy4: {
+    idle:   './assets/sprites/enemy4/idle.png',
+    walk:   './assets/sprites/enemy4/walk.png',
+    attack: './assets/sprites/enemy4/attack.png',
+    death:  './assets/sprites/enemy4/death.png',
+  },
   grave: './assets/props/grave.png',
   chest: {
     idle: './assets/props/chest/idle.png',

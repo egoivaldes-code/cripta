@@ -7,17 +7,17 @@
 // La altura de cada casilla se pinta con un tinte y, en los escalones, un
 // borde de color: VERDE en el lado alto, ROJO en el lado bajo (estilo Descent).
 
-import { state, elevAt } from './state.js?v=0.9.4';
-import { isAITurnActive } from './rules.js?v=0.9.4';
-import { TILE, CAMERA_MARGIN, ZOOM_MIN, ZOOM_MAX, ZOOM_DEFAULT, TOKEN_TALL, HERO_TALL, PROP_TALL } from './config.js?v=0.9.4';
-import { images, ATLAS_TILE, SPRITE_TILE } from './assets.js?v=0.9.4';
-import * as anim from './anim.js?v=0.9.4';
+import { state, elevAt, pathTo, foeAt, blockingTriggerAt, adjacent } from './state.js?v=0.10';
+import { isAITurnActive } from './rules.js?v=0.10';
+import { TILE, CAMERA_MARGIN, ZOOM_MIN, ZOOM_MAX, ZOOM_DEFAULT, TOKEN_TALL, HERO_TALL, PROP_TALL } from './config.js?v=0.10';
+import { images, ATLAS_TILE, SPRITE_TILE } from './assets.js?v=0.10';
+import * as anim from './anim.js?v=0.10';
 
 // Algunos artes vienen dibujados mirando a la izquierda de serie (en vez de a
 // la derecha, que es lo que se asume en el resto del código al calcular hacia
 // dónde debe mirar un personaje). Aquí se corrige por tipo: -1 = el arte nativo
 // mira a la izquierda (hay que invertir el volteo), 1 = ya mira a la derecha.
-const NATIVE_FACING = { enemy1: -1, hero: 1 };
+const NATIVE_FACING = { enemy1: -1, enemy4: 1, hero: 1 };
 
 function atlasCol(value, x, y) {
   if (value === 1) return 3;
@@ -75,6 +75,24 @@ function zoomAt(sx, sy, newZoom) {
   camera.x = clampX(camera.x); camera.y = clampY(camera.y);
 }
 
+let hoverGX = -1, hoverGY = -1, hoverIsMouse = false;   // casilla bajo el ratón (PC); en táctil no se usa
+
+// Cursor en PC: puntero (mano) sobre cualquier casilla donde tocar haga algo
+// (moverse dentro del alcance, atacar a un enemigo pegado, interactuar con un
+// objeto); "agarrar" en el resto, que es el gesto de mover la cámara.
+function updateCursor() {
+  if (!hoverIsMouse) return;
+  let actionable = false;
+  if (hoverGX >= 0 && !state.busy && !anim.active() && !isAITurnActive() && !userPanning) {
+    const { hero } = state;
+    if (hoverGX === hero.x && hoverGY === hero.y) actionable = true;               // recentrar
+    else if (foeAt(hoverGX, hoverGY) && adjacent(hero, hoverGX, hoverGY)) actionable = true; // atacar
+    else if (state.reach.dist[hoverGY] && state.reach.dist[hoverGY][hoverGX] > 0) actionable = true; // moverse
+    else { const tr = blockingTriggerAt(hoverGX, hoverGY); if (tr && Math.max(Math.abs(hero.x-hoverGX),Math.abs(hero.y-hoverGY))<=1) actionable = true; }
+  }
+  canvas.style.cursor = actionable ? 'pointer' : (userPanning ? 'grabbing' : 'grab');
+}
+
 export function initRenderer(canvasEl, tapHandler) {
   canvas = canvasEl;
   onTap = tapHandler;
@@ -107,6 +125,10 @@ function bindPointer() {
     return { dist: Math.hypot(dx, dy), midX: (arr[0].x + arr[1].x) / 2, midY: (arr[0].y + arr[1].y) / 2 };
   }
 
+  canvas.addEventListener('pointerleave', e => {
+    if (e.pointerType === 'mouse') { hoverGX = -1; hoverGY = -1; updateCursor(); }
+  });
+
   canvas.addEventListener('pointerdown', e => {
     canvas.setPointerCapture(e.pointerId);
     pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
@@ -121,6 +143,17 @@ function bindPointer() {
   });
 
   canvas.addEventListener('pointermove', e => {
+    // Vista previa de camino + cursor: solo con ratón real (no con el dedo,
+    // que no tiene "hover" y donde tocar ya es la acción).
+    if (e.pointerType === 'mouse') {
+      hoverIsMouse = true;
+      const rect = canvas.getBoundingClientRect();
+      const w = screenToWorld(e.clientX - rect.left, e.clientY - rect.top);
+      const gx = Math.floor(w.x / TILE), gy = Math.floor(w.y / TILE);
+      if (gx >= 0 && gy >= 0 && gx < state.cols && gy < state.rows) { hoverGX = gx; hoverGY = gy; }
+      else { hoverGX = -1; hoverGY = -1; }
+      updateCursor();
+    }
     if (!pts.has(e.pointerId)) return;
     pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
@@ -289,8 +322,6 @@ function draw(ts) {
       // Tinte por altura (más suave sobre fondo pintado, para no tapar el arte).
       const tint = elevTint(elev[y] ? elev[y][x] : 0, bgImg ? 0.55 : 1);
       if (tint) { ctx.fillStyle = tint; ctx.fillRect(s.x - SEAM, s.y - SEAM, T + SEAM*2, T + SEAM*2); }
-      // Aviso de terreno difícil (matorrales, escombros...).
-      if (state.difficult[y] && state.difficult[y][x]) { ctx.fillStyle = 'rgba(155,89,182,.30)'; ctx.fillRect(s.x - SEAM, s.y - SEAM, T + SEAM*2, T + SEAM*2); }
     }
     if (gridOn && state.visible[y][x]) {
       ctx.strokeStyle = bgImg ? 'rgba(255,255,255,.08)' : 'rgba(0,0,0,.28)'; ctx.lineWidth = 1;
@@ -330,16 +361,42 @@ function draw(ts) {
     for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
       if (d[y] && d[y][x] > 0) {
         const s = worldToScreen(x * TILE, y * TILE);
-        ctx.fillStyle = 'rgba(224,138,60,.12)'; ctx.fillRect(s.x + 2, s.y + 2, T - 4, T - 4);
-        ctx.strokeStyle = 'rgba(224,138,60,.5)'; ctx.lineWidth = 1.5; ctx.strokeRect(s.x + 3.5, s.y + 3.5, T - 7, T - 7);
+        const isDifficult = state.difficult[y] && state.difficult[y][x];
+        ctx.fillStyle = isDifficult ? 'rgba(155,89,182,.28)' : 'rgba(224,138,60,.12)';
+        ctx.fillRect(s.x + 2, s.y + 2, T - 4, T - 4);
+        ctx.strokeStyle = isDifficult ? 'rgba(155,89,182,.65)' : 'rgba(224,138,60,.5)'; ctx.lineWidth = 1.5;
+        ctx.strokeRect(s.x + 3.5, s.y + 3.5, T - 7, T - 7);
       }
     }
+
     for (const foe of state.foes) {
       if (foe.alive && Math.max(Math.abs(foe.x - hero.x), Math.abs(foe.y - hero.y)) === 1
           && state.visible[foe.y] && state.visible[foe.y][foe.x]) {
         const s = worldToScreen(foe.x * TILE, foe.y * TILE);
         ctx.strokeStyle = '#b5443a'; ctx.lineWidth = 2;
         ctx.strokeRect(s.x + 4.5, s.y + 4.5, T - 9, T - 9);
+      }
+    }
+
+    // Vista previa del camino (ratón en PC): línea punteada de casilla en
+    // casilla hasta donde llegaría el héroe si tocaras ahí ahora mismo.
+    if (hoverIsMouse && hoverGX >= 0 && !(hoverGX === hero.x && hoverGY === hero.y) && !foeAt(hoverGX, hoverGY)) {
+      const path = pathTo(hoverGX, hoverGY);
+      if (path && path.length > 1) {
+        ctx.save();
+        ctx.strokeStyle = 'rgba(224,138,60,.85)'; ctx.lineWidth = Math.max(2, 2.5 * zoom / ZOOM_DEFAULT);
+        ctx.setLineDash([6, 5]); ctx.lineCap = 'round';
+        ctx.beginPath();
+        path.forEach((p, i) => {
+          const c = worldToScreen(p.x * TILE + TILE/2, p.y * TILE + TILE/2);
+          if (i === 0) ctx.moveTo(c.x, c.y); else ctx.lineTo(c.x, c.y);
+        });
+        ctx.stroke();
+        ctx.restore();
+        const last = path[path.length - 1];
+        const c = worldToScreen(last.x * TILE + TILE/2, last.y * TILE + TILE/2);
+        ctx.beginPath(); ctx.arc(c.x, c.y, Math.max(3, 3.5 * zoom / ZOOM_DEFAULT), 0, Math.PI*2);
+        ctx.fillStyle = 'rgba(224,138,60,.9)'; ctx.fill();
       }
     }
   }
