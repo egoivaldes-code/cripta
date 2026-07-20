@@ -1,6 +1,22 @@
 {
   "versions": [
     {
+      "v": "0.13.1",
+      "es": {
+        "title": "Anticaché",
+        "notes": [
+          "Añadido un aviso para que el navegador no se quede con una copia vieja de la página: si últimamente tenías que abrir en incógnito para ver los cambios, ya no debería hacer falta."
+        ]
+      },
+      "en": {
+        "title": "Anti-cache",
+        "notes": [
+          "Added a hint so the browser stops holding onto an old copy of the page: if you had to open in incognito lately to see changes, that shouldn't be needed anymore."
+        ]
+      },
+      "title": "Anticaché"
+    },
+    {
       "v": "0.13",
       "es": {
         "title": "Iniciativa, visión y arreglos",

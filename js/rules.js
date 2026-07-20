@@ -1,13 +1,13 @@
 // Reglas del juego: economía de Puntos de Acción (PA), interacción a distancia
 // y adyacente, trampas, niebla y salida de nivel. Agnóstico del dibujo.
 
-import { state, walkable, adjacent, distTo, isVisible, recomputeFog, computeReach, pathTo, reachCost, blockingTriggerAt, trapAt, walkTriggerAt, stepNeighbors, foeAt, livingFoes, losClear } from './state.js?v=0.13';
-import { openEvent, openTrapCard, openStoryCard, syncHUD, syncInitiativeUI, showCombatBadge, log, gameOver } from './ui.js?v=0.13';
-import { t } from './i18n.js?v=0.13';
-import { MOVE_COST, ATTACK_COST, INITIATIVE_BASE, INITIATIVE_DIE, TURN_DELAY } from './config.js?v=0.13';
-import * as anim from './anim.js?v=0.13';
-import { ANIM_CLIPS } from './anim.js?v=0.13';
-import * as audio from './audio.js?v=0.13';
+import { state, walkable, adjacent, distTo, isVisible, recomputeFog, computeReach, pathTo, reachCost, blockingTriggerAt, trapAt, walkTriggerAt, stepNeighbors, foeAt, livingFoes, losClear } from './state.js?v=0.13.1';
+import { openEvent, openTrapCard, openStoryCard, syncHUD, syncInitiativeUI, showCombatBadge, log, gameOver } from './ui.js?v=0.13.1';
+import { t } from './i18n.js?v=0.13.1';
+import { MOVE_COST, ATTACK_COST, INITIATIVE_BASE, INITIATIVE_DIE, TURN_DELAY } from './config.js?v=0.13.1';
+import * as anim from './anim.js?v=0.13.1';
+import { ANIM_CLIPS } from './anim.js?v=0.13.1';
+import * as audio from './audio.js?v=0.13.1';
 
 const sign = (n) => Math.sign(n);
 

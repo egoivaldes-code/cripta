@@ -1,13 +1,13 @@
 // Capa DOM: HUD (con PA), cartas de evento, registro, fin de partida y ajustes.
 // Todo el texto visible pasa por t() (multiidioma). No dibuja en el canvas.
 
-import { state } from './state.js?v=0.13';
-import { t } from './i18n.js?v=0.13';
-import * as anim from './anim.js?v=0.13';
-import { IDLE_NAME } from './anim.js?v=0.13';
-import * as audio from './audio.js?v=0.13';
-import { VERSION } from './config.js?v=0.13';
-import { images, SPRITE_TILE } from './assets.js?v=0.13';
+import { state } from './state.js?v=0.13.1';
+import { t } from './i18n.js?v=0.13.1';
+import * as anim from './anim.js?v=0.13.1';
+import { IDLE_NAME } from './anim.js?v=0.13.1';
+import * as audio from './audio.js?v=0.13.1';
+import { VERSION } from './config.js?v=0.13.1';
+import { images, SPRITE_TILE } from './assets.js?v=0.13.1';
 
 let afterInteract = () => {};
 let restart = () => {};

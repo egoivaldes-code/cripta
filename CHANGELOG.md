@@ -2,7 +2,10 @@
 
 Esquema: `0.X` = cambio grande · `0.X.Y` = cambio pequeño / fix.
 
-## 0.13 — iniciativa, visión, evento de entrada y arreglos de HUD
+## 0.13.1 — anticaché del propio index.html
+- Todos los archivos internos (JS, CSS, JSON de datos, imágenes) ya se piden con `?v=VERSION`, así que se renuevan solos en cuanto sube el número de versión — eso ya funcionaba bien. Lo que faltaba era el propio `index.html`: algunos navegadores (sobre todo Chrome en móvil) se quedaban con una copia vieja de la página en sí, y hacía falta abrir en incógnito para forzar una copia nueva. Añadidas meta-etiquetas `Cache-Control: no-cache, no-store, must-revalidate` (+ `Pragma`/`Expires`) para que el navegador compruebe siempre si hay una versión nueva en vez de fiarse de la copia guardada.
+
+## 0.13 — iniciativa, visión y arreglos de HUD
 - **Arreglado el evento de entrada del cementerio**: el trigger llevaba `id:"event_1"` pero la clave real en `events.json` es `"evento_1"` (en español); al no coincidir, `state.events[tr.id]` siempre daba `undefined` y el evento nunca llegaba a marcarse como usado ni a abrir su tarjeta — se quedaba el aviso "!" para siempre en el suelo, en cualquier plataforma (no era un fallo de móvil). Corregido el `id` del trigger para que coincida.
 - **Visión ampliada**: `SIGHT` (radio iluminado) sube de 4.5 a 6.5 casillas (+2). Nueva `SIGHT_DIM` (+4 más allá de `SIGHT`): esa franja se marca como explorada (queda en penumbra/niebla, recordada) aunque no esté iluminada del todo; más allá sigue siendo negro sin explorar. `recomputeFog()` calcula ambos anillos respetando muros (línea de visión), no solo distancia.
 - **Delay de 1s al terminar cada turno**, tanto el del héroe como el de cada enemigo, integrado en el nuevo motor de turnos (ver iniciativa).

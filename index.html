@@ -3,8 +3,18 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<!-- Anticaché: todos los archivos internos (JS, CSS, JSON, imágenes) ya se piden
+     con ?v=VERSION, así que se renuevan solos en cuanto sube el número de
+     versión. Esto de aquí es solo para este mismo archivo (index.html): sin
+     esto, algunos navegadores (sobre todo Chrome en móvil) se quedan con una
+     copia vieja de la página en caché y hace falta modo incógnito para verla
+     actualizada. Con esto, cada vez que se abre la página se comprueba si hay
+     una versión nueva en el servidor en vez de fiarse de la copia guardada. -->
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>Cripta</title>
-<link rel="stylesheet" href="./css/styles.css?v=0.13">
+<link rel="stylesheet" href="./css/styles.css?v=0.13.1">
 </head>
 <body>
 <div id="game">
@@ -90,6 +100,6 @@
   </div>
 </div>
 
-<script type="module" src="./js/main.js?v=0.13"></script>
+<script type="module" src="./js/main.js?v=0.13.1"></script>
 </body>
 </html>
