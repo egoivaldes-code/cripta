@@ -1,6 +1,30 @@
 {
   "versions": [
     {
+      "v": "0.12",
+      "es": {
+        "title": "Cementerio mejorado y arreglos",
+        "notes": [
+          "El cementerio ha sido rediseñado a fondo: más grande, con capilla, mausoleos, estatuas y un trazado nuevo, con 16 enemigos repartidos.",
+          "Arreglado un fallo serio: una trampa ya descubierta podía cruzarse caminando por encima si tocabas una casilla más allá de ella. Ahora bloquea el paso como cualquier otro obstáculo, hay que rodearla.",
+          "El esqueleto básico tiene sus animaciones de andar, atacar y morir revisadas de nuevo (sin fotogramas mezclados ni cortados), y ahora mira hacia el mismo lado en todas sus animaciones.",
+          "Icono de oro nuevo (monedas de verdad, en vez del rombo).",
+          "El botón de \"saltar turno\" ya no tiene un contorno azulado ni se ve la textura estirada."
+        ]
+      },
+      "en": {
+        "title": "Improved cemetery and fixes",
+        "notes": [
+          "The cemetery has been redesigned from the ground up: bigger, with a chapel, mausoleums, statues and a new layout, with 16 enemies placed throughout.",
+          "Fixed a serious bug: an already-discovered trap could be walked straight over if you tapped a tile beyond it. It now blocks the way like any other obstacle, you have to go around it.",
+          "The basic skeleton's walk, attack and death animations were reprocessed (no more mixed-in or cut-off frames), and it now faces the same way across all its animations.",
+          "New gold icon (real coins instead of the diamond glyph).",
+          "The \"skip turn\" button no longer has a bluish outline or a stretched-looking texture."
+        ]
+      },
+      "title": "Cementerio mejorado y arreglos"
+    },
+    {
       "v": "0.11",
       "es": {
         "title": "Espectro, Esqueleto Mago y HUD ambientado",

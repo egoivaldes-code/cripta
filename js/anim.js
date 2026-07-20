@@ -6,7 +6,7 @@
 //     (paz/combate) que cambian solas según haya un enemigo cerca, con una transición.
 // Además: sacudida al recibir daño y números flotantes (daño/curación).
 
-import { TILE } from './config.js?v=0.11';
+import { TILE } from './config.js?v=0.12';
 
 const D_MOVE = 170;
 const D_ATTACK_LEGACY = 220;
@@ -24,7 +24,8 @@ export const ANIM_CLIPS = {
     idle:   { frames: 6, fps: 1.8,  loop: true  },
     walk:   { frames: 8, fps: 10, loop: true  },
     attack: { frames: 8, fps: 14, loop: false },
-    death:  { frames: 9, fps: 10, loop: false },
+    death:  { frames: 8, fps: 10, loop: false },
+    cast:   { frames: 8, fps: 12, loop: false },   // guardado; sin efecto de juego asignado todavía
   },
   enemy4: {   // esqueleto arquero
     idle:   { frames: 6, fps: 1.8, loop: true  },
@@ -216,9 +217,14 @@ export function face(name, dir) {
   a.facing = dir;
 }
 
+
+
 // Número flotante sobre una casilla (p.ej. "−6" en rojo, "+10" en verde).
-export function floatAt(gx, gy, text, color) {
-  floats.push({ x: center(gx), y: gy * TILE + TILE * 0.25, text, color, t0: performance.now(), dur: 1400 });
+// static=true lo deja quieto en su sitio un rato (en vez de subir y
+// desvanecerse como el resto) para que destaque — pensado para el crítico.
+export function floatAt(gx, gy, text, color, opts = {}) {
+  const dur = opts.static ? 1100 : 1400;
+  floats.push({ x: center(gx), y: gy * TILE + TILE * 0.25, text, color, t0: performance.now(), dur, static: !!opts.static });
 }
 
 export function active() {
@@ -355,7 +361,15 @@ export function floatsNow(ts) {
     const f = floats[i];
     const p = (ts - f.t0) / f.dur;
     if (p >= 1) { floats.splice(i, 1); continue; }
-    out.push({ x: f.x, y: f.y - p * 30, alpha: 1 - p, text: f.text, color: f.color });
+    if (f.static) {
+      // quieto en su sitio; se mantiene a máxima opacidad y solo se desvanece
+      // en el último tramo, en vez de subir y apagarse todo el rato como el resto.
+      const fadeStart = 0.7;
+      const alpha = p < fadeStart ? 1 : 1 - (p - fadeStart) / (1 - fadeStart);
+      out.push({ x: f.x, y: f.y, alpha, text: f.text, color: f.color });
+    } else {
+      out.push({ x: f.x, y: f.y - p * 30, alpha: 1 - p, text: f.text, color: f.color });
+    }
   }
   return out;
 }

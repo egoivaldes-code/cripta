@@ -45,8 +45,8 @@ body{
 
 /* Botón de turno: justo debajo de la vida, ancho completo del HUD */
 .skipturn{ width:100%; color:var(--bone);
-  background:linear-gradient(rgba(9,10,14,.5),rgba(9,10,14,.5)), url(../assets/ui/skipturn_plaque.png);
-  background-size:100% 100%; border:1px solid var(--steel); border-radius:6px; backdrop-filter:blur(3px);
+  background:linear-gradient(rgba(9,10,14,.35),rgba(9,10,14,.35)), url(../assets/ui/skipturn_bar.png);
+  background-size:100% 100%; border:1px solid rgba(70,55,30,.8); border-radius:6px; backdrop-filter:blur(3px);
   font:inherit; font-size:12.5px; letter-spacing:.04em; padding:8px 10px; cursor:pointer; }
 .skipturn:hover{ border-color:var(--ember); color:var(--ember); }
 

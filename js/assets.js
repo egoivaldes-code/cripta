@@ -6,7 +6,7 @@
 // Qué claves tienen animaciones de verdad se define en ANIM_CLIPS (anim.js);
 // aquí solo hace falta indicar dónde está cada hoja.
 
-import { VERSION } from './config.js?v=0.11';
+import { VERSION } from './config.js?v=0.12';
 
 export const ATLAS_TILE = 128;  // px por celda en el tileset fuente (dungeon.png)
 export const SPRITE_TILE = 128; // px por fotograma en las hojas de sprites
@@ -32,7 +32,7 @@ const sources = {
     walk: './assets/sprites/enemy1/walk.png',
     attack: './assets/sprites/enemy1/attack.png',
     death: './assets/sprites/enemy1/death.png',
-    // 'cast' se guarda pero no se usa todavía (sin efecto de juego asignado).
+    cast: './assets/sprites/enemy1/cast.png',   // guardado; sin efecto de juego asignado todavía
   },
   enemy2: './assets/sprites/enemy2.png',
   enemy3: './assets/sprites/enemy3.png',
@@ -62,7 +62,7 @@ const sources = {
   target: './assets/props/target_marker.png',
   // crypt / crypt_in: aparcados (arte isométrico; el cementerio ahora usa un fondo
   // pintado cenital). Los archivos siguen en el proyecto por si se retoman.
-  bg_cemetery: './assets/backgrounds/cemetery.jpg',
+  bg_cemetery: './assets/backgrounds/cemetery.png',
   story_cemetery_noises: './assets/ui/story_cemetery_noises.jpg',
 };
 

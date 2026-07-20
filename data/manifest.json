@@ -1,5 +1,5 @@
 {
-  "version": "0.11",
+  "version": "0.12",
   "updated": "2026-07-18",
   "enemies": [
     { "key": "enemy1", "label": "Esqueleto (básico)", "hp": 12, "atk": 4, "color": "#b5443a", "animated": true },

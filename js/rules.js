@@ -1,15 +1,53 @@
 // Reglas del juego: economía de Puntos de Acción (PA), interacción a distancia
 // y adyacente, trampas, niebla y salida de nivel. Agnóstico del dibujo.
 
-import { state, walkable, adjacent, distTo, isVisible, recomputeFog, computeReach, pathTo, reachCost, blockingTriggerAt, trapAt, walkTriggerAt, stepNeighbors, foeAt, livingFoes, losClear } from './state.js?v=0.11';
-import { openEvent, openTrapCard, openStoryCard, syncHUD, log, gameOver } from './ui.js?v=0.11';
-import { t } from './i18n.js?v=0.11';
-import { MOVE_COST, ATTACK_COST } from './config.js?v=0.11';
-import * as anim from './anim.js?v=0.11';
-import { ANIM_CLIPS } from './anim.js?v=0.11';
-import * as audio from './audio.js?v=0.11';
+import { state, walkable, adjacent, distTo, isVisible, recomputeFog, computeReach, pathTo, reachCost, blockingTriggerAt, trapAt, walkTriggerAt, stepNeighbors, foeAt, livingFoes, losClear } from './state.js?v=0.12';
+import { openEvent, openTrapCard, openStoryCard, syncHUD, log, gameOver } from './ui.js?v=0.12';
+import { t } from './i18n.js?v=0.12';
+import { MOVE_COST, ATTACK_COST } from './config.js?v=0.12';
+import * as anim from './anim.js?v=0.12';
+import { ANIM_CLIPS } from './anim.js?v=0.12';
+import * as audio from './audio.js?v=0.12';
 
 const sign = (n) => Math.sign(n);
+
+// --- Resolución de combate (esquivar → bloquear → crítico → armadura/resistencia) ---
+// Ver combat_stats_v0.11.md para el diseño. Los monstruos NUNCA critean al
+// héroe; el héroe SÍ puede critear a los monstruos (los monstruos no tienen
+// esquivar/bloquear/armadura propios todavía, solo el héroe las tiene).
+const CRIT_MULT = 2;
+const EVADE_COLOR = '#9aa0ab';
+const CRIT_COLOR = '#f0c94a';
+
+// Golpe del HÉROE contra un enemigo: solo puede critear (x2), nada más.
+function resolveHeroHit(baseDamage) {
+  const crit = Math.random() < (state.hero.critChance || 0);
+  return { damage: crit ? Math.round(baseDamage * CRIT_MULT) : baseDamage, crit };
+}
+
+// Golpe de un ENEMIGO contra el héroe: esquivar → bloquear → armadura/resistencia.
+// damageType: 'physical' | 'fire' | 'cold' | 'nature' | 'shadow' | 'holy'
+function resolveIncomingHit(baseDamage, damageType = 'physical') {
+  const hero = state.hero;
+  if (Math.random() < (hero.dodgeChance || 0)) return { damage: 0, evaded: true, blocked: false };
+  if (hero.hasShield && Math.random() < (hero.blockChance || 0)) return { damage: 0, evaded: false, blocked: true };
+  const mitig = damageType === 'physical' ? (hero.armor || 0) : ((hero.resist && hero.resist[damageType]) || 0);
+  const damage = Math.max(0, Math.round(baseDamage * (1 - mitig)));
+  return { damage, evaded: false, blocked: false };
+}
+
+// Aplica un golpe ya resuelto al héroe: pone el número flotante correcto
+// (Esquivado / Bloqueado / daño normal) y resta la vida. Devuelve el daño
+// final aplicado (0 si se ha esquivado o bloqueado).
+function applyIncomingHit(baseDamage, damageType, color) {
+  const hero = state.hero;
+  const r = resolveIncomingHit(baseDamage, damageType);
+  if (r.evaded) { anim.floatAt(hero.x, hero.y, 'Esquivado', EVADE_COLOR); return 0; }
+  if (r.blocked) { anim.floatAt(hero.x, hero.y, 'Bloqueado', EVADE_COLOR); return 0; }
+  anim.floatAt(hero.x, hero.y, `−${r.damage}`, color);
+  hero.hp -= r.damage;
+  return r.damage;
+}
 
 let onDescend = () => {};
 export function bindDescend(fn) { onDescend = fn; }
@@ -109,10 +147,13 @@ export function onTapTile(gx, gy) {
     lastHeroAttackAt = now;
     hero.ap -= ATTACK_COST;
     anim.attack('hero', sign(gx - hero.x), sign(gy - hero.y), 'hero');
-    anim.hurt(target.anim, target.sprite); anim.floatAt(target.x, target.y, `−${hero.atk}`, '#e86a5c');
-    target.hp -= hero.atk;
+    const hit = resolveHeroHit(hero.atk);
+    anim.hurt(target.anim, target.sprite);
+    if (hit.crit) anim.floatAt(target.x, target.y, `¡CRÍTICO! −${hit.damage}`, CRIT_COLOR, { static: true });
+    else anim.floatAt(target.x, target.y, `−${hit.damage}`, '#e86a5c');
+    target.hp -= hit.damage;
     target.dormant = false;                 // si le pegas, despierta
-    log(t('log.hitFoe', { dmg: hero.atk }));
+    log(t('log.hitFoe', { dmg: hit.damage }));
     if (target.hp <= 0) {
       audio.fx('kill'); target.alive = false;
       if (state.targetFoe === target) state.targetFoe = null;
@@ -246,13 +287,13 @@ async function spectreTurn(foe) {
     if (adjacent(foe, hero.x, hero.y)) {
       if (ap < SPECTRE_COST) break;
       ap -= SPECTRE_COST;
-      const dmg = foe.atk;
       anim.attack(foe.anim, sign(hero.x - foe.x), sign(hero.y - foe.y), foe.sprite);
-      anim.hurt('hero', 'hero'); anim.floatAt(hero.x, hero.y, `−${dmg}`, '#e86a5c'); audio.fx('hurt');
-      hero.hp -= dmg;
+      audio.fx('hurt');
+      const dmg = applyIncomingHit(foe.atk, 'physical', '#e86a5c');
+      if (dmg > 0) anim.hurt('hero', 'hero');
       log(t('log.hitHero', { dmg }));
       const allies = livingFoes().filter(f => f !== foe && distTo(f, foe.x, foe.y) <= 2).length;
-      if (allies > 0) {
+      if (dmg > 0 && allies > 0) {
         const healPct = Math.min(3, allies) * 0.10;
         const healed = Math.max(1, Math.round(dmg * healPct));
         foe.hp = Math.min(foe.maxHp, foe.hp + healed);
@@ -393,9 +434,10 @@ async function mageTurn(foe) {
     if (d <= MAGE_RANGE && ap >= MAGE_SHOOT_COST && losClear(foe.x, foe.y, hero.x, hero.y)) {
       ap -= MAGE_SHOOT_COST;
       anim.attack(foe.anim, sign(hero.x - foe.x), sign(hero.y - foe.y), foe.sprite);
-      anim.hurt('hero', 'hero'); anim.floatAt(hero.x, hero.y, `−${foe.atk}`, SHADOW_COLOR); audio.fx('hurt');
-      hero.hp -= foe.atk;
-      log(t('log.hitHero', { dmg: foe.atk }));
+      audio.fx('hurt');
+      const dmg = applyIncomingHit(foe.atk, 'shadow', SHADOW_COLOR);
+      if (dmg > 0) anim.hurt('hero', 'hero');
+      log(t('log.hitHero', { dmg }));
       syncHUD();
       if (hero.hp <= 0) { gameOver('lose'); return true; }
       await sleep(320);
@@ -486,10 +528,11 @@ function doMove(foe, step) {
 // Devuelve true si el héroe muere (fin de partida).
 function archerShoot(foe) {
   const { hero } = state;
-  const dmg = foe.atk + Math.min(4, alliesWithin2(foe));
+  const baseDmg = foe.atk + Math.min(4, alliesWithin2(foe));
   anim.attack(foe.anim, sign(hero.x - foe.x), sign(hero.y - foe.y), foe.sprite);
-  anim.hurt('hero', 'hero'); anim.floatAt(hero.x, hero.y, `−${dmg}`, '#e86a5c'); audio.fx('hurt');
-  hero.hp -= dmg;
+  audio.fx('hurt');
+  const dmg = applyIncomingHit(baseDmg, 'physical', '#e86a5c');
+  if (dmg > 0) anim.hurt('hero', 'hero');
   log(t('log.hitHero', { dmg }));
   syncHUD();
   if (hero.hp <= 0) { gameOver('lose'); return true; }
@@ -540,9 +583,10 @@ async function meleeTurn(foe) {
       if (ap < ATTACK_COST) break;
       ap -= ATTACK_COST;
       anim.attack(foe.anim, sign(hero.x - foe.x), sign(hero.y - foe.y), foe.sprite);
-      anim.hurt('hero', 'hero'); anim.floatAt(hero.x, hero.y, `−${foe.atk}`, '#e86a5c'); audio.fx('hurt');
-      hero.hp -= foe.atk;
-      log(t('log.hitHero', { dmg: foe.atk }));
+      audio.fx('hurt');
+      const dmg = applyIncomingHit(foe.atk, 'physical', '#e86a5c');
+      if (dmg > 0) anim.hurt('hero', 'hero');
+      log(t('log.hitHero', { dmg }));
       syncHUD();
       if (hero.hp <= 0) { gameOver('lose'); return true; }
       await sleep(320);

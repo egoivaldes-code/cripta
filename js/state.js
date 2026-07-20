@@ -2,7 +2,7 @@
 // Incluye niebla de guerra (explored/visible) y el alcance de movimiento
 // ligado a los Puntos de Acción (PA) restantes del héroe.
 
-import { SIGHT, AP_MAX, CLIMB_COST, MAX_CLIMB, DIFFICULT_EXTRA } from './config.js?v=0.11';
+import { SIGHT, AP_MAX, CLIMB_COST, MAX_CLIMB, DIFFICULT_EXTRA } from './config.js?v=0.12';
 
 export const state = {
   cols: 0, rows: 0,
@@ -33,7 +33,12 @@ export function initGame(level, events) {
   state.elev = level.elev || grid(state.rows, state.cols, 0);
   state.difficult = level.difficult || grid(state.rows, state.cols, false);
   state.background = level.background || null;
-  state.hero = { ...level.start.hero, ap: AP_MAX, apMax: AP_MAX };
+  state.hero = {
+    critChance: 0.01, dodgeChance: 0.01, armor: 0.10,
+    hasShield: true, blockChance: 0.20,
+    resist: { fire: 0, cold: 0, nature: 0, shadow: 0, holy: 0 },
+    ...level.start.hero, ap: AP_MAX, apMax: AP_MAX,
+  };
   const foeList = level.start.foes || (level.start.foe ? [level.start.foe] : []);
   state.foes = foeList.map((f, i) => ({
     ...f, alive: true, apMax: f.apMax != null ? f.apMax : AP_MAX,
@@ -75,9 +80,11 @@ export function walkTriggerAt(x, y) {
 }
 
 export function walkable(x, y) {
+  const trap = trapAt(x, y);
   return inBounds(x, y) && state.tiles[y][x] === 0
     && !state.foes.some(f => f.alive && f.x === x && f.y === y)
-    && !blockingTriggerAt(x, y);
+    && !blockingTriggerAt(x, y)
+    && !(trap && trap.revealed);   // ya descubierta: bloquea como un mueble, no se cruza por encima
 }
 // Consultas sobre los enemigos.
 export function livingFoes() { return state.foes.filter(f => f.alive); }
