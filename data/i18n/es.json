@@ -50,6 +50,7 @@
   "hud.ap": "Acciones",
   "btn.endturn": "Saltar turno",
   "log.noAP": "No te quedan acciones suficientes.",
+  "log.turnSkipped": "Saltas el turno.",
   "log.noEventYet": "No parece que haya nada aquí todavía.",
   "ev.palanca.kicker": "Mecanismo",
   "ev.palanca.title": "Palanca oxidada",

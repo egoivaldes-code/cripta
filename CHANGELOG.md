@@ -2,6 +2,14 @@
 
 Esquema: `0.X` = cambio grande · `0.X.Y` = cambio pequeño / fix.
 
+## 0.13.2 — magenta, iniciativa, saltar turno y objetos sin conectar
+- **Fondo del cementerio**: el margen del lienzo que no llegó a pintarse se quedaba en magenta bien visible (no era un problema de transparencia general, solo de ese borde sin pintar). Hecho transparente de verdad con detección por color conectada al borde (para no tocar ningún píxel del dibujo real, solo el margen sin usar).
+- **Barra de iniciativa**: se solapaba con el botón de reiniciar cuando la escala de interfaz está alta (el botón puede crecer bastante). Bajada con más margen.
+- **Saltar turno con el PA al máximo**: ya funcionaba, pero no se notaba si no había enemigos cerca (nada cambiaba en pantalla). Añadido un mensaje de confirmación y bloqueado el botón mientras los enemigos están actuando (evita disparar dos turnos a la vez sin querer, que podía descuadrar la cola de iniciativa).
+- **Botón "Saltar turno" deformado**: el arreglo de la v0.13 (border-image en 3 partes) no quedó bien. Rehecho con dos remates que recortan una ventana fija de la imagen ya escalada de forma proporcional (nunca se deforma, mires desde donde mires).
+- **Objetos del cementerio nuevo sin evento conectado**: además del evento de la entrada (ya arreglado en 0.13), otros 7 objetos (3 trampas, cofre, palanca, altar y un ítem) tampoco tenían nada conectado en `events.json`. Las trampas en concreto podían **reventar el juego** al pisarlas o intentar desactivarlas (sin la protección de "sin evento conectado" que sí tenían el resto de objetos). Conectados los 7 a contenido real (reutilizando el texto genérico ya existente), y blindado el código (`triggerTrap`, `attemptDisarm`, la tarjeta de trampa) para que un objeto sin conectar nunca vuelva a romper el juego, solo avise. Añadida una prueba headless para este caso concreto (11 en total, todas en verde).
+- **Quitado el nombre "Mercenaria"** de la ficha del héroe; la barra de vida ocupa ahora ese hueco (más alta, número más grande).
+
 ## 0.13.1 — anticaché del propio index.html
 - Todos los archivos internos (JS, CSS, JSON de datos, imágenes) ya se piden con `?v=VERSION`, así que se renuevan solos en cuanto sube el número de versión — eso ya funcionaba bien. Lo que faltaba era el propio `index.html`: algunos navegadores (sobre todo Chrome en móvil) se quedaban con una copia vieja de la página en sí, y hacía falta abrir en incógnito para forzar una copia nueva. Añadidas meta-etiquetas `Cache-Control: no-cache, no-store, must-revalidate` (+ `Pragma`/`Expires`) para que el navegador compruebe siempre si hay una versión nueva en vez de fiarse de la copia guardada.
 

@@ -1,13 +1,13 @@
 // Reglas del juego: economía de Puntos de Acción (PA), interacción a distancia
 // y adyacente, trampas, niebla y salida de nivel. Agnóstico del dibujo.
 
-import { state, walkable, adjacent, distTo, isVisible, recomputeFog, computeReach, pathTo, reachCost, blockingTriggerAt, trapAt, walkTriggerAt, stepNeighbors, foeAt, livingFoes, losClear } from './state.js?v=0.13.1';
-import { openEvent, openTrapCard, openStoryCard, syncHUD, syncInitiativeUI, showCombatBadge, log, gameOver } from './ui.js?v=0.13.1';
-import { t } from './i18n.js?v=0.13.1';
-import { MOVE_COST, ATTACK_COST, INITIATIVE_BASE, INITIATIVE_DIE, TURN_DELAY } from './config.js?v=0.13.1';
-import * as anim from './anim.js?v=0.13.1';
-import { ANIM_CLIPS } from './anim.js?v=0.13.1';
-import * as audio from './audio.js?v=0.13.1';
+import { state, walkable, adjacent, distTo, isVisible, recomputeFog, computeReach, pathTo, reachCost, blockingTriggerAt, trapAt, walkTriggerAt, stepNeighbors, foeAt, livingFoes, losClear } from './state.js?v=0.13.2';
+import { openEvent, openTrapCard, openStoryCard, syncHUD, syncInitiativeUI, showCombatBadge, log, gameOver } from './ui.js?v=0.13.2';
+import { t } from './i18n.js?v=0.13.2';
+import { MOVE_COST, ATTACK_COST, INITIATIVE_BASE, INITIATIVE_DIE, TURN_DELAY } from './config.js?v=0.13.2';
+import * as anim from './anim.js?v=0.13.2';
+import { ANIM_CLIPS } from './anim.js?v=0.13.2';
+import * as audio from './audio.js?v=0.13.2';
 
 const sign = (n) => Math.sign(n);
 
@@ -122,14 +122,18 @@ function showHint(tr) {
   audio.fx('ui');
 }
 
-// Una trampa se activa sola al pisarla si no ha sido desarmada antes.
+// Una trampa se activa sola al pisarla si no ha sido desarmada antes. Si por
+// lo que sea no tiene un evento conectado en events.json, usa un daño por
+// defecto y un aviso genérico en vez de reventar (mismo criterio que ya se
+// aplica a los objetos "mueble" sin evento).
 function triggerTrap(trap) {
   const ev = state.events[trap.id];
-  const dmg = ev.trapDmg || 4;
+  const dmg = (ev && ev.trapDmg) || 4;
   trap.used = true;
   anim.hurt('hero', 'hero'); anim.floatAt(state.hero.x, state.hero.y, `−${dmg}`, '#e86a5c'); audio.fx('hurt');
   state.hero.hp -= dmg;
-  log(`<b>${t(ev.i18n + '.kicker')}</b> — ${t(ev.i18n + '.text')}`);
+  if (ev) log(`<b>${t(ev.i18n + '.kicker')}</b> — ${t(ev.i18n + '.text')}`);
+  else log(t('log.noEventYet'));
   syncHUD();
   if (state.hero.hp <= 0) gameOver('lose');
 }
@@ -162,19 +166,21 @@ function revealTrapsNear(x, y) {
 export function attemptDisarm(trap) {
   const { hero } = state;
   const ev = state.events[trap.id];
-  const cost = ev.actionCost || 1;
+  const cost = (ev && ev.actionCost) || 1;
   if (hero.ap < cost) { log(t('log.noAP')); state.busy = false; return; }
   hero.ap -= cost; syncHUD();
   anim.activateAnim('hero', 'hero');
   if (Math.random() < 0.5) {
     trap.used = true;
     audio.fx('ui');
-    log(`<b>${t(ev.i18n + '.kicker')}</b> — ${t(ev.i18n + '.disarmSuccess')}`);
+    if (ev) log(`<b>${t(ev.i18n + '.kicker')}</b> — ${t(ev.i18n + '.disarmSuccess')}`);
+    else log(t('log.noEventYet'));
   } else {
-    const dmg = Math.round((ev.trapDmg || 4) / 2);
+    const dmg = Math.round(((ev && ev.trapDmg) || 4) / 2);
     anim.hurt('hero', 'hero'); anim.floatAt(hero.x, hero.y, `−${dmg}`, '#e86a5c'); audio.fx('hurt');
     hero.hp -= dmg;
-    log(`<b>${t(ev.i18n + '.kicker')}</b> — ${t(ev.i18n + '.disarmFail', { dmg })}`);
+    if (ev) log(`<b>${t(ev.i18n + '.kicker')}</b> — ${t(ev.i18n + '.disarmFail', { dmg })}`);
+    else log(t('log.noEventYet'));
   }
   syncHUD();
   state.busy = false;

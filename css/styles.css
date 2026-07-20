@@ -21,10 +21,9 @@ body{
   display:flex; flex-direction:column; gap:6px; width:max-content; }
 .hudrow{ display:flex; gap:8px; align-items:stretch; padding:8px 10px;
   background:rgba(26,30,39,.82); border:1px solid var(--steel); border-radius:6px; backdrop-filter:blur(3px); cursor:pointer; }
-.hud .who{ display:flex; flex-direction:column; gap:4px; min-width:92px; }
-.hud .name{ font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--bone-dim); }
+.hud .who{ display:flex; flex-direction:column; justify-content:center; gap:4px; min-width:110px; }
 .bar{ height:9px; border-radius:2px; background:#000; overflow:hidden; border:1px solid #000; position:relative; }
-.bar.hero{ height:14px; background:#000 url(../assets/ui/bar_hp_hero.png) center/100% 100% no-repeat; border:none; }
+.bar.hero{ height:26px; background:#000 url(../assets/ui/bar_hp_hero.png) center/100% 100% no-repeat; border:none; }
 .bar.foe { background:#000 url(../assets/ui/bar_hp_foe.png) center/100% 100% no-repeat; border:none; }
 .bar > span{ display:block; height:100%; transition:width .25s ease; }
 /* La barra siempre muestra el arte completo (cuero+metal+relleno rojo); lo que
@@ -36,6 +35,7 @@ body{
   background:linear-gradient(to left, rgba(3,4,7,.95), rgba(3,4,7,.55)); }
 .bar .hptext{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:none;
   font-size:9px; line-height:1; color:#fff; text-shadow:0 1px 1px rgba(0,0,0,.85); pointer-events:none; }
+.bar.hero .hptext{ font-size:14px; font-weight:600; }
 .stat{ display:flex; align-items:center; gap:5px; font-size:13px; padding-left:10px; border-left:1px solid var(--steel); }
 .stat b{ color:var(--gold); font-weight:600; }
 .goldIcon{ width:16px; height:16px; object-fit:contain; }
@@ -44,17 +44,22 @@ body{
 .pip.on{ background-image:url(../assets/ui/pip_on.png); }
 
 /* Botón de turno: justo debajo de la vida, ancho completo del HUD. El asset
-   (skipturn_bar.png) tiene un remate ornamentado en los extremos y una parte
-   central lisa; con "background-size:100% 100%" el remate se deformaba (se
-   veía estirado/aplastado, sobre todo a la izquierda). Con border-image en
-   3 partes, los extremos mantienen su proporción y solo la parte central
-   lisa se estira para rellenar el ancho que haga falta. */
-.skipturn{ width:100%; color:var(--bone);
+   (skipturn_bar.png) tiene un remate ornamentado en cada extremo y una parte
+   central lisa. Con "background-size:100% 100%" el remate se deformaba (se
+   veía estirado/aplastado). Con border-image tampoco quedó del todo bien.
+   Solución robusta: dos pseudo-elementos (uno por extremo) con la imagen
+   ENTERA escalada una sola vez, preservando su proporción real, a la altura
+   del botón — cada uno solo "asoma" su propia ventana de 38px por su lado
+   (izquierda/derecha), así que el remate nunca se deforma, mires donde mires.
+   El centro se queda como placa lisa (el texto no necesita más adorno ahí). */
+.skipturn{ position:relative; width:100%; color:var(--bone);
   background:linear-gradient(rgba(9,10,14,.35),rgba(9,10,14,.35));
-  border-style:solid; border-color:transparent; border-width:0 34px;
-  border-image:url(../assets/ui/skipturn_bar.png) fill 0 110 0 110 / 0 34px / 0 stretch;
-  border-radius:6px; backdrop-filter:blur(3px);
-  font:inherit; font-size:12.5px; letter-spacing:.04em; padding:8px 10px; cursor:pointer; }
+  border:1px solid rgba(70,55,30,.8); border-radius:6px; backdrop-filter:blur(3px);
+  font:inherit; font-size:12.5px; letter-spacing:.04em; padding:8px 46px; cursor:pointer; }
+.skipturn::before, .skipturn::after{ content:''; position:absolute; top:1px; bottom:1px; width:38px;
+  background-image:url(../assets/ui/skipturn_bar.png); background-repeat:no-repeat; background-size:auto 100%; }
+.skipturn::before{ left:1px; background-position:left center; border-radius:5px 0 0 5px; }
+.skipturn::after{ right:1px; background-position:right center; border-radius:0 5px 5px 0; }
 .skipturn:hover{ border-color:var(--ember); color:var(--ember); }
 
 /* Cajas individuales de vida de enemigo, una por enemigo vivo, bajo "Fin de turno". */
@@ -97,7 +102,7 @@ body.layout-edit .layoutApplyBtn{ display:block; }
 
 /* Barra de iniciativa: retratos en fila horizontal, arriba a la derecha,
    debajo del botón de reiniciar. El que le toca actuar se resalta. */
-.initiativeBar{ top:calc(max(10px,env(safe-area-inset-top)) + 42px); right:10px;
+.initiativeBar{ top:calc(max(10px,env(safe-area-inset-top)) + 72px); right:10px;
   display:none; gap:5px; padding:5px; background:rgba(26,30,39,.82); border:1px solid var(--steel);
   border-radius:6px; backdrop-filter:blur(3px); }
 .initiativeBar.show{ display:flex; }

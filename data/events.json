@@ -127,5 +127,95 @@
     "type": "story",
     "image": "story_cemetery_noises",
     "i18n": "ev.evento1"
+  },
+  "trap_1": {
+    "i18n": "ev.trampa",
+    "type": "trap",
+    "actionCost": 2,
+    "trapDmg": 5
+  },
+  "trap_2": {
+    "i18n": "ev.trampa",
+    "type": "trap",
+    "actionCost": 2,
+    "trapDmg": 5
+  },
+  "trap_3": {
+    "i18n": "ev.trampa",
+    "type": "trap",
+    "actionCost": 2,
+    "trapDmg": 5
+  },
+  "chest_1": {
+    "i18n": "ev.cofre",
+    "type": "chest",
+    "actionCost": 1,
+    "choices": [
+      {
+        "effect": {
+          "gold": 8
+        }
+      },
+      {
+        "effect": {
+          "gold": 18,
+          "hp": -6
+        }
+      },
+      {
+        "effect": {}
+      }
+    ]
+  },
+  "lever_1": {
+    "i18n": "ev.palanca",
+    "type": "lever",
+    "actionCost": 1,
+    "choices": [
+      {
+        "effect": {
+          "gold": 6
+        }
+      },
+      {
+        "effect": {}
+      }
+    ]
+  },
+  "item_1": {
+    "i18n": "ev.tumba",
+    "type": "grave",
+    "actionCost": 1,
+    "choices": [
+      {
+        "effect": {
+          "gold": 5
+        }
+      },
+      {
+        "effect": {}
+      }
+    ]
+  },
+  "altar_1": {
+    "i18n": "ev.altar",
+    "type": "altar",
+    "actionCost": 1,
+    "choices": [
+      {
+        "effect": {
+          "hp": 10,
+          "gold": -4
+        }
+      },
+      {
+        "effect": {
+          "gold": 5
+        }
+      },
+      {
+        "effect": {}
+      }
+    ]
   }
 }

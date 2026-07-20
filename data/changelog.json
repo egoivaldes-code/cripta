@@ -1,6 +1,32 @@
 {
   "versions": [
     {
+      "v": "0.13.2",
+      "es": {
+        "title": "Magenta, iniciativa y objetos sin conectar",
+        "notes": [
+          "Arreglado el fondo del cementerio: el margen sin pintar del lienzo se veía en magenta.",
+          "La barra de iniciativa ya no se solapa con el botón de reiniciar.",
+          "Saltar turno avisa siempre, aunque tengas todo el PA y no haya enemigos cerca.",
+          "El botón \"Saltar turno\" ya no se deforma (segundo intento, esta vez debería quedar bien).",
+          "Varios objetos del cementerio nuevo (trampas, cofre, palanca, altar) no tenían contenido conectado y las trampas podían romper la partida; ya funcionan todos y el juego ya no se rompe si algún objeto se queda sin conectar.",
+          "Quitado el nombre \"Mercenaria\"; la barra de vida es más grande."
+        ]
+      },
+      "en": {
+        "title": "Magenta, initiative and unconnected objects",
+        "notes": [
+          "Fixed the cemetery background: the unpainted canvas margin showed up as bright magenta.",
+          "The initiative bar no longer overlaps the reset button.",
+          "Skip turn now always gives feedback, even at full AP with no enemies nearby.",
+          "The \"Skip turn\" button no longer distorts (second attempt, should be right this time).",
+          "Several new-cemetery objects (traps, chest, lever, altar) had no content connected, and traps could crash the run; they all work now and the game no longer breaks if an object is left unconnected.",
+          "Removed the \"Mercenary\" name label; the health bar is bigger."
+        ]
+      },
+      "title": "Magenta, iniciativa y objetos sin conectar"
+    },
+    {
       "v": "0.13.1",
       "es": {
         "title": "Anticaché",

@@ -1,13 +1,13 @@
 // Capa DOM: HUD (con PA), cartas de evento, registro, fin de partida y ajustes.
 // Todo el texto visible pasa por t() (multiidioma). No dibuja en el canvas.
 
-import { state } from './state.js?v=0.13.1';
-import { t } from './i18n.js?v=0.13.1';
-import * as anim from './anim.js?v=0.13.1';
-import { IDLE_NAME } from './anim.js?v=0.13.1';
-import * as audio from './audio.js?v=0.13.1';
-import { VERSION } from './config.js?v=0.13.1';
-import { images, SPRITE_TILE } from './assets.js?v=0.13.1';
+import { state } from './state.js?v=0.13.2';
+import { t } from './i18n.js?v=0.13.2';
+import * as anim from './anim.js?v=0.13.2';
+import { IDLE_NAME } from './anim.js?v=0.13.2';
+import * as audio from './audio.js?v=0.13.2';
+import { VERSION } from './config.js?v=0.13.2';
+import { images, SPRITE_TILE } from './assets.js?v=0.13.2';
 
 let afterInteract = () => {};
 let restart = () => {};
@@ -180,8 +180,9 @@ function renderStoryCard(card, ev) {
 }
 
 function renderTrapCard(card, trap) {
-  const ev = state.events[trap.id];
-  const b = ev.i18n;
+  const ev = state.events[trap.id] || state.events.trampa;
+  const b = ev ? ev.i18n : null;
+  if (!b) { card.innerHTML = `<p>${t('log.noEventYet')}</p>`; return; }
   card.innerHTML =
     `<div class="kicker">${t(b + '.kicker')}</div>
      <h2>${t(b + '.disarmTitle')}</h2>
@@ -235,7 +236,6 @@ function renderOver(card, kind) {
 
 // Aplica los textos estáticos (y re-renderiza lo abierto). Se llama al cambiar idioma.
 export function applyStaticText() {
-  $('heroName').textContent = t('hud.hero');
   $('reset').title = t('btn.reset');
   $('gridBtn').title = t('btn.grid');
   $('endTurn').textContent = t('btn.endturn');
