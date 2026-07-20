@@ -2,6 +2,15 @@
 
 Esquema: `0.X` = cambio grande · `0.X.Y` = cambio pequeño / fix.
 
+## 0.14.1 — arreglado el congelamiento en combate (condición de carrera)
+- **Encontrado y arreglado el fallo real de "los enemigos se quedan quietos"**: había una ventana de aproximadamente 1 segundo, justo cuando el PA del héroe llegaba a 0, en la que el juego todavía no bloqueaba bien los toques nuevos. Si el jugador tocaba otra vez en ese momento exacto (fácil si se mueve rápido), se lanzaban dos resoluciones de turno a la vez y la cola de iniciativa se descuadraba: el héroe se quedaba con 0 PA para siempre y los enemigos dejaban de actuar, sin ningún mensaje de error. Reproducido y confirmado jugando paso a paso con el nivel real del cementerio antes de arreglarlo. Ahora `endHeroTurn` se bloquea a sí mismo en cuanto empieza a resolverse, así que una segunda llamada casi simultánea se ignora en vez de pisar a la primera. Añadida una prueba headless específica para esta condición de carrera (13 pruebas en total, todas en verde).
+- **La barra de iniciativa ya se reinicia bien al morir y reiniciar el nivel** (antes se quedaba viendo la tabla de la partida anterior hasta el siguiente combate).
+- **Vida del héroe el doble de larga** (antes de rehacer el panel entero, ver debajo).
+- **Panel del héroe rehecho con arte nuevo** (`hero_panel.png`, sin deformarse a ningún tamaño gracias a su proporción real): fila de nombre ("Jugador", editable más adelante) + hueco de perjuicios a la derecha; fila de vida en rojo con el número; fila de maná en azul (de momento siempre lleno 10/10, no existe aún como recurso jugable); caja de PA aparte.
+- **Caja de cada enemigo rehecha igual** con el marco a juego (`foe_panel.png`): nombre + perjuicios arriba, vida debajo.
+- **9 iconos de perjuicio/beneficio** listos en el proyecto (sangrado, envenenado, maldito, ardiendo, congelado, naturaleza, sagrado, aturdido, desarmado), con hueco para el número de turnos restantes. Es solo la parte visual: el sistema de estados (que algo envenene de verdad, cuente turnos, etc.) todavía no existe y es tarea aparte.
+- **Puntos de acción como un solo dígito** en vez de puntos: blanco con 2 o más, amarillo con 1, rojo con 0.
+
 ## 0.14 — combate real (activación por rango), cámara y limpieza visual
 - **Nuevo flujo de combate**: fuera de combate, los PA y el botón "Saltar turno" se esconden (no hacen falta: te puedes mover libremente). En cuanto un enemigo te detecta por rango — pase en tu turno o no — entra en combate, aparecen los PA y el turno a turno normal empieza. Al morir todos los enemigos activados, se sale de combate solo.
 - **Icono de combate persistente**: el aviso (⚔️) ya no desaparece a los 1.6s; se queda todo el combate y se esconde solo al salir de él.

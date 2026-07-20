@@ -1,13 +1,13 @@
 // Capa DOM: HUD (con PA), cartas de evento, registro, fin de partida y ajustes.
 // Todo el texto visible pasa por t() (multiidioma). No dibuja en el canvas.
 
-import { state } from './state.js?v=0.14';
-import { t } from './i18n.js?v=0.14';
-import * as anim from './anim.js?v=0.14';
-import { IDLE_NAME } from './anim.js?v=0.14';
-import * as audio from './audio.js?v=0.14';
-import { VERSION } from './config.js?v=0.14';
-import { images, SPRITE_TILE } from './assets.js?v=0.14';
+import { state } from './state.js?v=0.14.1';
+import { t } from './i18n.js?v=0.14.1';
+import * as anim from './anim.js?v=0.14.1';
+import { IDLE_NAME } from './anim.js?v=0.14.1';
+import * as audio from './audio.js?v=0.14.1';
+import { VERSION } from './config.js?v=0.14.1';
+import { images, SPRITE_TILE } from './assets.js?v=0.14.1';
 
 let afterInteract = () => {};
 let restart = () => {};
@@ -29,18 +29,45 @@ export function syncHUD() {
   hpText.textContent = `${Math.max(0, hero.hp)}/${hero.maxHp}`;
   hpText.style.color = pct < 0.25 ? '#e86a5c' : '#fff';
   $('gold').textContent = hero.gold;
-  // Puntos de acción: pips llenos/vacíos. Fuera de combate no hay turnos que
-  // saltar ni PA que gastar (movimiento libre), así que se esconden los dos.
+  // Nombre del héroe (de momento fijo; en cuanto haya nombres/personalización
+  // de personaje, aquí se pondría el real).
+  $('heroName2').textContent = hero.name || t('hud.hero');
+  // Maná: todavía no existe como recurso jugable, así que de momento se
+  // muestra siempre lleno (10/10) — el hueco ya está listo para cuando exista.
+  const manaMax = hero.manaMax ?? 10, mana = hero.mana ?? manaMax;
+  $('manaFill').style.width = Math.max(0, (1 - mana / manaMax) * 100) + '%';
+  $('manaText').textContent = `${mana}/${manaMax}`;
+  // Puntos de acción: un solo dígito grande en vez de puntos, con color según
+  // lo que quede (2 o más: blanco · 1: amarillo, aviso · 0: rojo, sin nada).
+  // Fuera de combate no hay turnos que saltar ni PA que gastar (movimiento
+  // libre), así que se esconden los dos.
   const pips = $('apPips');
   pips.classList.toggle('hidden', !state.combat.active);
   $('endTurn').classList.toggle('hidden', !state.combat.active);
-  pips.innerHTML = '';
-  for (let i = 0; i < hero.apMax; i++) {
-    const d = document.createElement('span');
-    d.className = 'pip' + (i < hero.ap ? ' on' : '');
-    pips.appendChild(d);
-  }
+  pips.textContent = hero.ap;
+  pips.classList.remove('ap-white', 'ap-warn', 'ap-empty');
+  pips.classList.add(hero.ap <= 0 ? 'ap-empty' : hero.ap === 1 ? 'ap-warn' : 'ap-white');
+  // Perjuicios/beneficios del héroe (debajo del modelo en el mapa se
+  // gestionan aparte, en render.js). De momento no existe ningún estado real
+  // que aplicar, así que la fila queda vacía y se esconde sola (ver CSS).
+  renderStatusIcons($('heroStatus'), hero.statuses || []);
   syncFoeRow();
+}
+
+// Dibuja los iconos de perjuicio/beneficio de una lista tipo
+// [{ icon: 'envenenado', turns: 3 }, ...] dentro del contenedor dado. De
+// momento ningún sitio del juego rellena esto todavía (no hay sistema de
+// estados implementado); está listo para cuando lo haya.
+function renderStatusIcons(container, list) {
+  container.innerHTML = '';
+  for (const s of list) {
+    const el = document.createElement('span');
+    el.className = 'statusIcon';
+    el.title = t('status.' + s.icon) || s.icon;
+    el.innerHTML = `<img src="./assets/ui/status/status_${s.icon}.png" alt="">` +
+      (s.turns != null ? `<span class="turns">${s.turns}</span>` : '');
+    container.appendChild(el);
+  }
 }
 
 // Una caja por cada enemigo despierto (dormido = todavía sin descubrir, no
@@ -55,7 +82,8 @@ export function syncFoeRow() {
     const box = document.createElement('div');
     box.className = 'foebox' + (state.targetFoe === foe ? ' selected' : '');
     const name = t('enemy.' + foe.sprite);
-    box.innerHTML = `<div class="fname">${name}</div><div class="bar foe"><span style="width:${Math.max(0, (1 - foe.hp / foe.maxHp) * 100)}%"></span></div><div class="status"><span class="buffs"></span><span class="debuffs"></span></div>`;
+    box.innerHTML = `<div class="fe-row1"><span class="fname">${name}</span><span class="status"></span></div><div class="fe-row2"><div class="bar foe"><span style="width:${Math.max(0, (1 - foe.hp / foe.maxHp) * 100)}%"></span></div></div>`;
+    renderStatusIcons(box.querySelector('.status'), foe.statuses || []);
     box.onclick = () => {
       state.targetFoe = state.targetFoe === foe ? null : foe;
       syncFoeRow();

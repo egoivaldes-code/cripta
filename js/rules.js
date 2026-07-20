@@ -1,14 +1,14 @@
 // Reglas del juego: economía de Puntos de Acción (PA), interacción a distancia
 // y adyacente, trampas, niebla y salida de nivel. Agnóstico del dibujo.
 
-import { state, walkable, adjacent, distTo, isVisible, recomputeFog, computeReach, pathTo, reachCost, blockingTriggerAt, trapAt, walkTriggerAt, stepNeighbors, foeAt, livingFoes, losClear } from './state.js?v=0.14';
-import { openEvent, openTrapCard, openStoryCard, syncHUD, syncInitiativeUI, showCombatBadge, log, gameOver } from './ui.js?v=0.14';
-import { t } from './i18n.js?v=0.14';
-import { MOVE_COST, ATTACK_COST, INITIATIVE_BASE, INITIATIVE_DIE, TURN_DELAY } from './config.js?v=0.14';
-import * as anim from './anim.js?v=0.14';
-import { ANIM_CLIPS } from './anim.js?v=0.14';
-import * as audio from './audio.js?v=0.14';
-import { centerOnTile } from './render.js?v=0.14';
+import { state, walkable, adjacent, distTo, isVisible, recomputeFog, computeReach, pathTo, reachCost, blockingTriggerAt, trapAt, walkTriggerAt, stepNeighbors, foeAt, livingFoes, losClear } from './state.js?v=0.14.1';
+import { openEvent, openTrapCard, openStoryCard, syncHUD, syncInitiativeUI, showCombatBadge, log, gameOver } from './ui.js?v=0.14.1';
+import { t } from './i18n.js?v=0.14.1';
+import { MOVE_COST, ATTACK_COST, INITIATIVE_BASE, INITIATIVE_DIE, TURN_DELAY } from './config.js?v=0.14.1';
+import * as anim from './anim.js?v=0.14.1';
+import { ANIM_CLIPS } from './anim.js?v=0.14.1';
+import * as audio from './audio.js?v=0.14.1';
+import { centerOnTile } from './render.js?v=0.14.1';
 
 const sign = (n) => Math.sign(n);
 
@@ -319,14 +319,23 @@ export function afterInteract(trig) {
 // (la ronda de acciones que acaba de terminar ES su turno de iniciativa), y
 // deja pasar a los enemigos que le toquen antes de que vuelva a él.
 export async function endHeroTurn() {
-  scanForNewCombatants();
-  if (state.combat.active) {
-    const heroIdx = state.combat.order.findIndex(o => o.ref === 'hero');
-    if (heroIdx !== -1 && state.combat.idx <= heroIdx) state.combat.idx = heroIdx + 1;
-    syncInitiativeUI();
-    await sleep(TURN_DELAY);   // pausa al terminar el turno del héroe
-    await runFoeQueue();
-    if (state.combat.active) centerOnTile(state.hero.x, state.hero.y);
+  // Si ya hay una resolución de turno en marcha (p.ej. el jugador ha tocado
+  // dos veces casi a la vez, justo cuando el PA llega a 0), no se vuelve a
+  // entrar: evita que dos "fin de turno" se pisen y descuadren la cola.
+  if (aiTurnActive) return;
+  aiTurnActive = true;
+  try {
+    scanForNewCombatants();
+    if (state.combat.active) {
+      const heroIdx = state.combat.order.findIndex(o => o.ref === 'hero');
+      if (heroIdx !== -1 && state.combat.idx <= heroIdx) state.combat.idx = heroIdx + 1;
+      syncInitiativeUI();
+      await sleep(TURN_DELAY);   // pausa al terminar el turno del héroe
+      await runFoeQueue();
+      if (state.combat.active) centerOnTile(state.hero.x, state.hero.y);
+    }
+  } finally {
+    aiTurnActive = false;
   }
   if (!state.busy) startHeroTurn();   // si busy=true, hay una carta de fin de partida abierta
 }
@@ -341,25 +350,20 @@ export function isAITurnActive() { return aiTurnActive; }
 // la vuelta entera a la cola sin encontrarlo (no debería pasar, el héroe
 // siempre está metido), empieza otra ronda desde el principio.
 async function runFoeQueue() {
-  aiTurnActive = true;
-  try {
-    while (state.combat.active && state.combat.order.length) {
-      if (state.combat.idx >= state.combat.order.length) state.combat.idx = 0;   // nueva ronda
-      const entry = state.combat.order[state.combat.idx];
-      if (entry.ref === 'hero') break;   // le toca al jugador
-      const foe = entry.ref;
-      state.combat.idx++;
-      if (!foe.alive) continue;
-      centerOnTile(foe.x, foe.y);
-      syncInitiativeUI();
-      const heroDied = await runSingleFoeTurn(foe);
-      checkCombatEnd();
-      syncHUD();
-      if (heroDied || !state.combat.active) return;
-      await sleep(TURN_DELAY);   // pausa al terminar el turno de este NPC
-    }
-  } finally {
-    aiTurnActive = false;
+  while (state.combat.active && state.combat.order.length) {
+    if (state.combat.idx >= state.combat.order.length) state.combat.idx = 0;   // nueva ronda
+    const entry = state.combat.order[state.combat.idx];
+    if (entry.ref === 'hero') break;   // le toca al jugador
+    const foe = entry.ref;
+    state.combat.idx++;
+    if (!foe.alive) continue;
+    centerOnTile(foe.x, foe.y);
+    syncInitiativeUI();
+    const heroDied = await runSingleFoeTurn(foe);
+    checkCombatEnd();
+    syncHUD();
+    if (heroDied || !state.combat.active) return;
+    await sleep(TURN_DELAY);   // pausa al terminar el turno de este NPC
   }
   syncHUD();
   syncInitiativeUI();

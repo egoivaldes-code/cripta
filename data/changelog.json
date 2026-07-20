@@ -1,6 +1,32 @@
 {
   "versions": [
     {
+      "v": "0.14.1",
+      "es": {
+        "title": "Arreglado el congelamiento en combate",
+        "notes": [
+          "Encontrado el motivo real de que algunos enemigos se quedaran quietos: una condición de carrera al empezar el combate que podía dejar al héroe sin PA para siempre. Reproducido y arreglado.",
+          "La barra de iniciativa ya se reinicia bien al morir y reiniciar el nivel.",
+          "Vida del héroe el doble de larga, y panel del héroe rehecho con arte nuevo (nombre, vida, maná y PA en su sitio).",
+          "Caja de cada enemigo rehecha igual, a juego.",
+          "9 iconos de perjuicio listos (el sistema que los active de verdad todavía no existe).",
+          "Los puntos de acción se muestran ahora como un número grande de color (blanco, amarillo con 1, rojo con 0)."
+        ]
+      },
+      "en": {
+        "title": "Fixed combat freeze",
+        "notes": [
+          "Found the real cause of some enemies staying still: a race condition when combat started that could leave the hero with 0 AP forever. Reproduced and fixed.",
+          "The initiative bar now resets properly when you die and restart the level.",
+          "Hero health bar twice as long, and the hero panel rebuilt with new art (name, health, mana and AP in place).",
+          "Each enemy box rebuilt to match.",
+          "9 status-effect icons ready (the system to actually apply them doesn't exist yet).",
+          "Action points now shown as a big colored number (white, yellow at 1, red at 0)."
+        ]
+      },
+      "title": "Arreglado el congelamiento en combate"
+    },
+    {
       "v": "0.14",
       "es": {
         "title": "Combate real, cámara y limpieza visual",

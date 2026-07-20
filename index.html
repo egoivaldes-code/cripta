@@ -14,7 +14,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Cripta</title>
-<link rel="stylesheet" href="./css/styles.css?v=0.14">
+<link rel="stylesheet" href="./css/styles.css?v=0.14.1">
 </head>
 <body>
 <div id="game">
@@ -23,10 +23,20 @@
   <!-- HUD (arriba-izquierda). Tocar la fila superior recentra la cámara. -->
   <div class="ui hud" id="hud">
     <div class="hudrow" id="hudRow">
-      <div class="who">
-        <div class="bar hero"><span class="fill" id="hpHero" style="width:100%"></span><span class="hptext" id="hpHeroText"></span></div></div>
+      <div class="heroPanel" id="heroPanel">
+        <div class="hp-row1">
+          <span class="heroName" id="heroName2"></span>
+          <span class="statusRow" id="heroStatus"></span>
+        </div>
+        <div class="hp-row2">
+          <div class="bar hero"><span class="fill" id="hpHero" style="width:100%"></span><span class="hptext" id="hpHeroText"></span></div>
+        </div>
+        <div class="hp-row3">
+          <div class="bar mana"><span class="fill" id="manaFill" style="width:100%"></span><span class="hptext" id="manaText"></span></div>
+        </div>
+        <div class="pa-box" id="apPips"></div>
+      </div>
       <div class="stat"><img class="goldIcon" src="./assets/ui/gold_icon.png" alt=""> <b id="gold">0</b></div>
-      <div class="ap" id="apPips"></div>
     </div>
     <button class="skipturn" id="endTurn"></button>
     <div class="foeRow" id="foeRow"></div>
@@ -100,6 +110,6 @@
   </div>
 </div>
 
-<script type="module" src="./js/main.js?v=0.14"></script>
+<script type="module" src="./js/main.js?v=0.14.1"></script>
 </body>
 </html>

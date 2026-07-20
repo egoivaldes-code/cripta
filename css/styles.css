@@ -21,27 +21,58 @@ body{
   display:flex; flex-direction:column; gap:6px; width:max-content; }
 .hudrow{ display:flex; gap:8px; align-items:stretch; padding:8px 10px;
   background:rgba(26,30,39,.82); border:1px solid var(--steel); border-radius:6px; backdrop-filter:blur(3px); cursor:pointer; }
-.hud .who{ display:flex; flex-direction:column; justify-content:center; gap:4px; min-width:170px; }
+/* --- Panel nuevo del héroe: una sola imagen de marco (3 filas + caja de PA a
+   la derecha) con el "aspect-ratio" real del arte, para que nunca se deforme
+   sea cual sea el ancho. Fila 1 = nombre + perjuicios; fila 2 = vida; fila 3 =
+   maná; la caja de PA ya trae la palabra "PA" dibujada, solo hace falta poner
+   los PA de verdad debajo. Los porcentajes de top/bottom vienen de medir el
+   propio archivo (assets/ui/hero_panel.png, 1722×400). --- */
+.heroPanel{ position:relative; width:380px; aspect-ratio:1722/400;
+  background:url(../assets/ui/hero_panel.png) center/100% 100% no-repeat; }
+.heroPanel .hp-row1{ position:absolute; left:4%; right:20%; top:15%; bottom:59%;
+  display:flex; align-items:center; justify-content:space-between; gap:4px; overflow:hidden; }
+.heroPanel .hp-row2{ position:absolute; left:4%; right:20%; top:44%; bottom:35%; }
+.heroPanel .hp-row3{ position:absolute; left:4%; right:20%; top:68%; bottom:5%; }
+.heroPanel .heroName{ font-size:13px; letter-spacing:.04em; color:var(--bone); white-space:nowrap; }
+.heroPanel .statusRow{ display:flex; gap:3px; align-items:center; }
+.heroPanel .statusRow:empty{ display:none; }
+.heroPanel .pa-box{ position:absolute; left:82%; right:2%; top:32%; bottom:8%;
+  display:flex; align-items:center; justify-content:center;
+  font-size:26px; font-weight:700; line-height:1; text-shadow:0 1px 3px rgba(0,0,0,.8); }
+.pa-box.ap-white{ color:var(--bone); }
+.pa-box.ap-warn{ color:#e0b23c; }
+.pa-box.ap-empty{ color:#e05a3c; }
+
 .bar{ height:9px; border-radius:2px; background:#000; overflow:hidden; border:1px solid #000; position:relative; }
-.bar.hero{ height:30px; background:#000 url(../assets/ui/bar_hp_hero.png) center/100% 100% no-repeat; border:none; }
+.bar.hero{ height:100%; width:100%; border:none; }
+.bar.mana{ height:100%; width:100%; border:none; }
 .bar.foe { background:#000 url(../assets/ui/bar_hp_foe.png) center/100% 100% no-repeat; border:none; }
 .bar > span{ display:block; height:100%; transition:width .25s ease; }
-/* La barra siempre muestra el arte completo (cuero+metal+relleno rojo); lo que
-   "baja" al perder vida es esta cubierta oscura que avanza desde la derecha,
-   como una sombra comiéndose la parte perdida. */
-.bar.hero > span.fill{ position:absolute; top:0; right:0; height:100%;
+/* La barra roja/azul del panel nuevo ya viene pintada en el propio marco (no
+   hace falta más imagen); lo único que "tapa" al perder vida/maná es esta
+   cubierta oscura que avanza desde la derecha. */
+.bar.hero > span.fill, .bar.mana > span.fill{ position:absolute; top:0; right:0; height:100%;
   background:linear-gradient(to left, rgba(3,4,7,.95), rgba(3,4,7,.55)); }
+.bar.hero{ background:linear-gradient(#7a1414,#3a0808); border-radius:3px; }
+.bar.mana{ background:linear-gradient(#123a5a,#081c30); border-radius:3px; }
 .bar.foe  > span{ position:absolute; top:0; right:0; height:100%;
   background:linear-gradient(to left, rgba(3,4,7,.95), rgba(3,4,7,.55)); }
 .bar .hptext{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:none;
   font-size:9px; line-height:1; color:#fff; text-shadow:0 1px 1px rgba(0,0,0,.85); pointer-events:none; }
-.bar.hero .hptext{ font-size:14px; font-weight:600; }
+.bar.hero .hptext, .bar.mana .hptext{ font-size:13px; font-weight:600; }
 .stat{ display:flex; align-items:center; gap:5px; font-size:13px; padding-left:10px; border-left:1px solid var(--steel); }
 .stat b{ color:var(--gold); font-weight:600; }
 .goldIcon{ width:16px; height:16px; object-fit:contain; }
 .ap{ display:flex; gap:5px; align-items:center; padding-left:10px; border-left:1px solid var(--steel); }
-.pip{ width:14px; height:14px; background:url(../assets/ui/pip_off.png) center/contain no-repeat; }
-.pip.on{ background-image:url(../assets/ui/pip_on.png); }
+
+/* Iconos de perjuicio/beneficio (24×24, tamaño de referencia; el propio icono
+   trae su proporción real). El número de turnos restantes (p.ej. veneno) se
+   dibuja como una insignia pequeña en la esquina inferior derecha. */
+.statusIcon{ position:relative; width:18px; height:18px; }
+.statusIcon img{ width:100%; height:100%; object-fit:contain; display:block; }
+.statusIcon .turns{ position:absolute; right:-3px; bottom:-3px; min-width:12px; height:12px; padding:0 2px;
+  background:#1a1e27; border:1px solid var(--steel); border-radius:6px; font-size:8px; line-height:11px;
+  text-align:center; color:var(--bone); }
 
 /* Botón de turno: justo debajo de la vida, ancho completo del HUD. El asset
    (skipturn_bar.png) tiene un remate ornamentado en cada extremo y una parte
@@ -62,24 +93,23 @@ body{
 .skipturn::after{ right:1px; background-position:right center; border-radius:0 5px 5px 0; }
 .skipturn:hover{ border-color:var(--ember); color:var(--ember); }
 
-/* Cajas individuales de vida de enemigo, una por enemigo vivo, bajo "Fin de turno". */
-.foeRow{ display:flex; flex-wrap:wrap; gap:7px; margin-top:6px; max-width:280px; }
-.foebox{ display:flex; flex-direction:column; gap:3px; width:76px; padding:6px 7px;
-  background:linear-gradient(rgba(9,10,14,.6),rgba(9,10,14,.6)), url(../assets/ui/foebox_frame.png);
-  background-size:100% 100%; border:1px solid var(--steel); border-radius:6px;
-  backdrop-filter:blur(3px); cursor:pointer; }
-.foebox:hover{ border-color:var(--ember); }
-.foebox.selected{ border-color:var(--ember); box-shadow:0 0 0 1px var(--ember); }
-.foebox .mark{ font-size:11px; text-align:center; color:var(--bone-dim); line-height:1; }
-.foebox.selected .mark{ color:var(--ember); }
-.foebox .fname{ font-size:8px; text-align:center; color:var(--bone-dim); line-height:1.15;
+/* Cajas individuales de vida de enemigo, una por enemigo vivo, bajo "Fin de turno".
+   Marco nuevo de 2 filas (assets/ui/foe_panel.png, 1810×369): fila 1 = nombre +
+   perjuicios, fila 2 = vida. Aspect-ratio real para que nunca se deforme. */
+.foeRow{ display:flex; flex-wrap:wrap; gap:8px; margin-top:6px; max-width:340px; }
+.foebox{ position:relative; width:150px; aspect-ratio:1810/369; cursor:pointer;
+  background:url(../assets/ui/foe_panel.png) center/100% 100% no-repeat;
+  filter:drop-shadow(0 1px 2px rgba(0,0,0,.6)); }
+.foebox:hover, .foebox.selected{ filter:drop-shadow(0 0 3px var(--ember)); }
+.foebox .fe-row1{ position:absolute; left:6%; right:4%; top:26%; bottom:34%;
+  display:flex; align-items:center; justify-content:space-between; gap:3px; overflow:hidden; }
+.foebox .fe-row2{ position:absolute; left:6%; right:5%; top:71%; bottom:9%; }
+.foebox .fname{ font-size:8px; letter-spacing:.02em; color:var(--bone-dim); line-height:1.15;
   white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .foebox.selected .fname{ color:var(--ember); }
-/* Fila de estado (buffos y debuffos juntos), debajo de la vida. Vacía de
-   momento; en cuanto haya iconos, se rellenan sin tocar el layout. */
-.foebox .status{ display:flex; gap:4px; justify-content:center; min-height:10px; }
-.foebox .buffs, .foebox .debuffs{ display:flex; gap:2px; }
-.foebox .bar.foe{ height:11px; }
+.foebox .status{ display:flex; gap:2px; align-items:center; }
+.foebox .status:empty{ display:none; }
+.foebox .bar.foe{ height:100%; width:100%; }
 
 /* --- Modo "reposicionar interfaz": cada bloque se tiñe de verde y se puede
    arrastrar; el botón de abajo lo ancla todo en su sitio nuevo. --- */
@@ -96,7 +126,7 @@ body.layout-edit .layoutApplyBtn{ display:block; }
 
 /* Fuera de combate no hay turnos que saltar ni PA que gastar (movimiento
    libre); estos dos solo aparecen en cuanto se activa el combate. */
-.ap.hidden, .skipturn.hidden{ display:none; }
+.pa-box.hidden, .skipturn.hidden{ display:none; }
 
 /* Aviso de "entra en combate": aparece un momento arriba a la derecha, sobre
    el botón de reiniciar, y se desvanece solo. */
@@ -121,10 +151,9 @@ body.layout-edit .layoutApplyBtn{ display:block; }
    lleguen a solaparse. En pantallas grandes siguen la escala completa. */
 @media (max-width: 500px) {
   .hudrow{ gap:5px; padding:6px 8px; }
-  .hud .who{ min-width:64px; }
+  .heroPanel{ width:230px; }
   .stat{ padding-left:6px; }
   .ap{ padding-left:6px; }
-  .pip{ width:8px; height:8px; }
   .hud, .topright{ transform:translate(var(--dragX,0px),var(--dragY,0px)) scale(min(var(--ui), 1.15)); }
 }
 @media (max-width: 340px) {
