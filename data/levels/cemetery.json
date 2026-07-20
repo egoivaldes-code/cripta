@@ -2129,7 +2129,7 @@
     {
       "x": 14,
       "y": 16,
-      "id": "event_1",
+      "id": "evento_1",
       "type": "event",
       "walkTrigger": true
     },

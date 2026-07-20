@@ -1,6 +1,30 @@
 {
   "versions": [
     {
+      "v": "0.13",
+      "es": {
+        "title": "Iniciativa, visión y arreglos",
+        "notes": [
+          "Arreglado el evento de la entrada del cementerio: no abría su ventana porque su identificador no coincidía con el del contenido conectado (pasaba en cualquier dispositivo, no solo en móvil).",
+          "Visión ampliada: se ve más lejos iluminado, y más lejos aún en penumbra antes de la zona negra sin explorar.",
+          "Nuevo sistema de iniciativa: cada combatiente (tú y cada enemigo) tira su orden de actuación al entrar en combate, con un aviso y una barra que muestra el turno de todos.",
+          "Añadido un pequeño margen de un segundo al terminar cada turno, tanto el tuyo como el de los enemigos, para que se vea mejor la transición.",
+          "El botón \"Saltar turno\" ya no se deforma en los extremos."
+        ]
+      },
+      "en": {
+        "title": "Initiative, vision and fixes",
+        "notes": [
+          "Fixed the cemetery entrance event: it wasn't opening its window because its id didn't match its connected content (happened on any device, not just mobile).",
+          "Extended vision: you can see further while lit, and further still in dim fog before the unexplored black area.",
+          "New initiative system: every combatant (you and each enemy) rolls their turn order on entering combat, with a heads-up notice and a bar showing everyone's turn order.",
+          "Added a short one-second pause at the end of each turn, yours and the enemies', so the transition reads better.",
+          "The \"Skip turn\" button no longer distorts at the edges."
+        ]
+      },
+      "title": "Iniciativa, visión y arreglos"
+    },
+    {
       "v": "0.12",
       "es": {
         "title": "Cementerio mejorado y arreglos",

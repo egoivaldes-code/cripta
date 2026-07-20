@@ -43,10 +43,17 @@ body{
 .pip{ width:14px; height:14px; background:url(../assets/ui/pip_off.png) center/contain no-repeat; }
 .pip.on{ background-image:url(../assets/ui/pip_on.png); }
 
-/* Botón de turno: justo debajo de la vida, ancho completo del HUD */
+/* Botón de turno: justo debajo de la vida, ancho completo del HUD. El asset
+   (skipturn_bar.png) tiene un remate ornamentado en los extremos y una parte
+   central lisa; con "background-size:100% 100%" el remate se deformaba (se
+   veía estirado/aplastado, sobre todo a la izquierda). Con border-image en
+   3 partes, los extremos mantienen su proporción y solo la parte central
+   lisa se estira para rellenar el ancho que haga falta. */
 .skipturn{ width:100%; color:var(--bone);
-  background:linear-gradient(rgba(9,10,14,.35),rgba(9,10,14,.35)), url(../assets/ui/skipturn_bar.png);
-  background-size:100% 100%; border:1px solid rgba(70,55,30,.8); border-radius:6px; backdrop-filter:blur(3px);
+  background:linear-gradient(rgba(9,10,14,.35),rgba(9,10,14,.35));
+  border-style:solid; border-color:transparent; border-width:0 34px;
+  border-image:url(../assets/ui/skipturn_bar.png) fill 0 110 0 110 / 0 34px / 0 stretch;
+  border-radius:6px; backdrop-filter:blur(3px);
   font:inherit; font-size:12.5px; letter-spacing:.04em; padding:8px 10px; cursor:pointer; }
 .skipturn:hover{ border-color:var(--ember); color:var(--ember); }
 
@@ -80,6 +87,24 @@ body.layout-edit .layoutApplyBtn{ display:block; }
 .skipturn:active{ transform:translateY(1px); }
 
 .topright{ top:max(10px,env(safe-area-inset-top)); right:10px; transform:translate(var(--dragX,0px),var(--dragY,0px)) scale(var(--ui)); transform-origin:top right; display:flex; gap:8px; }
+
+/* Aviso de "entra en combate": aparece un momento arriba a la derecha, sobre
+   el botón de reiniciar, y se desvanece solo. */
+.combatBadge{ top:max(10px,env(safe-area-inset-top)); right:56px; font-size:26px; line-height:1;
+  opacity:0; transform:translateY(-6px) scale(.7); transition:opacity .25s ease, transform .25s ease;
+  filter:drop-shadow(0 2px 4px rgba(0,0,0,.7)); pointer-events:none; z-index:6; }
+.combatBadge.show{ opacity:1; transform:translateY(0) scale(1.15); }
+
+/* Barra de iniciativa: retratos en fila horizontal, arriba a la derecha,
+   debajo del botón de reiniciar. El que le toca actuar se resalta. */
+.initiativeBar{ top:calc(max(10px,env(safe-area-inset-top)) + 42px); right:10px;
+  display:none; gap:5px; padding:5px; background:rgba(26,30,39,.82); border:1px solid var(--steel);
+  border-radius:6px; backdrop-filter:blur(3px); }
+.initiativeBar.show{ display:flex; }
+.initSlot{ width:40px; height:40px; border-radius:5px; overflow:hidden; border:2px solid var(--steel);
+  background:#000; opacity:.6; transition:opacity .2s ease, border-color .2s ease; }
+.initSlot canvas{ width:100%; height:100%; display:block; image-rendering:pixelated; }
+.initSlot.current{ opacity:1; border-color:var(--ember); box-shadow:0 0 0 1px var(--ember); }
 
 /* En móviles estrechos, el HUD y el botón de reiniciar no crecen más allá de
    cierto tamaño (aunque la escala de interfaz esté al máximo), para que nunca

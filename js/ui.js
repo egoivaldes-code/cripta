@@ -1,12 +1,13 @@
 // Capa DOM: HUD (con PA), cartas de evento, registro, fin de partida y ajustes.
 // Todo el texto visible pasa por t() (multiidioma). No dibuja en el canvas.
 
-import { state } from './state.js?v=0.12';
-import { t } from './i18n.js?v=0.12';
-import * as anim from './anim.js?v=0.12';
-import * as audio from './audio.js?v=0.12';
-import { VERSION } from './config.js?v=0.12';
-import { images } from './assets.js?v=0.12';
+import { state } from './state.js?v=0.13';
+import { t } from './i18n.js?v=0.13';
+import * as anim from './anim.js?v=0.13';
+import { IDLE_NAME } from './anim.js?v=0.13';
+import * as audio from './audio.js?v=0.13';
+import { VERSION } from './config.js?v=0.13';
+import { images, SPRITE_TILE } from './assets.js?v=0.13';
 
 let afterInteract = () => {};
 let restart = () => {};
@@ -57,6 +58,49 @@ export function syncFoeRow() {
       syncFoeRow();
     };
     row.appendChild(box);
+  });
+}
+
+// --- Iniciativa: aviso de "entra en combate" (espadas, arriba a la derecha,
+// un momento) y barra horizontal con el orden de actuación (retratos sacados
+// del primer fotograma de idle de cada uno). Se llama desde rules.js. ---
+let badgeTimer = null;
+export function showCombatBadge() {
+  const el = $('combatBadge');
+  el.classList.remove('show'); void el.offsetWidth;   // reinicia la animación si ya estaba mostrándose
+  el.classList.add('show');
+  audio.fx('ui');
+  clearTimeout(badgeTimer);
+  badgeTimer = setTimeout(() => el.classList.remove('show'), 1600);
+}
+
+// Dibuja el primer fotograma de idle de `ref` (héroe o enemigo) en un canvas
+// pequeño, tal cual se pidió (retrato = fotograma 0 de su propia hoja de idle).
+function drawPortrait(canvas, ref) {
+  const sprite = ref === 'hero' ? 'hero' : ref.sprite;
+  const clip = IDLE_NAME[sprite];
+  const sheet = images[sprite] && images[sprite][clip];
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  if (!sheet) return;
+  ctx.drawImage(sheet, 0, 0, SPRITE_TILE, SPRITE_TILE, 0, 0, canvas.width, canvas.height);
+}
+
+export function syncInitiativeUI() {
+  const bar = $('initiativeBar');
+  if (!state.combat.active || !state.combat.order.length) { bar.classList.remove('show'); bar.innerHTML = ''; return; }
+  bar.classList.add('show');
+  bar.innerHTML = '';
+  state.combat.order.forEach((entry, i) => {
+    const isFoe = entry.ref !== 'hero';
+    if (isFoe && !entry.ref.alive) return;   // los muertos desaparecen de la barra
+    const slot = document.createElement('div');
+    slot.className = 'initSlot' + (i === state.combat.idx ? ' current' : '');
+    const canvas = document.createElement('canvas');
+    canvas.width = 40; canvas.height = 40;
+    slot.appendChild(canvas);
+    bar.appendChild(slot);
+    drawPortrait(canvas, entry.ref);
   });
 }
 

@@ -2,7 +2,7 @@
 // Incluye niebla de guerra (explored/visible) y el alcance de movimiento
 // ligado a los Puntos de Acción (PA) restantes del héroe.
 
-import { SIGHT, AP_MAX, CLIMB_COST, MAX_CLIMB, DIFFICULT_EXTRA } from './config.js?v=0.12';
+import { SIGHT, SIGHT_DIM, AP_MAX, CLIMB_COST, MAX_CLIMB, DIFFICULT_EXTRA } from './config.js?v=0.13';
 
 export const state = {
   cols: 0, rows: 0,
@@ -17,6 +17,12 @@ export const state = {
   reach: { dist: [], from: [] },   // alcance de movimiento según PA restantes
   busy: false,
   targetFoe: null,           // enemigo marcado como objetivo (referencia directa; null = ninguno)
+  // --- Iniciativa: quién ha entrado en combate y en qué orden actúa. ---
+  // order: array de { ref: 'hero' | foe, initiative: number }, ordenado de
+  // mayor a menor. idx: posición del próximo que le toca actuar. Un recién
+  // llegado se cuela en su hueco si su tirada gana a alguien que aún no ha
+  // actuado esta ronda; si no, espera a la ronda siguiente (ver rules.js).
+  combat: { active: false, order: [], idx: 0 },
 };
 
 const DIRS = [[0,-1],[0,1],[-1,0],[1,0]];
@@ -54,6 +60,7 @@ export function initGame(level, events) {
   state.visible = grid(state.rows, state.cols, false);
   state.busy = false;
   state.targetFoe = null;
+  state.combat = { active: false, order: [], idx: 0 };
   recomputeFog();
   computeReach();
 }
@@ -147,13 +154,21 @@ export function losClear(x0, y0, x1, y1) {
 export function recomputeFog() {
   const { hero } = state;
   for (let y = 0; y < state.rows; y++) for (let x = 0; x < state.cols; x++) state.visible[y][x] = false;
+  // Dos anillos concéntricos: dentro de SIGHT se ve iluminado del todo (visible);
+  // entre SIGHT y SIGHT_DIM se marca como "explorado" (queda en penumbra/niebla,
+  // memoria del terreno) aunque no esté iluminado; más allá sigue siendo negro
+  // sin explorar hasta que el héroe se acerque más.
   const R = SIGHT, R2 = R * R;
-  const x0 = Math.max(0, Math.floor(hero.x - R)), x1 = Math.min(state.cols - 1, Math.ceil(hero.x + R));
-  const y0 = Math.max(0, Math.floor(hero.y - R)), y1 = Math.min(state.rows - 1, Math.ceil(hero.y + R));
+  const RD = SIGHT_DIM, RD2 = RD * RD;
+  const x0 = Math.max(0, Math.floor(hero.x - RD)), x1 = Math.min(state.cols - 1, Math.ceil(hero.x + RD));
+  const y0 = Math.max(0, Math.floor(hero.y - RD)), y1 = Math.min(state.rows - 1, Math.ceil(hero.y + RD));
   for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
     const ddx = x - hero.x, ddy = y - hero.y;
-    if (ddx * ddx + ddy * ddy > R2) continue;
-    if (losClear(hero.x, hero.y, x, y)) { state.visible[y][x] = true; state.explored[y][x] = true; }
+    const d2 = ddx * ddx + ddy * ddy;
+    if (d2 > RD2) continue;
+    if (!losClear(hero.x, hero.y, x, y)) continue;
+    if (d2 <= R2) state.visible[y][x] = true;
+    state.explored[y][x] = true;
   }
 }
 

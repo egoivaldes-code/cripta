@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Cripta</title>
-<link rel="stylesheet" href="./css/styles.css?v=0.12">
+<link rel="stylesheet" href="./css/styles.css?v=0.13">
 </head>
 <body>
 <div id="game">
@@ -26,6 +26,12 @@
   <div class="ui topright" id="topright">
     <button class="iconbtn" id="reset" aria-label="Reiniciar">⟳</button>
   </div>
+
+  <!-- Aviso de "entra en combate" (un momento, arriba a la derecha) -->
+  <div class="ui combatBadge" id="combatBadge">⚔️</div>
+
+  <!-- Orden de iniciativa (horizontal, arriba a la derecha, debajo del aviso) -->
+  <div class="ui initiativeBar" id="initiativeBar"></div>
 
   <!-- Versión + Ajustes + recentrar (abajo-derecha) -->
   <div class="ui bottomright" id="bottomright">
@@ -84,6 +90,6 @@
   </div>
 </div>
 
-<script type="module" src="./js/main.js?v=0.12"></script>
+<script type="module" src="./js/main.js?v=0.13"></script>
 </body>
 </html>

@@ -1,13 +1,13 @@
 // Reglas del juego: economía de Puntos de Acción (PA), interacción a distancia
 // y adyacente, trampas, niebla y salida de nivel. Agnóstico del dibujo.
 
-import { state, walkable, adjacent, distTo, isVisible, recomputeFog, computeReach, pathTo, reachCost, blockingTriggerAt, trapAt, walkTriggerAt, stepNeighbors, foeAt, livingFoes, losClear } from './state.js?v=0.12';
-import { openEvent, openTrapCard, openStoryCard, syncHUD, log, gameOver } from './ui.js?v=0.12';
-import { t } from './i18n.js?v=0.12';
-import { MOVE_COST, ATTACK_COST } from './config.js?v=0.12';
-import * as anim from './anim.js?v=0.12';
-import { ANIM_CLIPS } from './anim.js?v=0.12';
-import * as audio from './audio.js?v=0.12';
+import { state, walkable, adjacent, distTo, isVisible, recomputeFog, computeReach, pathTo, reachCost, blockingTriggerAt, trapAt, walkTriggerAt, stepNeighbors, foeAt, livingFoes, losClear } from './state.js?v=0.13';
+import { openEvent, openTrapCard, openStoryCard, syncHUD, syncInitiativeUI, showCombatBadge, log, gameOver } from './ui.js?v=0.13';
+import { t } from './i18n.js?v=0.13';
+import { MOVE_COST, ATTACK_COST, INITIATIVE_BASE, INITIATIVE_DIE, TURN_DELAY } from './config.js?v=0.13';
+import * as anim from './anim.js?v=0.13';
+import { ANIM_CLIPS } from './anim.js?v=0.13';
+import * as audio from './audio.js?v=0.13';
 
 const sign = (n) => Math.sign(n);
 
@@ -51,6 +51,61 @@ function applyIncomingHit(baseDamage, damageType, color) {
 
 let onDescend = () => {};
 export function bindDescend(fn) { onDescend = fn; }
+
+// --- Iniciativa -------------------------------------------------------------
+// Tirada de iniciativa: base por tipo + 1-6, una sola vez por escaramuza (no
+// se vuelve a tirar cada ronda). El héroe usa hero.initiativeBonus (0 por
+// defecto; hueco reservado para cuando el equipo pueda sumar iniciativa).
+function rollInitiative(base) {
+  return base + 1 + Math.floor(Math.random() * INITIATIVE_DIE);
+}
+
+// Mete a un combatiente (el héroe o un enemigo) en la cola de iniciativa si
+// todavía no estaba. Se cuela en el hueco que le toque ESTA ronda si su
+// tirada supera a alguien que aún no ha actuado; si no, entra al final y
+// esperará a la ronda siguiente.
+function enterCombat(ref) {
+  const wasActive = state.combat.active;
+  if (!wasActive) { state.combat.active = true; state.combat.order = []; state.combat.idx = 0; }
+  if (state.combat.order.some(o => o.ref === ref)) return;
+  const base = ref === 'hero'
+    ? (state.hero.initiativeBase ?? INITIATIVE_BASE.hero) + (state.hero.initiativeBonus || 0)
+    : (INITIATIVE_BASE[ref.sprite] ?? 6);
+  const entry = { ref, initiative: rollInitiative(base) };
+  const remaining = state.combat.order.slice(state.combat.idx);
+  const gap = remaining.findIndex(o => o.initiative < entry.initiative);
+  if (gap === -1) state.combat.order.push(entry);
+  else state.combat.order.splice(state.combat.idx + gap, 0, entry);
+  if (!wasActive) showCombatBadge();
+}
+
+// Revisa si algún enemigo dormido ha quedado a tiro (o ya estaba despierto,
+// p.ej. por un golpe directo) y aún no está en la cola; si es así, entra en
+// combate. Se llama al terminar el turno del héroe (mismo momento en que
+// antes se comprobaba el despertar de los enemigos).
+function scanForNewCombatants() {
+  const { hero } = state;
+  for (const f of state.foes) {
+    if (!f.alive) continue;
+    if (f.dormant) {
+      if (distTo(f, hero.x, hero.y) <= f.wakeR) { f.dormant = false; syncHUD(); }
+      else continue;
+    }
+    enterCombat(f);
+  }
+  if (state.combat.active) enterCombat('hero');
+}
+
+// Si ya no queda ningún enemigo vivo, se acaba el combate (oculta la barra de
+// iniciativa). No afecta a la victoria/derrota, que ya se gestiona aparte.
+function checkCombatEnd() {
+  if (state.combat.active && livingFoes().length === 0) {
+    state.combat.active = false;
+    state.combat.order = [];
+    state.combat.idx = 0;
+    syncInitiativeUI();
+  }
+}
 
 // Empieza el turno del héroe: PA a tope y recalcula su alcance.
 export function startHeroTurn() {
@@ -250,15 +305,63 @@ export function afterInteract(trig) {
   if (state.hero.hp > 0 && state.hero.ap <= 0) endHeroTurn();
 }
 
-// Fin del turno del héroe (botón, o automático al llegar a 0 PA).
+// Fin del turno del héroe (botón, o automático al llegar a 0 PA). Detecta
+// quién entra en combate, marca el hueco del héroe en la cola como ya hecho
+// (la ronda de acciones que acaba de terminar ES su turno de iniciativa), y
+// deja pasar a los enemigos que le toquen antes de que vuelva a él.
 export async function endHeroTurn() {
-  await enemyAITurn();
+  scanForNewCombatants();
+  if (state.combat.active) {
+    const heroIdx = state.combat.order.findIndex(o => o.ref === 'hero');
+    if (heroIdx !== -1 && state.combat.idx <= heroIdx) state.combat.idx = heroIdx + 1;
+    syncInitiativeUI();
+    await sleep(TURN_DELAY);   // pausa al terminar el turno del héroe
+    await runFoeQueue();
+  }
   if (!state.busy) startHeroTurn();   // si busy=true, hay una carta de fin de partida abierta
 }
 
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 let aiTurnActive = false;
 export function isAITurnActive() { return aiTurnActive; }
+
+// Recorre la cola de iniciativa desde donde se quedó, actuando un enemigo
+// cada vez (con pausa antes y después de cada uno), hasta llegar de nuevo al
+// hueco del héroe — ahí se para y le devuelve el control al jugador. Si da
+// la vuelta entera a la cola sin encontrarlo (no debería pasar, el héroe
+// siempre está metido), empieza otra ronda desde el principio.
+async function runFoeQueue() {
+  aiTurnActive = true;
+  try {
+    while (state.combat.active && state.combat.order.length) {
+      if (state.combat.idx >= state.combat.order.length) state.combat.idx = 0;   // nueva ronda
+      const entry = state.combat.order[state.combat.idx];
+      if (entry.ref === 'hero') break;   // le toca al jugador
+      const foe = entry.ref;
+      state.combat.idx++;
+      if (!foe.alive) continue;
+      syncInitiativeUI();
+      const heroDied = await runSingleFoeTurn(foe);
+      checkCombatEnd();
+      if (heroDied || !state.combat.active) return;
+      await sleep(TURN_DELAY);   // pausa al terminar el turno de este NPC
+    }
+  } finally {
+    aiTurnActive = false;
+  }
+  syncHUD();
+  syncInitiativeUI();
+}
+
+// El arquero, el espectro y el mago tienen su propia lógica; el resto pelea
+// cuerpo a cuerpo (comportamiento de siempre). Devuelve true si el héroe muere.
+function runSingleFoeTurn(foe) {
+  const cfg = RANGED_CFG[foe.sprite];
+  if (foe.sprite === 'enemy5') return spectreTurn(foe);
+  if (foe.sprite === 'enemy6') return mageTurn(foe);
+  if (cfg) return archerTurn(foe, cfg);
+  return meleeTurn(foe);
+}
 
 // --- Espectro (enemy5): cuerpo a cuerpo con robo de vida en grupo -----------
 // PA 4, golpe a 2 PA. Si al golpear tiene OTROS enemigos vivos a 2 casillas o
@@ -602,33 +705,4 @@ async function meleeTurn(foe) {
   return false;
 }
 
-// Turno del enemigo: cada uno gasta su presupuesto de PA interno (no se muestra).
-// El arquero usa su propia lógica (disparar/huir); el resto, cuerpo a cuerpo.
-// Cada acción espera un poco antes de la siguiente para que se vea (si no, se
-// pisan entre sí y parece que el turno pasa instantáneo).
-export async function enemyAITurn() {
-  aiTurnActive = true;
-  try {
-    const { hero } = state;
-    for (const foe of state.foes) {
-      if (!foe.alive) continue;
 
-      // Enemigo dormido: solo despierta si el héroe está a wakeR casillas o menos.
-      if (foe.dormant) {
-        if (distTo(foe, hero.x, hero.y) <= foe.wakeR) { foe.dormant = false; syncHUD(); }
-        else continue;
-      }
-
-      const cfg = RANGED_CFG[foe.sprite];
-      let heroDied;
-      if (foe.sprite === 'enemy5') heroDied = await spectreTurn(foe);
-      else if (foe.sprite === 'enemy6') heroDied = await mageTurn(foe);
-      else if (cfg) heroDied = await archerTurn(foe, cfg);
-      else heroDied = await meleeTurn(foe);
-      if (heroDied) return;
-    }
-  } finally {
-    aiTurnActive = false;
-  }
-  syncHUD();
-}
