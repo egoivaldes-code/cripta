@@ -36,6 +36,7 @@ export const INITIATIVE_BASE = {
   enemy6: 7,   // mago: medio
 };
 export const TURN_DELAY = 1000;  // ms de pausa entre el fin de un turno y el siguiente (héroe y NPCs)
+export const COMBAT_ENTER_DELAY = 1000;  // ms de respiro al entrar en combate, antes de congelar el juego
 
 // --- versión (fuente única; también se usa para el cache-busting de assets) ---
-export const VERSION = '0.14.3';
+export const VERSION = '0.15';

@@ -1,15 +1,15 @@
 // Punto de entrada. Carga idioma y datos, cablea módulos y arranca el bucle.
 
-import { state, initGame } from './state.js?v=0.14.3';
-import { initRenderer, startLoop, centerOnHero, toggleGrid, isGridOn } from './render.js?v=0.14.3';
-import { onTapTile, bindDescend, startHeroTurn, endHeroTurn, afterInteract, attemptDisarm, isAITurnActive } from './rules.js?v=0.14.3';
-import { syncHUD, log, hideVeil, bindAfterInteract, bindRestart, bindAttemptDisarm, applyStaticText, syncInitiativeUI } from './ui.js?v=0.14.3';
-import { loadAssets } from './assets.js?v=0.14.3';
-import { initialLang, loadLang, onLangChange, getLang, t } from './i18n.js?v=0.14.3';
-import * as anim from './anim.js?v=0.14.3';
-import * as audio from './audio.js?v=0.14.3';
-import { VERSION } from './config.js?v=0.14.3';
-import { assemble } from './mapgen.js?v=0.14.3';
+import { state, initGame } from './state.js?v=0.15';
+import { initRenderer, startLoop, centerOnHero, toggleGrid, isGridOn } from './render.js?v=0.15';
+import { onTapTile, bindDescend, startHeroTurn, endHeroTurn, afterInteract, attemptDisarm, isAITurnActive, getEnemySpeed, setEnemySpeed } from './rules.js?v=0.15';
+import { syncHUD, log, hideVeil, bindAfterInteract, bindRestart, bindAttemptDisarm, applyStaticText, syncInitiativeUI, showConfirm } from './ui.js?v=0.15';
+import { loadAssets } from './assets.js?v=0.15';
+import { initialLang, loadLang, onLangChange, getLang, t } from './i18n.js?v=0.15';
+import * as anim from './anim.js?v=0.15';
+import * as audio from './audio.js?v=0.15';
+import { VERSION } from './config.js?v=0.15';
+import { assemble } from './mapgen.js?v=0.15';
 
 // El ensamblador de losetas (mapgen.js) sigue disponible para niveles ALEATORIOS
 // futuros; esta función queda de reserva pero no se usa por ahora, ya que el
@@ -47,7 +47,7 @@ function renderSplash() {
 
 async function boot() {
   // Idioma primero (los textos) y assets/datos en paralelo.
-  onLangChange(() => { applyStaticText(); markLang(); renderSplash(); });
+  onLangChange(() => { applyStaticText(); markLang(); markEnemySpeed(); renderSplash(); });
   await loadLang(initialLang());
 
   const [events, cl] = await Promise.all([
@@ -106,8 +106,20 @@ async function boot() {
 
   // --- controles ---
   document.getElementById('reset').addEventListener('click', () => {
-    document.getElementById('settingsVeil').classList.remove('show');
-    newGame();
+    showConfirm(t('confirm.reset.title'), t('confirm.reset.text'), () => {
+      document.getElementById('settingsVeil').classList.remove('show');
+      newGame();
+    });
+  });
+  // Cerrar el juego: como es una página web (no una app nativa), el navegador
+  // solo deja cerrar la pestaña sola si él mismo la abrió por script — en
+  // móvil, sobre todo, suele bloquearlo. Se intenta igualmente y, si no lo
+  // consigue, se avisa en el registro para que el jugador la cierre a mano.
+  document.getElementById('quitBtn').addEventListener('click', () => {
+    showConfirm(t('confirm.quit.title'), t('confirm.quit.text'), () => {
+      window.close();
+      setTimeout(() => log(t('log.cantClose')), 300);
+    });
   });
   document.getElementById('endTurn').addEventListener('click', () => {
     if (!state.busy && !isAITurnActive()) { log(t('log.turnSkipped')); endHeroTurn(); }
@@ -134,8 +146,14 @@ async function boot() {
   document.getElementById('setClose').addEventListener('click', () => settingsVeil.classList.remove('show'));
   settingsVeil.addEventListener('click', e => { if (e.target === settingsVeil) settingsVeil.classList.remove('show'); });
 
-  document.querySelectorAll('.langbtn').forEach(btn =>
+  document.querySelectorAll('.langbtn[data-lang]').forEach(btn =>
     btn.addEventListener('click', () => loadLang(btn.dataset.lang)));
+
+  // Velocidad de turnos enemigos (persistida; reutiliza el mismo estilo de
+  // botones que el selector de idioma, pero es un grupo aparte).
+  document.querySelectorAll('.langbtn[data-speed]').forEach(btn =>
+    btn.addEventListener('click', () => { setEnemySpeed(btn.dataset.speed); markEnemySpeed(); }));
+  markEnemySpeed();
 
   setupLayoutEditor();
 
@@ -172,7 +190,11 @@ async function boot() {
 }
 
 function markLang() {
-  document.querySelectorAll('.langbtn').forEach(b => b.classList.toggle('on', b.dataset.lang === getLang()));
+  document.querySelectorAll('.langbtn[data-lang]').forEach(b => b.classList.toggle('on', b.dataset.lang === getLang()));
+}
+
+function markEnemySpeed() {
+  document.querySelectorAll('.langbtn[data-speed]').forEach(b => b.classList.toggle('on', b.dataset.speed === getEnemySpeed()));
 }
 
 // --- Reposicionar interfaz: arrastrar los bloques del HUD y anclarlos donde

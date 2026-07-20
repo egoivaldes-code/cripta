@@ -1,14 +1,14 @@
 // Reglas del juego: economía de Puntos de Acción (PA), interacción a distancia
 // y adyacente, trampas, niebla y salida de nivel. Agnóstico del dibujo.
 
-import { state, walkable, adjacent, distTo, isVisible, recomputeFog, computeReach, pathTo, findPath, reachCost, blockingTriggerAt, trapAt, walkTriggerAt, stepNeighbors, foeAt, livingFoes, losClear } from './state.js?v=0.14.3';
-import { openEvent, openTrapCard, openStoryCard, syncHUD, syncInitiativeUI, showCombatBadge, log, gameOver } from './ui.js?v=0.14.3';
-import { t } from './i18n.js?v=0.14.3';
-import { MOVE_COST, ATTACK_COST, INITIATIVE_BASE, INITIATIVE_DIE, TURN_DELAY } from './config.js?v=0.14.3';
-import * as anim from './anim.js?v=0.14.3';
-import { ANIM_CLIPS } from './anim.js?v=0.14.3';
-import * as audio from './audio.js?v=0.14.3';
-import { centerOnTile } from './render.js?v=0.14.3';
+import { state, walkable, adjacent, distTo, isVisible, recomputeFog, computeReach, pathTo, findPath, reachCost, blockingTriggerAt, trapAt, walkTriggerAt, stepNeighbors, foeAt, livingFoes, losClear } from './state.js?v=0.15';
+import { openEvent, openTrapCard, openStoryCard, syncHUD, syncInitiativeUI, showCombatBadge, log, gameOver } from './ui.js?v=0.15';
+import { t } from './i18n.js?v=0.15';
+import { MOVE_COST, ATTACK_COST, INITIATIVE_BASE, INITIATIVE_DIE, TURN_DELAY, COMBAT_ENTER_DELAY } from './config.js?v=0.15';
+import * as anim from './anim.js?v=0.15';
+import { ANIM_CLIPS } from './anim.js?v=0.15';
+import * as audio from './audio.js?v=0.15';
+import { centerOnTile } from './render.js?v=0.15';
 
 const sign = (n) => Math.sign(n);
 
@@ -77,7 +77,6 @@ function enterCombat(ref) {
   const gap = remaining.findIndex(o => o.initiative < entry.initiative);
   if (gap === -1) state.combat.order.push(entry);
   else state.combat.order.splice(state.combat.idx + gap, 0, entry);
-  if (!wasActive) showCombatBadge();
 }
 
 // Revisa si algún enemigo dormido ha quedado a tiro (o ya estaba despierto,
@@ -234,7 +233,7 @@ export function onTapTile(gx, gy) {
     }
     computeReach();
     const justEnteredCombat = scanForNewCombatants();
-    if (hero.ap <= 0 || justEnteredCombat) return endHeroTurn();
+    if (hero.ap <= 0 || justEnteredCombat) return endHeroTurn(justEnteredCombat);
     return;
   }
 
@@ -308,7 +307,7 @@ export function onTapTile(gx, gy) {
   // enemigo entra en rango de activación —aunque sea a mitad de PA— se para
   // aquí mismo y empieza el combate por turnos, no hace falta agotar el PA.
   const justEnteredCombat = scanForNewCombatants();
-  if (hero.hp > 0 && (justEnteredCombat || hero.ap <= 0)) endHeroTurn();
+  if (hero.hp > 0 && (justEnteredCombat || hero.ap <= 0)) endHeroTurn(justEnteredCombat);
 }
 
 // Se llama tras resolver la carta de un objeto (ui.js). El coste ya se
@@ -328,19 +327,28 @@ export function afterInteract(trig) {
 // quién entra en combate, marca el hueco del héroe en la cola como ya hecho
 // (la ronda de acciones que acaba de terminar ES su turno de iniciativa), y
 // deja pasar a los enemigos que le toquen antes de que vuelva a él.
-export async function endHeroTurn() {
+export async function endHeroTurn(justEntered = false) {
   // Si ya hay una resolución de turno en marcha (p.ej. el jugador ha tocado
   // dos veces casi a la vez, justo cuando el PA llega a 0), no se vuelve a
   // entrar: evita que dos "fin de turno" se pisen y descuadren la cola.
   if (aiTurnActive) return;
-  aiTurnActive = true;
+  aiTurnActive = true;   // esto ya bloquea toques del jugador (ver isAITurnActive en render.js)
   try {
+    const wasActive = state.combat.active;
     scanForNewCombatants();
+    const enteringNow = justEntered || (!wasActive && state.combat.active);
+    if (enteringNow) {
+      // Entrada en combate: un pequeño respiro (con su propio sonido) antes de
+      // congelar el juego en modo por turnos, para que no se sienta instantáneo.
+      audio.fx('combatstart');
+      await sleep(COMBAT_ENTER_DELAY);
+      showCombatBadge();
+    }
     if (state.combat.active) {
       const heroIdx = state.combat.order.findIndex(o => o.ref === 'hero');
       if (heroIdx !== -1 && state.combat.idx <= heroIdx) state.combat.idx = heroIdx + 1;
       syncInitiativeUI();
-      await sleep(TURN_DELAY);   // pausa al terminar el turno del héroe
+      await enemySleep(TURN_DELAY);   // pausa al terminar el turno del héroe
       await runFoeQueue();
       if (state.combat.active) centerOnTile(state.hero.x, state.hero.y);
     }
@@ -353,6 +361,24 @@ export async function endHeroTurn() {
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 let aiTurnActive = false;
 export function isAITurnActive() { return aiTurnActive; }
+
+// --- Velocidad de turnos enemigos (ajustable desde el menú de Ajustes) ------
+// Multiplica todas las pausas de la IA (entre acciones y entre turnos). No
+// afecta a la duración de las propias animaciones, solo al tiempo de espera
+// entre pasos, para que el combate se sienta más lento o más rápido.
+const ENEMY_SPEED_MULT = { slow: 1.6, normal: 1, fast: 0.55 };
+function loadEnemySpeed() {
+  try { const v = localStorage.getItem('cripta.enemySpeed'); return ENEMY_SPEED_MULT[v] ? v : 'normal'; }
+  catch { return 'normal'; }
+}
+let enemySpeedKey = loadEnemySpeed();
+export function getEnemySpeed() { return enemySpeedKey; }
+export function setEnemySpeed(v) {
+  if (!ENEMY_SPEED_MULT[v]) return;
+  enemySpeedKey = v;
+  try { localStorage.setItem('cripta.enemySpeed', v); } catch {}
+}
+const enemySleep = (ms) => sleep(ms * (ENEMY_SPEED_MULT[enemySpeedKey] || 1));
 
 // Recorre la cola de iniciativa desde donde se quedó, actuando un enemigo
 // cada vez (con pausa antes y después de cada uno), hasta llegar de nuevo al
@@ -373,7 +399,7 @@ async function runFoeQueue() {
     checkCombatEnd();
     syncHUD();
     if (heroDied || !state.combat.active) return;
-    await sleep(TURN_DELAY);   // pausa al terminar el turno de este NPC
+    await enemySleep(TURN_DELAY);   // pausa al terminar el turno de este NPC
   }
   syncHUD();
   syncInitiativeUI();
@@ -430,7 +456,7 @@ async function spectreTurn(foe) {
       }
       syncHUD();
       if (hero.hp <= 0) { gameOver('lose'); return true; }
-      await sleep(320);
+      await enemySleep(320);
       continue;
     }
     if (ap < MOVE_COST) break;
@@ -449,7 +475,7 @@ async function spectreTurn(foe) {
     if (!step || step.d >= cur) break;
     doMove(foe, step);
     ap -= step.cost;
-    await sleep(190);
+    await enemySleep(190);
   }
   return false;
 }
@@ -537,7 +563,7 @@ async function mageTurn(foe) {
   if (!foe.castOpening) {
     foe.castOpening = true;
     castSepulchralCall(foe);
-    await sleep(420);
+    await enemySleep(420);
     return false;
   }
 
@@ -555,7 +581,7 @@ async function mageTurn(foe) {
       foe.turnsSinceSummon = 0;
       summonedThisTurn = true;
       syncHUD();
-      await sleep(300);
+      await enemySleep(300);
       continue;
     }
 
@@ -569,13 +595,13 @@ async function mageTurn(foe) {
       log(t('log.hitHero', { dmg }));
       syncHUD();
       if (hero.hp <= 0) { gameOver('lose'); return true; }
-      await sleep(320);
+      await enemySleep(320);
       continue;
     }
 
     if (ap >= MOVE_COST && moved < MAGE_MAX_MOVE) {
       const step = approachStep(foe, ap);
-      if (step) { doMove(foe, step); ap -= step.cost; moved++; await sleep(190); continue; }
+      if (step) { doMove(foe, step); ap -= step.cost; moved++; await enemySleep(190); continue; }
     }
     break;
   }
@@ -686,21 +712,21 @@ async function archerTurn(foe, cfg) {
     const canSee = losClear(foe.x, foe.y, hero.x, hero.y);
     if (d <= cfg.fleeAt) {                                     // 1) huir
       const fs = fleeStep(foe, ap);
-      if (fs) { doMove(foe, fs); ap -= fs.cost; await sleep(190); continue; }
+      if (fs) { doMove(foe, fs); ap -= fs.cost; await enemySleep(190); continue; }
       // acorralado sin salida: si tiene el tiro despejado, dispara a bocajarro (bloque 2)
     }
     if (d <= cfg.range && canSee) {                           // 2) a tiro y con visión
       if (ap >= cfg.shootCost) {
         ap -= cfg.shootCost;
         if (archerShoot(foe)) return true;
-        await sleep(320);
+        await enemySleep(320);
         continue;
       }
       break;   // en posición pero sin PA para otro tiro: se queda quieto, no se acerca al héroe
     }
     if (ap >= MOVE_COST) {                                     // 3) lejos o sin visión: acercarse
       const as = approachStep(foe, ap);
-      if (as) { doMove(foe, as); ap -= as.cost; await sleep(190); continue; }
+      if (as) { doMove(foe, as); ap -= as.cost; await enemySleep(190); continue; }
     }
     break;
   }
@@ -723,7 +749,7 @@ async function meleeTurn(foe) {
       log(t('log.hitHero', { dmg }));
       syncHUD();
       if (hero.hp <= 0) { gameOver('lose'); return true; }
-      await sleep(320);
+      await enemySleep(320);
       continue;
     }
     if (ap < MOVE_COST) break;
@@ -731,7 +757,7 @@ async function meleeTurn(foe) {
     if (!step) break;                                          // no puede acercarse más
     doMove(foe, step);
     ap -= step.cost;
-    await sleep(190);
+    await enemySleep(190);
   }
   return false;
 }

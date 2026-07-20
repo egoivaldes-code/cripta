@@ -14,7 +14,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Cripta</title>
-<link rel="stylesheet" href="./css/styles.css?v=0.14.3">
+<link rel="stylesheet" href="./css/styles.css?v=0.15">
 </head>
 <body>
 <div id="game">
@@ -82,9 +82,18 @@
       <label id="setFxLabel"></label>
       <input type="range" id="fxVol" min="0" max="1" step="0.05" value="0.7">
 
+      <label id="setEnemySpeedLabel"></label>
+      <div class="langrow" id="enemySpeedRow">
+        <button class="langbtn" id="speedSlow" data-speed="slow"></button>
+        <button class="langbtn" id="speedNormal" data-speed="normal"></button>
+        <button class="langbtn" id="speedFast" data-speed="fast"></button>
+      </div>
+
       <button class="primary" id="repositionBtn"></button>
 
       <button class="primary" id="reset" aria-label="Reiniciar"></button>
+
+      <button class="primary" id="quitBtn" aria-label="Cerrar juego"></button>
 
       <button class="primary" id="setClose"></button>
       <div class="ver" id="verTagPanel"></div>
@@ -97,6 +106,20 @@
   <!-- Carta de evento -->
   <div class="veil" id="veil"><div class="card" id="card"></div></div>
 
+  <!-- Confirmación genérica (reiniciar nivel, cerrar juego...). Un solo modal
+       reutilizado: showConfirm() en ui.js rellena título/texto y qué hacer
+       si se confirma. -->
+  <div class="veil" id="confirmVeil">
+    <div class="card" id="confirmCard">
+      <h2 id="confirmTitle"></h2>
+      <p id="confirmText"></p>
+      <div class="confirmBtns">
+        <button class="primary ghost" id="confirmNo"></button>
+        <button class="primary" id="confirmYes"></button>
+      </div>
+    </div>
+  </div>
+
   <!-- Pantalla de novedades al arrancar. El botón Continuar queda anclado arriba
        (no scrollea) y hace de primer toque para activar el sonido. -->
   <div class="splash show" id="splash">
@@ -108,6 +131,6 @@
   </div>
 </div>
 
-<script type="module" src="./js/main.js?v=0.14.3"></script>
+<script type="module" src="./js/main.js?v=0.15"></script>
 </body>
 </html>

@@ -2,6 +2,15 @@
 
 Esquema: `0.X` = cambio grande · `0.X.Y` = cambio pequeño / fix.
 
+## 0.15 — entrada en combate con respiro, velocidad de enemigos y confirmaciones
+- **Bamboleo del idle del esqueleto (`enemy1`), otra vez**: quedaba un resto de descentrado de cabeza entre los 6 fotogramas (hasta ~7px) que no se había pillado del todo la vez anterior. Recentrado por cabeza (no por el cuerpo entero, que puede compensarse con el balanceo del arma y esconder el problema).
+- **Entrada en combate con un segundo de respiro**: antes, en cuanto un enemigo te detectaba, el juego se congelaba en modo por turnos casi al instante — se sentía brusco. Ahora hay un pequeño margen (con el toque del jugador bloqueado durante ese momento, para que no se cuele una acción de más) antes de que se congele de verdad. De paso, se quitó el pitido de aviso y se puso un sonido real de espadas chocando.
+- **Velocidad de los turnos enemigos, elegible en Ajustes** (Baja / Media / Alta; Media es la de siempre). Afecta a todas las pausas de la IA entre acciones y entre turnos.
+- **Confirmación antes de reiniciar el nivel** desde Ajustes (antes reiniciaba directo con un solo toque).
+- **Botón nuevo para cerrar el juego**, también con confirmación. Como es una página web y no una app instalada, el navegador puede bloquear el cierre automático (sobre todo en el móvil); si pasa, se avisa en el registro para cerrar la pestaña a mano.
+- **HUD**: números de vida/maná del héroe un poco más pequeños; botón "Saltar turno" reducido a la mitad.
+- Añadida una prueba headless específica para la nueva entrada en combate con retraso (verifica que el sonido suena al momento, que la aparición del aviso se retrasa de verdad ~1s, que el toque del jugador queda bloqueado mientras tanto, y que todo se libera bien al terminar), otra para el ajuste de velocidad de enemigos, y una de regresión para confirmar que el movimiento libre normal (sin combate) sigue sin verse afectado.
+
 ## 0.14.3 — pathfinding real, pulido de HUD, botón de reiniciar al menú y arreglo de escala
 - **Encontrado el motivo de que los esqueletos se quedaran plantados esperando en un cuello de botella** (p.ej. la verja del cementerio): la forma en que se acercaban al héroe era "miope" — solo daba un paso si ese paso concreto acercaba en línea recta, y rechazaba cualquier paso que no mejorase la distancia al instante. En cuanto hacía falta alejarse un momento para rodear un muro o alinearse con un hueco, se quedaban parados para siempre (aunque hubiera un camino perfectamente posible). Sustituido por un camino real (Dijkstra, el mismo tipo de cálculo que ya se usaba para el movimiento del héroe) que sí rodea muros y objetos como corresponde. Reproducido el atasco con un mapa de prueba a propósito (pared con un hueco lejano, no alineado) antes de arreglarlo, y confirmado que con el cálculo antiguo la prueba fallaba y con el nuevo pasa (14 pruebas en total, todas en verde).
 - **Panel del héroe**: nombre desplazado, número de PA reajustado (tamaño y posición), números de vida y maná realineados, barras con esquinas redondeadas en forma de píldora y recolocadas con precisión de subpíxel.

@@ -1,6 +1,30 @@
 {
   "versions": [
     {
+      "v": "0.15",
+      "es": {
+        "title": "Combate con respiro, velocidad de enemigos y confirmaciones",
+        "notes": [
+          "Corregido del todo el bamboleo del idle del esqueleto (quedaba un pequeño descentrado de cabeza entre fotogramas).",
+          "La entrada en combate ahora tiene un segundo de respiro antes de congelar el juego, con un sonido de espadas nuevo en vez del pitido de antes.",
+          "Nueva opción en Ajustes para elegir la velocidad de los turnos enemigos (Baja / Media / Alta).",
+          "Reiniciar nivel y cerrar el juego ahora piden confirmación antes de hacer nada.",
+          "HUD: números de vida/maná un poco más pequeños y botón \"Saltar turno\" más compacto."
+        ]
+      },
+      "en": {
+        "title": "Combat with a breath, enemy speed and confirmations",
+        "notes": [
+          "Fully fixed the skeleton's idle wobble (a small head misalignment remained between frames).",
+          "Entering combat now has a one-second breath before freezing the game, with a new sword-clash sound instead of the old beep.",
+          "New Settings option to choose enemy turn speed (Low / Medium / High).",
+          "Restarting the level and quitting the game now ask for confirmation first.",
+          "HUD: slightly smaller health/mana numbers and a more compact \"Skip turn\" button."
+        ]
+      },
+      "title": "Combate con respiro, velocidad de enemigos y confirmaciones"
+    },
+    {
       "v": "0.14.3",
       "es": {
         "title": "Pathfinding real, HUD y arreglos",

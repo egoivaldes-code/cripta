@@ -1,13 +1,13 @@
 // Capa DOM: HUD (con PA), cartas de evento, registro, fin de partida y ajustes.
 // Todo el texto visible pasa por t() (multiidioma). No dibuja en el canvas.
 
-import { state } from './state.js?v=0.14.3';
-import { t } from './i18n.js?v=0.14.3';
-import * as anim from './anim.js?v=0.14.3';
-import { IDLE_NAME } from './anim.js?v=0.14.3';
-import * as audio from './audio.js?v=0.14.3';
-import { VERSION } from './config.js?v=0.14.3';
-import { images, SPRITE_TILE } from './assets.js?v=0.14.3';
+import { state } from './state.js?v=0.15';
+import { t } from './i18n.js?v=0.15';
+import * as anim from './anim.js?v=0.15';
+import { IDLE_NAME } from './anim.js?v=0.15';
+import * as audio from './audio.js?v=0.15';
+import { VERSION } from './config.js?v=0.15';
+import { images, SPRITE_TILE } from './assets.js?v=0.15';
 
 let afterInteract = () => {};
 let restart = () => {};
@@ -20,6 +20,22 @@ const $ = id => document.getElementById(id);
 let open = null; // { type:'event', trig } | { type:'over', kind } | null
 
 export function log(html) { $('log').innerHTML = html; }
+
+// --- Confirmación genérica (reiniciar nivel, cerrar juego...) --------------
+// Un solo modal reutilizable: showConfirm(título, texto, fn) lo rellena y lo
+// muestra; fn se llama solo si el jugador toca "Sí". Tocar fuera de la
+// tarjeta o "Cancelar" simplemente lo cierra sin hacer nada.
+let confirmCb = null;
+export function showConfirm(title, text, onConfirm) {
+  $('confirmTitle').textContent = title;
+  $('confirmText').textContent = text;
+  confirmCb = onConfirm;
+  $('confirmVeil').classList.add('show');
+}
+function hideConfirm() { $('confirmVeil').classList.remove('show'); confirmCb = null; }
+$('confirmYes').addEventListener('click', () => { const fn = confirmCb; hideConfirm(); if (fn) fn(); });
+$('confirmNo').addEventListener('click', hideConfirm);
+$('confirmVeil').addEventListener('click', e => { if (e.target === $('confirmVeil')) hideConfirm(); });
 
 export function syncHUD() {
   const { hero } = state;
@@ -277,6 +293,13 @@ export function applyStaticText() {
   $('setScaleLabel').textContent = t('set.uiscale');
   $('setMusicLabel').textContent = t('set.music');
   $('setFxLabel').textContent = t('set.fx');
+  $('setEnemySpeedLabel').textContent = t('set.enemyspeed');
+  $('speedSlow').textContent = t('set.speed.slow');
+  $('speedNormal').textContent = t('set.speed.normal');
+  $('speedFast').textContent = t('set.speed.fast');
+  $('quitBtn').textContent = t('btn.quit');
+  $('confirmYes').textContent = t('confirm.yes');
+  $('confirmNo').textContent = t('confirm.no');
   $('setClose').textContent = t('set.close');
   $('repositionBtn').textContent = t('btn.repositionUI');
   $('layoutApplyBtn').textContent = t('btn.applyLayout');

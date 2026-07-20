@@ -60,7 +60,7 @@ body{
   background:linear-gradient(to left, rgba(3,4,7,.95), rgba(3,4,7,.55)); }
 .bar .hptext{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:none;
   font-size:9px; line-height:1; color:#fff; text-shadow:0 1px 1px rgba(0,0,0,.85); pointer-events:none; }
-.bar.hero .hptext, .bar.mana .hptext{ font-size:12px; font-weight:600; }
+.bar.hero .hptext, .bar.mana .hptext{ font-size:10px; font-weight:600; }
 .bar.hero .hptext{ transform:translateY(0px); }
 .bar.mana .hptext{ transform:translateY(-1px); }
 .stat{ display:flex; align-items:center; gap:5px; font-size:13px; padding-left:10px; border-left:1px solid var(--steel); }
@@ -82,11 +82,11 @@ body{
    proporción real (977×309) para que nunca se deforme. El texto se pinta
    encima con CSS, en dorado grabado, imitando la muestra de referencia. */
 .skipturn{ position:relative; display:flex; align-items:center; justify-content:center;
-  width:100%; aspect-ratio:977/309;
+  width:50%; align-self:flex-start; aspect-ratio:977/309;
   background:url(../assets/ui/skipturn_bar.png) center/100% 100% no-repeat;
   border:none; cursor:pointer;
   font:inherit; font-family:Georgia,"Times New Roman",serif; font-weight:700;
-  font-size:15px; letter-spacing:.08em; text-transform:uppercase;
+  font-size:9px; letter-spacing:.05em; text-transform:uppercase;
   color:#d9b878; text-shadow:0 1px 0 #6b4a1a, 0 -1px 1px #000, 0 2px 3px rgba(0,0,0,.7); }
 .skipturn:hover{ color:#eccb8f; }
 
@@ -236,6 +236,14 @@ body.layout-edit .layoutApplyBtn{ display:block; }
   background:linear-gradient(rgba(255,255,255,.08),rgba(255,255,255,.08)), url(../assets/ui/skipturn_plaque.png);
   background-size:100% 100%; background-repeat:no-repeat;
   font:inherit; font-weight:600; font-size:13px; padding:11px 20px; cursor:pointer; letter-spacing:.04em; }
+
+/* Confirmación genérica: dos botones lado a lado, el de cancelar más discreto. */
+.confirmBtns{ display:flex; gap:10px; margin-top:16px; }
+.confirmBtns .primary{ flex:1; margin-top:0; }
+.primary.ghost{ background:var(--stone-900); border:1px solid var(--steel); color:var(--bone-dim); }
+.primary.ghost:hover{ border-color:var(--bone-dim); color:var(--bone); }
+#confirmCard{ text-align:center; }
+#confirmCard h2{ color:var(--ember); }
 
 .panel label{ display:block; font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--bone-dim); margin:14px 0 6px; }
 .langrow{ display:flex; gap:8px; }
