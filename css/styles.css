@@ -21,9 +21,9 @@ body{
   display:flex; flex-direction:column; gap:6px; width:max-content; }
 .hudrow{ display:flex; gap:8px; align-items:stretch; padding:8px 10px;
   background:rgba(26,30,39,.82); border:1px solid var(--steel); border-radius:6px; backdrop-filter:blur(3px); cursor:pointer; }
-.hud .who{ display:flex; flex-direction:column; justify-content:center; gap:4px; min-width:110px; }
+.hud .who{ display:flex; flex-direction:column; justify-content:center; gap:4px; min-width:170px; }
 .bar{ height:9px; border-radius:2px; background:#000; overflow:hidden; border:1px solid #000; position:relative; }
-.bar.hero{ height:26px; background:#000 url(../assets/ui/bar_hp_hero.png) center/100% 100% no-repeat; border:none; }
+.bar.hero{ height:30px; background:#000 url(../assets/ui/bar_hp_hero.png) center/100% 100% no-repeat; border:none; }
 .bar.foe { background:#000 url(../assets/ui/bar_hp_foe.png) center/100% 100% no-repeat; border:none; }
 .bar > span{ display:block; height:100%; transition:width .25s ease; }
 /* La barra siempre muestra el arte completo (cuero+metal+relleno rojo); lo que
@@ -53,8 +53,8 @@ body{
    (izquierda/derecha), así que el remate nunca se deforma, mires donde mires.
    El centro se queda como placa lisa (el texto no necesita más adorno ahí). */
 .skipturn{ position:relative; width:100%; color:var(--bone);
-  background:linear-gradient(rgba(9,10,14,.35),rgba(9,10,14,.35));
-  border:1px solid rgba(70,55,30,.8); border-radius:6px; backdrop-filter:blur(3px);
+  background:linear-gradient(#2a2114,#1a150c);
+  border:1px solid rgba(70,55,30,.9); border-radius:6px;
   font:inherit; font-size:12.5px; letter-spacing:.04em; padding:8px 46px; cursor:pointer; }
 .skipturn::before, .skipturn::after{ content:''; position:absolute; top:1px; bottom:1px; width:38px;
   background-image:url(../assets/ui/skipturn_bar.png); background-repeat:no-repeat; background-size:auto 100%; }
@@ -72,12 +72,13 @@ body{
 .foebox.selected{ border-color:var(--ember); box-shadow:0 0 0 1px var(--ember); }
 .foebox .mark{ font-size:11px; text-align:center; color:var(--bone-dim); line-height:1; }
 .foebox.selected .mark{ color:var(--ember); }
-.foebox .fname{ font-size:10px; text-align:center; color:var(--bone-dim); line-height:1.15;
+.foebox .fname{ font-size:8px; text-align:center; color:var(--bone-dim); line-height:1.15;
   white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .foebox.selected .fname{ color:var(--ember); }
-/* Fila reservada para iconos de buffo (encima de la vida) y debuffo (debajo).
-   Vacías de momento; en cuanto haya iconos, se rellenan sin tocar el layout. */
-.foebox .buffs, .foebox .debuffs{ display:flex; gap:2px; justify-content:center; min-height:10px; }
+/* Fila de estado (buffos y debuffos juntos), debajo de la vida. Vacía de
+   momento; en cuanto haya iconos, se rellenan sin tocar el layout. */
+.foebox .status{ display:flex; gap:4px; justify-content:center; min-height:10px; }
+.foebox .buffs, .foebox .debuffs{ display:flex; gap:2px; }
 .foebox .bar.foe{ height:11px; }
 
 /* --- Modo "reposicionar interfaz": cada bloque se tiñe de verde y se puede
@@ -92,6 +93,10 @@ body.layout-edit .layoutApplyBtn{ display:block; }
 .skipturn:active{ transform:translateY(1px); }
 
 .topright{ top:max(10px,env(safe-area-inset-top)); right:10px; transform:translate(var(--dragX,0px),var(--dragY,0px)) scale(var(--ui)); transform-origin:top right; display:flex; gap:8px; }
+
+/* Fuera de combate no hay turnos que saltar ni PA que gastar (movimiento
+   libre); estos dos solo aparecen en cuanto se activa el combate. */
+.ap.hidden, .skipturn.hidden{ display:none; }
 
 /* Aviso de "entra en combate": aparece un momento arriba a la derecha, sobre
    el botón de reiniciar, y se desvanece solo. */

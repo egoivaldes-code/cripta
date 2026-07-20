@@ -1,6 +1,40 @@
 {
   "versions": [
     {
+      "v": "0.14",
+      "es": {
+        "title": "Combate real, cámara y limpieza visual",
+        "notes": [
+          "Fuera de combate ya puedes moverte libremente, sin PA ni turnos: en cuanto un enemigo te detecta, empieza el combate por turnos de verdad.",
+          "El icono de combate se queda mientras dure la lucha, no solo un momento.",
+          "La cámara sigue ahora a cada enemigo durante su turno.",
+          "Quitado el último resto de magenta en el borde del mapa.",
+          "El botón \"Saltar turno\" ya no se ve transparente.",
+          "Vida del héroe más larga.",
+          "Nombres de enemigo más pequeños y mejor organizados.",
+          "La marca del evento de ambientación ya no se ve en el suelo.",
+          "Arreglado el bamboleo del esqueleto al estar quieto.",
+          "Arreglado un texto que se superponía en la carta de evento del cementerio."
+        ]
+      },
+      "en": {
+        "title": "Real combat, camera and visual cleanup",
+        "notes": [
+          "Outside combat you can now move freely, no AP or turns: the moment an enemy spots you, real turn-based combat begins.",
+          "The combat icon now stays for the whole fight, not just a moment.",
+          "The camera now follows each enemy during its turn.",
+          "Removed the last bit of magenta on the map edge.",
+          "The \"Skip turn\" button no longer looks see-through.",
+          "Longer hero health bar.",
+          "Smaller, better organised enemy names.",
+          "The ambient event marker no longer shows on the ground.",
+          "Fixed the skeleton wobbling while idle.",
+          "Fixed overlapping text on the cemetery event card."
+        ]
+      },
+      "title": "Combate real, cámara y limpieza visual"
+    },
+    {
       "v": "0.13.2",
       "es": {
         "title": "Magenta, iniciativa y objetos sin conectar",

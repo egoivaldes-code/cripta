@@ -1,13 +1,14 @@
 // Reglas del juego: economía de Puntos de Acción (PA), interacción a distancia
 // y adyacente, trampas, niebla y salida de nivel. Agnóstico del dibujo.
 
-import { state, walkable, adjacent, distTo, isVisible, recomputeFog, computeReach, pathTo, reachCost, blockingTriggerAt, trapAt, walkTriggerAt, stepNeighbors, foeAt, livingFoes, losClear } from './state.js?v=0.13.2';
-import { openEvent, openTrapCard, openStoryCard, syncHUD, syncInitiativeUI, showCombatBadge, log, gameOver } from './ui.js?v=0.13.2';
-import { t } from './i18n.js?v=0.13.2';
-import { MOVE_COST, ATTACK_COST, INITIATIVE_BASE, INITIATIVE_DIE, TURN_DELAY } from './config.js?v=0.13.2';
-import * as anim from './anim.js?v=0.13.2';
-import { ANIM_CLIPS } from './anim.js?v=0.13.2';
-import * as audio from './audio.js?v=0.13.2';
+import { state, walkable, adjacent, distTo, isVisible, recomputeFog, computeReach, pathTo, reachCost, blockingTriggerAt, trapAt, walkTriggerAt, stepNeighbors, foeAt, livingFoes, losClear } from './state.js?v=0.14';
+import { openEvent, openTrapCard, openStoryCard, syncHUD, syncInitiativeUI, showCombatBadge, log, gameOver } from './ui.js?v=0.14';
+import { t } from './i18n.js?v=0.14';
+import { MOVE_COST, ATTACK_COST, INITIATIVE_BASE, INITIATIVE_DIE, TURN_DELAY } from './config.js?v=0.14';
+import * as anim from './anim.js?v=0.14';
+import { ANIM_CLIPS } from './anim.js?v=0.14';
+import * as audio from './audio.js?v=0.14';
+import { centerOnTile } from './render.js?v=0.14';
 
 const sign = (n) => Math.sign(n);
 
@@ -219,7 +220,9 @@ export function onTapTile(gx, gy) {
       audio.fx('kill'); target.alive = false;
       if (state.targetFoe === target) state.targetFoe = null;
       if (ANIM_CLIPS[target.sprite]) { anim.die(target.anim); target.deathPlaying = true; }
+      checkCombatEnd();
       syncHUD();
+      syncInitiativeUI();
       if (livingFoes().length === 0) return gameOver('win');
     } else {
       audio.fx('attack'); syncHUD();
@@ -323,6 +326,7 @@ export async function endHeroTurn() {
     syncInitiativeUI();
     await sleep(TURN_DELAY);   // pausa al terminar el turno del héroe
     await runFoeQueue();
+    if (state.combat.active) centerOnTile(state.hero.x, state.hero.y);
   }
   if (!state.busy) startHeroTurn();   // si busy=true, hay una carta de fin de partida abierta
 }
@@ -346,9 +350,11 @@ async function runFoeQueue() {
       const foe = entry.ref;
       state.combat.idx++;
       if (!foe.alive) continue;
+      centerOnTile(foe.x, foe.y);
       syncInitiativeUI();
       const heroDied = await runSingleFoeTurn(foe);
       checkCombatEnd();
+      syncHUD();
       if (heroDied || !state.combat.active) return;
       await sleep(TURN_DELAY);   // pausa al terminar el turno de este NPC
     }

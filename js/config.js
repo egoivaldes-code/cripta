@@ -38,4 +38,4 @@ export const INITIATIVE_BASE = {
 export const TURN_DELAY = 1000;  // ms de pausa entre el fin de un turno y el siguiente (héroe y NPCs)
 
 // --- versión (fuente única; también se usa para el cache-busting de assets) ---
-export const VERSION = '0.13.2';
+export const VERSION = '0.14';

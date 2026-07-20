@@ -1,13 +1,13 @@
 // Capa DOM: HUD (con PA), cartas de evento, registro, fin de partida y ajustes.
 // Todo el texto visible pasa por t() (multiidioma). No dibuja en el canvas.
 
-import { state } from './state.js?v=0.13.2';
-import { t } from './i18n.js?v=0.13.2';
-import * as anim from './anim.js?v=0.13.2';
-import { IDLE_NAME } from './anim.js?v=0.13.2';
-import * as audio from './audio.js?v=0.13.2';
-import { VERSION } from './config.js?v=0.13.2';
-import { images, SPRITE_TILE } from './assets.js?v=0.13.2';
+import { state } from './state.js?v=0.14';
+import { t } from './i18n.js?v=0.14';
+import * as anim from './anim.js?v=0.14';
+import { IDLE_NAME } from './anim.js?v=0.14';
+import * as audio from './audio.js?v=0.14';
+import { VERSION } from './config.js?v=0.14';
+import { images, SPRITE_TILE } from './assets.js?v=0.14';
 
 let afterInteract = () => {};
 let restart = () => {};
@@ -29,8 +29,11 @@ export function syncHUD() {
   hpText.textContent = `${Math.max(0, hero.hp)}/${hero.maxHp}`;
   hpText.style.color = pct < 0.25 ? '#e86a5c' : '#fff';
   $('gold').textContent = hero.gold;
-  // Puntos de acción: pips llenos/vacíos.
+  // Puntos de acción: pips llenos/vacíos. Fuera de combate no hay turnos que
+  // saltar ni PA que gastar (movimiento libre), así que se esconden los dos.
   const pips = $('apPips');
+  pips.classList.toggle('hidden', !state.combat.active);
+  $('endTurn').classList.toggle('hidden', !state.combat.active);
   pips.innerHTML = '';
   for (let i = 0; i < hero.apMax; i++) {
     const d = document.createElement('span');
@@ -52,7 +55,7 @@ export function syncFoeRow() {
     const box = document.createElement('div');
     box.className = 'foebox' + (state.targetFoe === foe ? ' selected' : '');
     const name = t('enemy.' + foe.sprite);
-    box.innerHTML = `<div class="buffs"></div><div class="fname">${name}</div><div class="bar foe"><span style="width:${Math.max(0, (1 - foe.hp / foe.maxHp) * 100)}%"></span></div><div class="debuffs"></div>`;
+    box.innerHTML = `<div class="fname">${name}</div><div class="bar foe"><span style="width:${Math.max(0, (1 - foe.hp / foe.maxHp) * 100)}%"></span></div><div class="status"><span class="buffs"></span><span class="debuffs"></span></div>`;
     box.onclick = () => {
       state.targetFoe = state.targetFoe === foe ? null : foe;
       syncFoeRow();
@@ -62,16 +65,14 @@ export function syncFoeRow() {
 }
 
 // --- Iniciativa: aviso de "entra en combate" (espadas, arriba a la derecha,
-// un momento) y barra horizontal con el orden de actuación (retratos sacados
-// del primer fotograma de idle de cada uno). Se llama desde rules.js. ---
-let badgeTimer = null;
+// se queda mientras dure el combate) y barra horizontal con el orden de
+// actuación (retratos sacados del primer fotograma de idle de cada uno).
+// Se llama desde rules.js. ---
 export function showCombatBadge() {
   const el = $('combatBadge');
-  el.classList.remove('show'); void el.offsetWidth;   // reinicia la animación si ya estaba mostrándose
+  el.classList.remove('show'); void el.offsetWidth;   // reinicia la animación de entrada
   el.classList.add('show');
   audio.fx('ui');
-  clearTimeout(badgeTimer);
-  badgeTimer = setTimeout(() => el.classList.remove('show'), 1600);
 }
 
 // Dibuja el primer fotograma de idle de `ref` (héroe o enemigo) en un canvas
@@ -87,6 +88,7 @@ function drawPortrait(canvas, ref) {
 }
 
 export function syncInitiativeUI() {
+  $('combatBadge').classList.toggle('show', state.combat.active);
   const bar = $('initiativeBar');
   if (!state.combat.active || !state.combat.order.length) { bar.classList.remove('show'); bar.innerHTML = ''; return; }
   bar.classList.add('show');

@@ -2,6 +2,19 @@
 
 Esquema: `0.X` = cambio grande · `0.X.Y` = cambio pequeño / fix.
 
+## 0.14 — combate real (activación por rango), cámara y limpieza visual
+- **Nuevo flujo de combate**: fuera de combate, los PA y el botón "Saltar turno" se esconden (no hacen falta: te puedes mover libremente). En cuanto un enemigo te detecta por rango — pase en tu turno o no — entra en combate, aparecen los PA y el turno a turno normal empieza. Al morir todos los enemigos activados, se sale de combate solo.
+- **Icono de combate persistente**: el aviso (⚔️) ya no desaparece a los 1.6s; se queda todo el combate y se esconde solo al salir de él.
+- **Cámara con seguimiento**: durante el turno de cada enemigo, la cámara se desplaza a él para que se vea lo que hace; al volver el turno al héroe, vuelve a centrarse en él.
+- **Fleco magenta residual** en el borde del mapa (quedaba un poco de antialiasing sin quitar): repetido el recorte con más margen.
+- **Botón "Saltar turno" transparente**: quitado el aspecto de cristal (era demasiado translúcido), ahora es opaco.
+- **Vida del héroe** más larga y un poco más alta todavía.
+- **Cajas de enemigo**: nombre más pequeño, vida justo debajo, buffos y debuffos juntos en una fila aparte debajo de la vida (de momento vacía, lista para cuando haya iconos de estado).
+- **Marca de evento de ambientación invisible**: los triggers `walkTrigger` (ambientación pura) ya no dibujan ningún icono en el suelo; saltan solos al pisar/cruzar, sin dar pistas visuales.
+- **Bamboleo del idle del esqueleto**: los 6 fotogramas de `enemy1/idle.png` no estaban centrados igual entre sí (hasta 7px de diferencia horizontal); realineados todos al mismo eje.
+- **Texto superpuesto en la carta de evento del cementerio**: la imagen tenía una firma decorativa falsa (generada por la IA) justo donde cae el aviso "toca para continuar"; tapada con un parche de la misma textura de pergamino.
+- La barra de iniciativa y los PA/botón de turno se refrescan ahora en todos los puntos donde el combate puede terminar (muerte por el héroe, muerte en turno de NPC), no solo al final de una ronda completa.
+
 ## 0.13.2 — magenta, iniciativa, saltar turno y objetos sin conectar
 - **Fondo del cementerio**: el margen del lienzo que no llegó a pintarse se quedaba en magenta bien visible (no era un problema de transparencia general, solo de ese borde sin pintar). Hecho transparente de verdad con detección por color conectada al borde (para no tocar ningún píxel del dibujo real, solo el margen sin usar).
 - **Barra de iniciativa**: se solapaba con el botón de reiniciar cuando la escala de interfaz está alta (el botón puede crecer bastante). Bajada con más margen.
