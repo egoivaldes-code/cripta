@@ -27,18 +27,19 @@ body{
    maná; la caja de PA ya trae la palabra "PA" dibujada, solo hace falta poner
    los PA de verdad debajo. Los porcentajes de top/bottom vienen de medir el
    propio archivo (assets/ui/hero_panel.png, 1722×400). --- */
-.heroPanel{ position:relative; width:380px; aspect-ratio:1722/400;
+.heroPanel{ position:relative; width:min(300px, 70vw); aspect-ratio:1722/400;
   background:url(../assets/ui/hero_panel.png) center/100% 100% no-repeat; }
 .heroPanel .hp-row1{ position:absolute; left:4%; right:20%; top:15%; bottom:59%;
   display:flex; align-items:center; justify-content:space-between; gap:4px; overflow:hidden; }
 .heroPanel .hp-row2{ position:absolute; left:4%; right:20%; top:44%; bottom:35%; }
 .heroPanel .hp-row3{ position:absolute; left:4%; right:20%; top:68%; bottom:5%; }
-.heroPanel .heroName{ font-size:13px; letter-spacing:.04em; color:var(--bone); white-space:nowrap; }
-.heroPanel .statusRow{ display:flex; gap:3px; align-items:center; }
+.heroPanel .heroName{ flex:1 1 auto; min-width:0; font-size:12px; letter-spacing:.03em; color:var(--bone);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.heroPanel .statusRow{ flex:0 0 auto; display:flex; gap:3px; align-items:center; }
 .heroPanel .statusRow:empty{ display:none; }
-.heroPanel .pa-box{ position:absolute; left:82%; right:2%; top:32%; bottom:8%;
+.heroPanel .pa-box{ position:absolute; left:82%; right:2%; top:30%; bottom:8%;
   display:flex; align-items:center; justify-content:center;
-  font-size:26px; font-weight:700; line-height:1; text-shadow:0 1px 3px rgba(0,0,0,.8); }
+  font-size:20px; font-weight:700; line-height:1; text-shadow:0 1px 3px rgba(0,0,0,.8); }
 .pa-box.ap-white{ color:var(--bone); }
 .pa-box.ap-warn{ color:#e0b23c; }
 .pa-box.ap-empty{ color:#e05a3c; }
@@ -59,7 +60,7 @@ body{
   background:linear-gradient(to left, rgba(3,4,7,.95), rgba(3,4,7,.55)); }
 .bar .hptext{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:none;
   font-size:9px; line-height:1; color:#fff; text-shadow:0 1px 1px rgba(0,0,0,.85); pointer-events:none; }
-.bar.hero .hptext, .bar.mana .hptext{ font-size:13px; font-weight:600; }
+.bar.hero .hptext, .bar.mana .hptext{ font-size:12px; font-weight:600; }
 .stat{ display:flex; align-items:center; gap:5px; font-size:13px; padding-left:10px; border-left:1px solid var(--steel); }
 .stat b{ color:var(--gold); font-weight:600; }
 .goldIcon{ width:16px; height:16px; object-fit:contain; }
@@ -94,20 +95,21 @@ body{
 .skipturn:hover{ border-color:var(--ember); color:var(--ember); }
 
 /* Cajas individuales de vida de enemigo, una por enemigo vivo, bajo "Fin de turno".
-   Marco nuevo de 2 filas (assets/ui/foe_panel.png, 1810×369): fila 1 = nombre +
-   perjuicios, fila 2 = vida. Aspect-ratio real para que nunca se deforme. */
-.foeRow{ display:flex; flex-wrap:wrap; gap:8px; margin-top:6px; max-width:340px; }
-.foebox{ position:relative; width:150px; aspect-ratio:1810/369; cursor:pointer;
+   Apiladas verticalmente (una debajo de otra), ancho a juego con el panel del
+   héroe. Marco de 2 filas (assets/ui/foe_panel.png, 1810×369): fila 1 = nombre
+   + perjuicios, fila 2 = vida. Aspect-ratio real para que nunca se deforme. */
+.foeRow{ display:flex; flex-direction:column; gap:6px; margin-top:6px; width:min(300px, 70vw); }
+.foebox{ position:relative; width:100%; aspect-ratio:1810/369; cursor:pointer;
   background:url(../assets/ui/foe_panel.png) center/100% 100% no-repeat;
   filter:drop-shadow(0 1px 2px rgba(0,0,0,.6)); }
 .foebox:hover, .foebox.selected{ filter:drop-shadow(0 0 3px var(--ember)); }
-.foebox .fe-row1{ position:absolute; left:6%; right:4%; top:26%; bottom:34%;
+.foebox .fe-row1{ position:absolute; left:6%; right:4%; top:24%; bottom:36%;
   display:flex; align-items:center; justify-content:space-between; gap:3px; overflow:hidden; }
 .foebox .fe-row2{ position:absolute; left:6%; right:5%; top:71%; bottom:9%; }
-.foebox .fname{ font-size:8px; letter-spacing:.02em; color:var(--bone-dim); line-height:1.15;
-  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.foebox .fname{ flex:1 1 auto; min-width:0; font-size:11px; letter-spacing:.01em; color:var(--bone-dim);
+  line-height:1.15; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .foebox.selected .fname{ color:var(--ember); }
-.foebox .status{ display:flex; gap:2px; align-items:center; }
+.foebox .status{ flex:0 0 auto; display:flex; gap:2px; align-items:center; }
 .foebox .status:empty{ display:none; }
 .foebox .bar.foe{ height:100%; width:100%; }
 
@@ -137,8 +139,8 @@ body.layout-edit .layoutApplyBtn{ display:block; }
 
 /* Barra de iniciativa: retratos en fila horizontal, arriba a la derecha,
    debajo del botón de reiniciar. El que le toca actuar se resalta. */
-.initiativeBar{ top:calc(max(10px,env(safe-area-inset-top)) + 72px); right:10px;
-  display:none; gap:5px; padding:5px; background:rgba(26,30,39,.82); border:1px solid var(--steel);
+.initiativeBar{ top:calc(max(10px,env(safe-area-inset-top)) + 72px); right:10px; max-width:min(220px, 46vw);
+  display:none; flex-wrap:wrap; justify-content:flex-end; gap:5px; padding:5px; background:rgba(26,30,39,.82); border:1px solid var(--steel);
   border-radius:6px; backdrop-filter:blur(3px); }
 .initiativeBar.show{ display:flex; }
 .initSlot{ width:40px; height:40px; border-radius:5px; overflow:hidden; border:2px solid var(--steel);
@@ -151,7 +153,6 @@ body.layout-edit .layoutApplyBtn{ display:block; }
    lleguen a solaparse. En pantallas grandes siguen la escala completa. */
 @media (max-width: 500px) {
   .hudrow{ gap:5px; padding:6px 8px; }
-  .heroPanel{ width:230px; }
   .stat{ padding-left:6px; }
   .ap{ padding-left:6px; }
   .hud, .topright{ transform:translate(var(--dragX,0px),var(--dragY,0px)) scale(min(var(--ui), 1.15)); }

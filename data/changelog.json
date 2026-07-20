@@ -1,6 +1,28 @@
 {
   "versions": [
     {
+      "v": "0.14.2",
+      "es": {
+        "title": "Activación inmediata y ajustes de HUD",
+        "notes": [
+          "Los enemigos ya se activan en cuanto entras en su rango, no al acabar el turno — antes parecía que no reaccionaban.",
+          "Cajas de enemigo apiladas a la izquierda, con el nombre bien ajustado al marco.",
+          "Panel del héroe reajustado para que no choque con el botón de reiniciar en pantallas pequeñas.",
+          "Más margen para el icono de combate y la barra de iniciativa."
+        ]
+      },
+      "en": {
+        "title": "Immediate activation and HUD tweaks",
+        "notes": [
+          "Enemies now activate the moment you enter their range, not at the end of your turn — they used to look unresponsive.",
+          "Enemy boxes stacked on the left, with names properly fitted to the frame.",
+          "Hero panel resized so it never collides with the reset button on small screens.",
+          "More clearance for the combat icon and initiative bar."
+        ]
+      },
+      "title": "Activación inmediata y ajustes de HUD"
+    },
+    {
       "v": "0.14.1",
       "es": {
         "title": "Arreglado el congelamiento en combate",

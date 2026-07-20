@@ -1,14 +1,14 @@
 // Reglas del juego: economía de Puntos de Acción (PA), interacción a distancia
 // y adyacente, trampas, niebla y salida de nivel. Agnóstico del dibujo.
 
-import { state, walkable, adjacent, distTo, isVisible, recomputeFog, computeReach, pathTo, reachCost, blockingTriggerAt, trapAt, walkTriggerAt, stepNeighbors, foeAt, livingFoes, losClear } from './state.js?v=0.14.1';
-import { openEvent, openTrapCard, openStoryCard, syncHUD, syncInitiativeUI, showCombatBadge, log, gameOver } from './ui.js?v=0.14.1';
-import { t } from './i18n.js?v=0.14.1';
-import { MOVE_COST, ATTACK_COST, INITIATIVE_BASE, INITIATIVE_DIE, TURN_DELAY } from './config.js?v=0.14.1';
-import * as anim from './anim.js?v=0.14.1';
-import { ANIM_CLIPS } from './anim.js?v=0.14.1';
-import * as audio from './audio.js?v=0.14.1';
-import { centerOnTile } from './render.js?v=0.14.1';
+import { state, walkable, adjacent, distTo, isVisible, recomputeFog, computeReach, pathTo, reachCost, blockingTriggerAt, trapAt, walkTriggerAt, stepNeighbors, foeAt, livingFoes, losClear } from './state.js?v=0.14.2';
+import { openEvent, openTrapCard, openStoryCard, syncHUD, syncInitiativeUI, showCombatBadge, log, gameOver } from './ui.js?v=0.14.2';
+import { t } from './i18n.js?v=0.14.2';
+import { MOVE_COST, ATTACK_COST, INITIATIVE_BASE, INITIATIVE_DIE, TURN_DELAY } from './config.js?v=0.14.2';
+import * as anim from './anim.js?v=0.14.2';
+import { ANIM_CLIPS } from './anim.js?v=0.14.2';
+import * as audio from './audio.js?v=0.14.2';
+import { centerOnTile } from './render.js?v=0.14.2';
 
 const sign = (n) => Math.sign(n);
 
@@ -84,7 +84,11 @@ function enterCombat(ref) {
 // p.ej. por un golpe directo) y aún no está en la cola; si es así, entra en
 // combate. Se llama al terminar el turno del héroe (mismo momento en que
 // antes se comprobaba el despertar de los enemigos).
+// Devuelve true si el combate ACABA de empezar con esta llamada (no estaba
+// activo antes y ahora sí) — así quien llama puede cortar el turno del héroe
+// ahí mismo ("movimiento libre hasta que activas a alguien, y ahí se para").
 function scanForNewCombatants() {
+  const wasActive = state.combat.active;
   const { hero } = state;
   for (const f of state.foes) {
     if (!f.alive) continue;
@@ -95,6 +99,7 @@ function scanForNewCombatants() {
     enterCombat(f);
   }
   if (state.combat.active) enterCombat('hero');
+  return !wasActive && state.combat.active;
 }
 
 // Si ya no queda ningún enemigo vivo, se acaba el combate (oculta la barra de
@@ -228,7 +233,8 @@ export function onTapTile(gx, gy) {
       audio.fx('attack'); syncHUD();
     }
     computeReach();
-    if (hero.ap <= 0) return endHeroTurn();
+    const justEnteredCombat = scanForNewCombatants();
+    if (hero.ap <= 0 || justEnteredCombat) return endHeroTurn();
     return;
   }
 
@@ -298,7 +304,11 @@ export function onTapTile(gx, gy) {
   if (state.exit && gx === state.exit.x && gy === state.exit.y) { onDescend(); return; }
 
   computeReach();
-  if (hero.hp > 0 && hero.ap <= 0) endHeroTurn();
+  // Fuera de combate el movimiento es libre (sin turnos); en cuanto un
+  // enemigo entra en rango de activación —aunque sea a mitad de PA— se para
+  // aquí mismo y empieza el combate por turnos, no hace falta agotar el PA.
+  const justEnteredCombat = scanForNewCombatants();
+  if (hero.hp > 0 && (justEnteredCombat || hero.ap <= 0)) endHeroTurn();
 }
 
 // Se llama tras resolver la carta de un objeto (ui.js). El coste ya se
