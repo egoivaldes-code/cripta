@@ -33,11 +33,11 @@ body{
   display:flex; align-items:center; justify-content:space-between; gap:4px; overflow:hidden; }
 .heroPanel .hp-row2{ position:absolute; left:4%; right:20%; top:44%; bottom:35%; }
 .heroPanel .hp-row3{ position:absolute; left:4%; right:20%; top:68%; bottom:5%; }
-.heroPanel .heroName{ flex:1 1 auto; min-width:0; font-size:12px; letter-spacing:.03em; color:var(--bone);
+.heroPanel .heroName{ flex:1 1 auto; min-width:0; margin-left:7px; font-size:12px; letter-spacing:.03em; color:var(--bone);
   white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .heroPanel .statusRow{ flex:0 0 auto; display:flex; gap:3px; align-items:center; }
 .heroPanel .statusRow:empty{ display:none; }
-.heroPanel .pa-box{ position:absolute; left:82%; right:2%; top:30%; bottom:8%;
+.heroPanel .pa-box{ position:absolute; left:82%; right:2%; top:30%; bottom:8%; transform:translate(1px, 6px);
   display:flex; align-items:center; justify-content:center;
   font-size:20px; font-weight:700; line-height:1; text-shadow:0 1px 3px rgba(0,0,0,.8); }
 .pa-box.ap-white{ color:var(--bone); }
@@ -45,22 +45,24 @@ body{
 .pa-box.ap-empty{ color:#e05a3c; }
 
 .bar{ height:9px; border-radius:2px; background:#000; overflow:hidden; border:1px solid #000; position:relative; }
-.bar.hero{ height:100%; width:100%; border:none; }
-.bar.mana{ height:100%; width:100%; border:none; }
-.bar.foe { background:#000 url(../assets/ui/bar_hp_foe.png) center/100% 100% no-repeat; border:none; }
+.bar.hero{ height:calc(100% - 2px); margin:1px auto 0; width:calc(100% + 1px); border:none; transform:translate(3px, 2px); }
+.bar.mana{ height:calc(100% - 6px); margin:2px auto 0; width:calc(100% + 1px); border:none; transform:translate(3px, 0px); }
+.bar.foe { background:linear-gradient(#7a1414,#3a0808); border-radius:999px; border:none; }
 .bar > span{ display:block; height:100%; transition:width .25s ease; }
 /* La barra roja/azul del panel nuevo ya viene pintada en el propio marco (no
    hace falta más imagen); lo único que "tapa" al perder vida/maná es esta
    cubierta oscura que avanza desde la derecha. */
 .bar.hero > span.fill, .bar.mana > span.fill{ position:absolute; top:0; right:0; height:100%;
   background:linear-gradient(to left, rgba(3,4,7,.95), rgba(3,4,7,.55)); }
-.bar.hero{ background:linear-gradient(#7a1414,#3a0808); border-radius:3px; }
-.bar.mana{ background:linear-gradient(#123a5a,#081c30); border-radius:3px; }
+.bar.hero{ background:linear-gradient(#7a1414,#3a0808); border-radius:999px; }
+.bar.mana{ background:linear-gradient(#123a5a,#081c30); border-radius:999px; }
 .bar.foe  > span{ position:absolute; top:0; right:0; height:100%;
   background:linear-gradient(to left, rgba(3,4,7,.95), rgba(3,4,7,.55)); }
 .bar .hptext{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:none;
   font-size:9px; line-height:1; color:#fff; text-shadow:0 1px 1px rgba(0,0,0,.85); pointer-events:none; }
 .bar.hero .hptext, .bar.mana .hptext{ font-size:12px; font-weight:600; }
+.bar.hero .hptext{ transform:translateY(0px); }
+.bar.mana .hptext{ transform:translateY(-1px); }
 .stat{ display:flex; align-items:center; gap:5px; font-size:13px; padding-left:10px; border-left:1px solid var(--steel); }
 .stat b{ color:var(--gold); font-weight:600; }
 .goldIcon{ width:16px; height:16px; object-fit:contain; }
@@ -75,30 +77,24 @@ body{
   background:#1a1e27; border:1px solid var(--steel); border-radius:6px; font-size:8px; line-height:11px;
   text-align:center; color:var(--bone); }
 
-/* Botón de turno: justo debajo de la vida, ancho completo del HUD. El asset
-   (skipturn_bar.png) tiene un remate ornamentado en cada extremo y una parte
-   central lisa. Con "background-size:100% 100%" el remate se deformaba (se
-   veía estirado/aplastado). Con border-image tampoco quedó del todo bien.
-   Solución robusta: dos pseudo-elementos (uno por extremo) con la imagen
-   ENTERA escalada una sola vez, preservando su proporción real, a la altura
-   del botón — cada uno solo "asoma" su propia ventana de 38px por su lado
-   (izquierda/derecha), así que el remate nunca se deforma, mires donde mires.
-   El centro se queda como placa lisa (el texto no necesita más adorno ahí). */
-.skipturn{ position:relative; width:100%; color:var(--bone);
-  background:linear-gradient(#2a2114,#1a150c);
-  border:1px solid rgba(70,55,30,.9); border-radius:6px;
-  font:inherit; font-size:12.5px; letter-spacing:.04em; padding:8px 46px; cursor:pointer; }
-.skipturn::before, .skipturn::after{ content:''; position:absolute; top:1px; bottom:1px; width:38px;
-  background-image:url(../assets/ui/skipturn_bar.png); background-repeat:no-repeat; background-size:auto 100%; }
-.skipturn::before{ left:1px; background-position:left center; border-radius:5px 0 0 5px; }
-.skipturn::after{ right:1px; background-position:right center; border-radius:0 5px 5px 0; }
-.skipturn:hover{ border-color:var(--ember); color:var(--ember); }
+/* Botón de turno: ahora usa el marco nuevo tal cual (sin texto quemado en la
+   imagen, para que el texto siga saliendo del archivo de idiomas) con su
+   proporción real (977×309) para que nunca se deforme. El texto se pinta
+   encima con CSS, en dorado grabado, imitando la muestra de referencia. */
+.skipturn{ position:relative; display:flex; align-items:center; justify-content:center;
+  width:100%; aspect-ratio:977/309;
+  background:url(../assets/ui/skipturn_bar.png) center/100% 100% no-repeat;
+  border:none; cursor:pointer;
+  font:inherit; font-family:Georgia,"Times New Roman",serif; font-weight:700;
+  font-size:15px; letter-spacing:.08em; text-transform:uppercase;
+  color:#d9b878; text-shadow:0 1px 0 #6b4a1a, 0 -1px 1px #000, 0 2px 3px rgba(0,0,0,.7); }
+.skipturn:hover{ color:#eccb8f; }
 
 /* Cajas individuales de vida de enemigo, una por enemigo vivo, bajo "Fin de turno".
    Apiladas verticalmente (una debajo de otra), ancho a juego con el panel del
    héroe. Marco de 2 filas (assets/ui/foe_panel.png, 1810×369): fila 1 = nombre
    + perjuicios, fila 2 = vida. Aspect-ratio real para que nunca se deforme. */
-.foeRow{ display:flex; flex-direction:column; gap:6px; margin-top:6px; width:min(300px, 70vw); }
+.foeRow{ display:flex; flex-direction:column; gap:6px; margin-top:6px; width:min(150px, 35vw); }
 .foebox{ position:relative; width:100%; aspect-ratio:1810/369; cursor:pointer;
   background:url(../assets/ui/foe_panel.png) center/100% 100% no-repeat;
   filter:drop-shadow(0 1px 2px rgba(0,0,0,.6)); }
@@ -106,12 +102,12 @@ body{
 .foebox .fe-row1{ position:absolute; left:6%; right:4%; top:24%; bottom:36%;
   display:flex; align-items:center; justify-content:space-between; gap:3px; overflow:hidden; }
 .foebox .fe-row2{ position:absolute; left:6%; right:5%; top:71%; bottom:9%; }
-.foebox .fname{ flex:1 1 auto; min-width:0; font-size:11px; letter-spacing:.01em; color:var(--bone-dim);
+.foebox .fname{ flex:1 1 auto; min-width:0; margin-left:4px; font-size:9px; letter-spacing:.01em; color:var(--bone-dim);
   line-height:1.15; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .foebox.selected .fname{ color:var(--ember); }
 .foebox .status{ flex:0 0 auto; display:flex; gap:2px; align-items:center; }
 .foebox .status:empty{ display:none; }
-.foebox .bar.foe{ height:100%; width:100%; }
+.foebox .bar.foe{ height:calc(100% - 2.5px); width:calc(100% - 8px); margin:0 auto; transform:translate(-0.5px, 1px); }
 
 /* --- Modo "reposicionar interfaz": cada bloque se tiñe de verde y se puede
    arrastrar; el botón de abajo lo ancla todo en su sitio nuevo. --- */
@@ -124,22 +120,23 @@ body.layout-edit .ui *{ pointer-events:none; }
 body.layout-edit .layoutApplyBtn{ display:block; }
 .skipturn:active{ transform:translateY(1px); }
 
-.topright{ top:max(10px,env(safe-area-inset-top)); right:10px; transform:translate(var(--dragX,0px),var(--dragY,0px)) scale(var(--ui)); transform-origin:top right; display:flex; gap:8px; }
+.topright{ top:max(10px,env(safe-area-inset-top)); right:10px;
+  transform:translate(var(--dragX,0px),var(--dragY,0px)) scale(var(--ui)); transform-origin:top right;
+  display:flex; flex-direction:column; align-items:flex-end; gap:6px; }
 
 /* Fuera de combate no hay turnos que saltar ni PA que gastar (movimiento
    libre); estos dos solo aparecen en cuanto se activa el combate. */
 .pa-box.hidden, .skipturn.hidden{ display:none; }
 
-/* Aviso de "entra en combate": aparece un momento arriba a la derecha, sobre
-   el botón de reiniciar, y se desvanece solo. */
-.combatBadge{ top:max(10px,env(safe-area-inset-top)); right:56px; font-size:26px; line-height:1;
+/* Aviso de "entra en combate": aparece un momento y se desvanece solo. */
+.combatBadge{ font-size:26px; line-height:1;
   opacity:0; transform:translateY(-6px) scale(.7); transition:opacity .25s ease, transform .25s ease;
   filter:drop-shadow(0 2px 4px rgba(0,0,0,.7)); pointer-events:none; z-index:6; }
 .combatBadge.show{ opacity:1; transform:translateY(0) scale(1.15); }
 
-/* Barra de iniciativa: retratos en fila horizontal, arriba a la derecha,
-   debajo del botón de reiniciar. El que le toca actuar se resalta. */
-.initiativeBar{ top:calc(max(10px,env(safe-area-inset-top)) + 72px); right:10px; max-width:min(220px, 46vw);
+/* Barra de iniciativa: retratos en fila horizontal, justo debajo del aviso
+   de combate. El que le toca actuar se resalta. */
+.initiativeBar{ max-width:min(220px, 46vw);
   display:none; flex-wrap:wrap; justify-content:flex-end; gap:5px; padding:5px; background:rgba(26,30,39,.82); border:1px solid var(--steel);
   border-radius:6px; backdrop-filter:blur(3px); }
 .initiativeBar.show{ display:flex; }

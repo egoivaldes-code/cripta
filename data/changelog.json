@@ -1,6 +1,32 @@
 {
   "versions": [
     {
+      "v": "0.14.3",
+      "es": {
+        "title": "Pathfinding real, HUD y arreglos",
+        "notes": [
+          "Arreglado que los esqueletos se quedaran plantados esperando en cuellos de botella (como la verja del cementerio): ahora calculan un camino real en vez de solo dar pasos que acerquen en línea recta.",
+          "Panel del héroe repasado a fondo: nombre, PA, vida y maná mejor colocados, con barras redondeadas en forma de píldora.",
+          "Caja de enemigo más compacta, con nombre reajustado y la misma barra de vida en píldora roja que el héroe.",
+          "Botón de reiniciar movido al panel de ajustes; arriba a la derecha ya solo están el aviso de combate y la tabla de iniciativa.",
+          "Botón \"Saltar turno\" con marco nuevo.",
+          "Arreglada la escala de los últimos fotogramas de la animación de muerte del esqueleto."
+        ]
+      },
+      "en": {
+        "title": "Real pathfinding, HUD and fixes",
+        "notes": [
+          "Fixed skeletons standing still forever at bottlenecks (like the cemetery gate): they now compute a real path instead of only taking steps that move straight toward you.",
+          "Hero panel thoroughly reworked: name, AP, health and mana better placed, with rounded pill-shaped bars.",
+          "Enemy box made more compact, with the name resized and the same red pill health bar as the hero.",
+          "Restart button moved into the settings panel; top-right now only shows the combat notice and initiative bar.",
+          "New \"Skip turn\" button frame.",
+          "Fixed the scale of the last frames of the skeleton death animation."
+        ]
+      },
+      "title": "Pathfinding real, HUD y arreglos"
+    },
+    {
       "v": "0.14.2",
       "es": {
         "title": "Activación inmediata y ajustes de HUD",

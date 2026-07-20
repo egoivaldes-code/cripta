@@ -2,7 +2,7 @@
 // Incluye niebla de guerra (explored/visible) y el alcance de movimiento
 // ligado a los Puntos de Acción (PA) restantes del héroe.
 
-import { SIGHT, SIGHT_DIM, AP_MAX, CLIMB_COST, MAX_CLIMB, DIFFICULT_EXTRA } from './config.js?v=0.14.2';
+import { SIGHT, SIGHT_DIM, AP_MAX, CLIMB_COST, MAX_CLIMB, DIFFICULT_EXTRA } from './config.js?v=0.14.3';
 
 export const state = {
   cols: 0, rows: 0,
@@ -196,6 +196,36 @@ export function computeReach() {
   }
   state.reach = { dist, from };
 }
+// Camino real (Dijkstra) desde CUALQUIER casilla de origen hasta el destino,
+// rodeando muros y objetos — no solo "el primer paso que acerque en línea
+// recta" (eso se quedaba atascado en cuellos de botella: un paso lateral que
+// aumenta la distancia un momento, para luego rodear, nunca se elegía). Lo
+// usan los enemigos para acercarse de verdad. Sin límite de PA (el que llama
+// decide cuántos pasos del camino puede permitirse pagar este turno).
+export function findPath(fromX, fromY, toX, toY) {
+  if (fromX === toX && fromY === toY) return [{ x: fromX, y: fromY }];
+  const dist = grid(state.rows, state.cols, -1);
+  const from = grid(state.rows, state.cols, null);
+  dist[fromY][fromX] = 0;
+  const pq = [[0, fromX, fromY]];
+  while (pq.length) {
+    pq.sort((a, b) => a[0] - b[0]);
+    const [d, x, y] = pq.shift();
+    if (d > dist[y][x]) continue;
+    if (x === toX && y === toY) break;
+    for (const [nx, ny, cost] of stepNeighbors(x, y)) {
+      const nd = d + cost;
+      if (dist[ny][nx] === -1 || nd < dist[ny][nx]) {
+        dist[ny][nx] = nd; from[ny][nx] = [x, y]; pq.push([nd, nx, ny]);
+      }
+    }
+  }
+  if (dist[toY][toX] === -1) return null;   // no hay camino posible
+  const path = []; let cur = [toX, toY];
+  while (cur) { path.push({ x: cur[0], y: cur[1] }); cur = from[cur[1]][cur[0]]; }
+  return path.reverse();
+}
+
 export function inRange(x, y) {
   const d = state.reach.dist;
   return inBounds(x, y) && d[y] && d[y][x] > 0;

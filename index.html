@@ -14,7 +14,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Cripta</title>
-<link rel="stylesheet" href="./css/styles.css?v=0.14.2">
+<link rel="stylesheet" href="./css/styles.css?v=0.14.3">
 </head>
 <body>
 <div id="game">
@@ -42,16 +42,12 @@
     <div class="foeRow" id="foeRow"></div>
   </div>
 
-  <!-- Reiniciar (arriba-derecha) -->
+  <!-- Aviso de combate + orden de iniciativa (arriba-derecha; antes aquí
+       estaba el botón de reiniciar, movido al panel de ajustes) -->
   <div class="ui topright" id="topright">
-    <button class="iconbtn" id="reset" aria-label="Reiniciar">⟳</button>
+    <div class="combatBadge" id="combatBadge">⚔️</div>
+    <div class="initiativeBar" id="initiativeBar"></div>
   </div>
-
-  <!-- Aviso de "entra en combate" (un momento, arriba a la derecha) -->
-  <div class="ui combatBadge" id="combatBadge">⚔️</div>
-
-  <!-- Orden de iniciativa (horizontal, arriba a la derecha, debajo del aviso) -->
-  <div class="ui initiativeBar" id="initiativeBar"></div>
 
   <!-- Versión + Ajustes + recentrar (abajo-derecha) -->
   <div class="ui bottomright" id="bottomright">
@@ -88,6 +84,8 @@
 
       <button class="primary" id="repositionBtn"></button>
 
+      <button class="primary" id="reset" aria-label="Reiniciar"></button>
+
       <button class="primary" id="setClose"></button>
       <div class="ver" id="verTagPanel"></div>
     </div>
@@ -110,6 +108,6 @@
   </div>
 </div>
 
-<script type="module" src="./js/main.js?v=0.14.2"></script>
+<script type="module" src="./js/main.js?v=0.14.3"></script>
 </body>
 </html>

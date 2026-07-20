@@ -1,14 +1,14 @@
 // Reglas del juego: economía de Puntos de Acción (PA), interacción a distancia
 // y adyacente, trampas, niebla y salida de nivel. Agnóstico del dibujo.
 
-import { state, walkable, adjacent, distTo, isVisible, recomputeFog, computeReach, pathTo, reachCost, blockingTriggerAt, trapAt, walkTriggerAt, stepNeighbors, foeAt, livingFoes, losClear } from './state.js?v=0.14.2';
-import { openEvent, openTrapCard, openStoryCard, syncHUD, syncInitiativeUI, showCombatBadge, log, gameOver } from './ui.js?v=0.14.2';
-import { t } from './i18n.js?v=0.14.2';
-import { MOVE_COST, ATTACK_COST, INITIATIVE_BASE, INITIATIVE_DIE, TURN_DELAY } from './config.js?v=0.14.2';
-import * as anim from './anim.js?v=0.14.2';
-import { ANIM_CLIPS } from './anim.js?v=0.14.2';
-import * as audio from './audio.js?v=0.14.2';
-import { centerOnTile } from './render.js?v=0.14.2';
+import { state, walkable, adjacent, distTo, isVisible, recomputeFog, computeReach, pathTo, findPath, reachCost, blockingTriggerAt, trapAt, walkTriggerAt, stepNeighbors, foeAt, livingFoes, losClear } from './state.js?v=0.14.3';
+import { openEvent, openTrapCard, openStoryCard, syncHUD, syncInitiativeUI, showCombatBadge, log, gameOver } from './ui.js?v=0.14.3';
+import { t } from './i18n.js?v=0.14.3';
+import { MOVE_COST, ATTACK_COST, INITIATIVE_BASE, INITIATIVE_DIE, TURN_DELAY } from './config.js?v=0.14.3';
+import * as anim from './anim.js?v=0.14.3';
+import { ANIM_CLIPS } from './anim.js?v=0.14.3';
+import * as audio from './audio.js?v=0.14.3';
+import { centerOnTile } from './render.js?v=0.14.3';
 
 const sign = (n) => Math.sign(n);
 
@@ -637,14 +637,19 @@ function fleeStep(foe, ap) {
 // puede acercarse más (no malgasta PA).
 function approachStep(foe, ap) {
   const { hero } = state;
-  const cur = distTo(foe, hero.x, hero.y);
-  const step = stepNeighbors(foe.x, foe.y)
-    .map(([x, y, cost]) => ({ x, y, cost }))
-    .filter(p => !(p.x === hero.x && p.y === hero.y) && p.cost <= ap)
-    .map(p => ({ ...p, d: distTo(hero, p.x, p.y) }))
-    .sort((a, b) => a.d - b.d)[0];
-  if (!step || step.d >= cur) return null;
-  return step;
+  // Camino real hasta la casilla del héroe (el terreno en sí es transitable
+  // ahí; el hueco de "adyacente, no encima" lo da quedarse en el penúltimo
+  // paso). Así, si hace falta rodear un muro o pasar por un cuello de botella
+  // de una sola casilla, el enemigo encuentra el camino en vez de quedarse
+  // parado esperando que la línea recta se despeje sola.
+  const path = findPath(foe.x, foe.y, hero.x, hero.y);
+  if (!path || path.length < 2) return null;   // ya está pegado, o no hay camino posible
+  const next = path[1];
+  const here = stepNeighbors(foe.x, foe.y).find(([x, y]) => x === next.x && y === next.y);
+  if (!here) return null;
+  const cost = here[2];
+  if (cost > ap) return null;   // el primer paso del camino ya no le llega con el PA que le queda
+  return { x: next.x, y: next.y, cost };
 }
 
 function doMove(foe, step) {
