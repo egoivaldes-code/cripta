@@ -1,6 +1,34 @@
 {
   "versions": [
     {
+      "v": "0.16",
+      "es": {
+        "title": "Inventario, registro de eventos y cámara que sigue",
+        "notes": [
+          "Nueva pantalla de inventario y equipamiento: se abre tocando el marco del héroe (o con la tecla I en PC). De momento solo lleva el oro.",
+          "El registro de abajo-izquierda ahora es un historial completo con filtros (tócalo, o tecla L en PC): golpes, muertes, combate y loot, con frases variadas.",
+          "Nuevos atajos de teclado en PC: Espacio para pasar turno, I para el inventario, L para el historial.",
+          "La cámara ya sigue de verdad al enemigo durante todo su turno, no solo al principio.",
+          "Quitada la niebla negra de zonas nunca exploradas.",
+          "Arreglado que a veces el combate no terminaba aunque no quedara ningún enemigo activo cerca.",
+          "Los esqueletos arqueros ya dejan cadáver al morir."
+        ]
+      },
+      "en": {
+        "title": "Inventory, event log and a camera that follows",
+        "notes": [
+          "New inventory and equipment screen: opens by tapping the hero's frame (or pressing I on PC). For now it only holds gold.",
+          "The bottom-left log is now a full filterable history (tap it, or press L on PC): hits, deaths, combat and loot, with varied phrasing.",
+          "New PC keyboard shortcuts: Space to skip turn, I for inventory, L for the history.",
+          "The camera now truly follows the enemy through its whole turn, not just at the start.",
+          "Removed the black fog over never-explored areas.",
+          "Fixed combat sometimes never ending even with no active enemies left nearby.",
+          "Skeleton archers now leave a corpse when they die."
+        ]
+      },
+      "title": "Inventario, registro de eventos y cámara que sigue"
+    },
+    {
       "v": "0.15",
       "es": {
         "title": "Combate con respiro, velocidad de enemigos y confirmaciones",

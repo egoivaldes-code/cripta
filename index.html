@@ -14,7 +14,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Cripta</title>
-<link rel="stylesheet" href="./css/styles.css?v=0.15">
+<link rel="stylesheet" href="./css/styles.css?v=0.16">
 </head>
 <body>
 <div id="game">
@@ -59,8 +59,17 @@
     </div>
   </div>
 
-  <!-- Registro (abajo-izquierda) -->
-  <div class="ui log" id="log"></div>
+  <!-- Registro (abajo-izquierda). Tocarlo abre el historial completo. -->
+  <div class="ui log" id="log" role="button" aria-label="Ver historial"></div>
+
+  <!-- Historial completo de eventos (combate, loot, eventos), con filtros. -->
+  <div class="veil" id="logHistoryVeil">
+    <div class="loghist" id="logHistPanel">
+      <button class="loghist-close" id="logHistCloseBtn" aria-label="Cerrar">×</button>
+      <div class="loghist-filters" id="logHistFilters"></div>
+      <div class="loghist-list" id="logHistList"></div>
+    </div>
+  </div>
 
   <!-- Panel de ajustes -->
   <div class="veil" id="settingsVeil">
@@ -120,6 +129,16 @@
     </div>
   </div>
 
+  <!-- Inventario y equipamiento. Se abre tocando el marco del héroe (arriba
+       a la izquierda). Los huecos, el panel de estadísticas y la rejilla se
+       generan por JS desde js/inventory.js (nada hardcodeado aquí). -->
+  <div class="veil" id="inventoryVeil">
+    <button class="inv-close" id="invCloseBtn" aria-label="Cerrar">×</button>
+    <div id="invScaler">
+      <div class="inv-ui" id="invUI"></div>
+    </div>
+  </div>
+
   <!-- Pantalla de novedades al arrancar. El botón Continuar queda anclado arriba
        (no scrollea) y hace de primer toque para activar el sonido. -->
   <div class="splash show" id="splash">
@@ -131,6 +150,6 @@
   </div>
 </div>
 
-<script type="module" src="./js/main.js?v=0.15"></script>
+<script type="module" src="./js/main.js?v=0.16"></script>
 </body>
 </html>

@@ -1,13 +1,14 @@
 // Capa DOM: HUD (con PA), cartas de evento, registro, fin de partida y ajustes.
 // Todo el texto visible pasa por t() (multiidioma). No dibuja en el canvas.
 
-import { state } from './state.js?v=0.15';
-import { t } from './i18n.js?v=0.15';
-import * as anim from './anim.js?v=0.15';
-import { IDLE_NAME } from './anim.js?v=0.15';
-import * as audio from './audio.js?v=0.15';
-import { VERSION } from './config.js?v=0.15';
-import { images, SPRITE_TILE } from './assets.js?v=0.15';
+import { state } from './state.js?v=0.16';
+import { t, tRandom } from './i18n.js?v=0.16';
+import * as anim from './anim.js?v=0.16';
+import { IDLE_NAME } from './anim.js?v=0.16';
+import * as audio from './audio.js?v=0.16';
+import { VERSION } from './config.js?v=0.16';
+import { images, SPRITE_TILE } from './assets.js?v=0.16';
+import { pushHistory, getHistory, clearHistory, CATEGORIES } from './eventlog.js?v=0.16';
 
 let afterInteract = () => {};
 let restart = () => {};
@@ -19,7 +20,46 @@ export function bindAttemptDisarm(fn) { onAttemptDisarm = fn; }
 const $ = id => document.getElementById(id);
 let open = null; // { type:'event', trig } | { type:'over', kind } | null
 
-export function log(html) { $('log').innerHTML = html; }
+export function log(html, category = 'event') { $('log').innerHTML = html; pushHistory(html, category); if (logHistoryOpen()) renderLogHistory(); }
+
+// --- Historial completo de eventos (combate/loot/eventos) ------------------
+const LOG_FILTERS = ['all', 'combat', 'loot', 'event'];
+let logFilter = 'all';
+
+export function logHistoryOpen() { return $('logHistoryVeil').classList.contains('show'); }
+
+function renderLogHistory() {
+  const list = $('logHistList');
+  const entries = getHistory(logFilter);
+  if (!entries.length) {
+    list.innerHTML = `<div class="loghist-empty">${t('loghist.empty')}</div>`;
+    return;
+  }
+  list.innerHTML = entries.map(e => `<div class="loghist-entry">${e.text}</div>`).join('');
+}
+
+function buildLogFilters() {
+  const box = $('logHistFilters');
+  box.innerHTML = '';
+  LOG_FILTERS.forEach(f => {
+    const b = document.createElement('button');
+    b.className = 'loghist-filterbtn' + (f === logFilter ? ' on' : '');
+    b.textContent = t('loghist.' + f);
+    b.addEventListener('click', () => { logFilter = f; buildLogFilters(); renderLogHistory(); });
+    box.appendChild(b);
+  });
+}
+
+export function showLogHistory() {
+  buildLogFilters();
+  renderLogHistory();
+  $('logHistoryVeil').classList.add('show');
+}
+export function hideLogHistory() { $('logHistoryVeil').classList.remove('show'); }
+
+$('log').addEventListener('click', showLogHistory);
+$('logHistCloseBtn').addEventListener('click', hideLogHistory);
+$('logHistoryVeil').addEventListener('click', e => { if (e.target === $('logHistoryVeil')) hideLogHistory(); });
 
 // --- Confirmación genérica (reiniciar nivel, cerrar juego...) --------------
 // Un solo modal reutilizable: showConfirm(título, texto, fn) lo rellena y lo
@@ -255,7 +295,7 @@ function resolveChoice(trig, ch, i, b) {
   trig.used = true;
   hideVeil();
   syncHUD();
-  log(t(`${b}.c${i}.r`));
+  log(t(`${b}.c${i}.r`), e.gold ? 'loot' : 'event');
   state.busy = false;
   if (hero.hp <= 0) return gameOver('lose');
   afterInteract(trig);
@@ -263,6 +303,7 @@ function resolveChoice(trig, ch, i, b) {
 
 export function gameOver(kind) {
   state.busy = true;
+  if (kind === 'lose') log(tRandom('log.heroDeath', 3), 'combat');
   open = { type: 'over', kind };
   renderCard();
   $('veil').classList.add('show');
@@ -282,6 +323,7 @@ function renderOver(card, kind) {
 
 // Aplica los textos estáticos (y re-renderiza lo abierto). Se llama al cambiar idioma.
 export function applyStaticText() {
+  if (logHistoryOpen()) { buildLogFilters(); renderLogHistory(); }
   $('reset').textContent = t('btn.reset');
   $('gridBtn').title = t('btn.grid');
   $('endTurn').textContent = t('btn.endturn');

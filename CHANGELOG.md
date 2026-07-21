@@ -2,6 +2,18 @@
 
 Esquema: `0.X` = cambio grande · `0.X.Y` = cambio pequeño / fix.
 
+## 0.16 — inventario, registro de eventos, cámara que sigue y correcciones varias
+- **Inventario y equipamiento**: nueva pantalla completa (huecos de equipo, hoja de personaje con Ataque/Defensa reales, rejilla de 18×8), se abre tocando el marco del héroe (arriba-izquierda) o con la tecla **I** en PC. De momento solo lleva el oro (sincronizado con el oro real, mismo icono que el HUD); el resto de huecos están listos para cuando haya objetos de verdad.
+- **Registro de eventos de verdad**: el aviso de abajo-izquierda ahora es un historial completo (tócalo, o tecla **L** en PC): golpes dados y recibidos, muertes, entrar/salir de combate y loot, cada uno con varias frases distintas elegidas al azar y con el nombre del enemigo (p.ej. "Esqueleto arquero te golpea con fuerza y te hace 8 de daño"). Filtros por Combate/Loot/Eventos.
+- **Atajos de teclado en PC**: Espacio pasa turno, I abre/cierra el inventario, L abre/cierra el historial.
+- **La cámara ya sigue de verdad al enemigo** durante todo su turno (antes se centraba una vez al empezar y se quedaba quieta mientras el NPC se movía).
+- **Niebla de guerra**: quitada la zona negra de "nunca explorado"; ahora todo el mapa se ve (con la penumbra normal fuera del alcance de visión de siempre).
+- **Arreglado un bug de combate**: si matabas a todos los enemigos que te habían detectado pero quedaba algún otro dormido en otra punta del mapa, el juego no salía nunca del modo combate. Ya sale en cuanto no queda nadie de esa escaramuza con vida.
+- **Esqueletos arqueros ya dejan cadáver** (su animación de muerte declaraba un fotograma de más de los que tiene la imagen de verdad, así que se volvían invisibles al morir).
+- Pila de huesos de la muerte del esqueleto, un ~30% más grande (para ver mejor el loot que caiga ahí).
+- Guardada la herramienta de calibración de huecos de UI (`tools/ui-calibration/`) para futuras pantallas.
+- Añadida una batería de pruebas nueva para todo lo de arriba (inventario, registro de eventos, seguimiento de cámara, atajos de teclado, el bug de combate).
+
 ## 0.15 — entrada en combate con respiro, velocidad de enemigos y confirmaciones
 - **Bamboleo del idle del esqueleto (`enemy1`), otra vez**: quedaba un resto de descentrado de cabeza entre los 6 fotogramas (hasta ~7px) que no se había pillado del todo la vez anterior. Recentrado por cabeza (no por el cuerpo entero, que puede compensarse con el balanceo del arma y esconder el problema).
 - **Entrada en combate con un segundo de respiro**: antes, en cuanto un enemigo te detectaba, el juego se congelaba en modo por turnos casi al instante — se sentía brusco. Ahora hay un pequeño margen (con el toque del jugador bloqueado durante ese momento, para que no se cuele una acción de más) antes de que se congele de verdad. De paso, se quitó el pitido de aviso y se puso un sonido real de espadas chocando.

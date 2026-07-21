@@ -1,14 +1,14 @@
 // Reglas del juego: economía de Puntos de Acción (PA), interacción a distancia
 // y adyacente, trampas, niebla y salida de nivel. Agnóstico del dibujo.
 
-import { state, walkable, adjacent, distTo, isVisible, recomputeFog, computeReach, pathTo, findPath, reachCost, blockingTriggerAt, trapAt, walkTriggerAt, stepNeighbors, foeAt, livingFoes, losClear } from './state.js?v=0.15';
-import { openEvent, openTrapCard, openStoryCard, syncHUD, syncInitiativeUI, showCombatBadge, log, gameOver } from './ui.js?v=0.15';
-import { t } from './i18n.js?v=0.15';
-import { MOVE_COST, ATTACK_COST, INITIATIVE_BASE, INITIATIVE_DIE, TURN_DELAY, COMBAT_ENTER_DELAY } from './config.js?v=0.15';
-import * as anim from './anim.js?v=0.15';
-import { ANIM_CLIPS } from './anim.js?v=0.15';
-import * as audio from './audio.js?v=0.15';
-import { centerOnTile } from './render.js?v=0.15';
+import { state, walkable, adjacent, distTo, isVisible, recomputeFog, computeReach, pathTo, findPath, reachCost, blockingTriggerAt, trapAt, walkTriggerAt, stepNeighbors, foeAt, livingFoes, losClear } from './state.js?v=0.16';
+import { openEvent, openTrapCard, openStoryCard, syncHUD, syncInitiativeUI, showCombatBadge, log, gameOver } from './ui.js?v=0.16';
+import { t, tRandom } from './i18n.js?v=0.16';
+import { MOVE_COST, ATTACK_COST, INITIATIVE_BASE, INITIATIVE_DIE, TURN_DELAY, COMBAT_ENTER_DELAY } from './config.js?v=0.16';
+import * as anim from './anim.js?v=0.16';
+import { ANIM_CLIPS } from './anim.js?v=0.16';
+import * as audio from './audio.js?v=0.16';
+import { centerOnTile } from './render.js?v=0.16';
 
 const sign = (n) => Math.sign(n);
 
@@ -103,12 +103,19 @@ function scanForNewCombatants() {
 
 // Si ya no queda ningún enemigo vivo, se acaba el combate (oculta la barra de
 // iniciativa). No afecta a la victoria/derrota, que ya se gestiona aparte.
+// Sale de combate en cuanto no quede ningún enemigo VIVO de los que ya
+// estaban activados en esta escaramuza (state.combat.order) — no hay que
+// limpiar el nivel entero de enemigos dormidos en otra punta del mapa para
+// volver al modo paz, solo con los que de verdad te han detectado a ti.
 function checkCombatEnd() {
-  if (state.combat.active && livingFoes().length === 0) {
+  if (!state.combat.active) return;
+  const stillFighting = state.combat.order.some(e => e.ref !== 'hero' && e.ref.alive);
+  if (!stillFighting) {
     state.combat.active = false;
     state.combat.order = [];
     state.combat.idx = 0;
     syncInitiativeUI();
+    log(tRandom('log.combatEnd', 4), 'combat');
   }
 }
 
@@ -219,11 +226,14 @@ export function onTapTile(gx, gy) {
     else anim.floatAt(target.x, target.y, `−${hit.damage}`, '#e86a5c');
     target.hp -= hit.damage;
     target.dormant = false;                 // si le pegas, despierta
-    log(t('log.hitFoe', { dmg: hit.damage }));
+    const foeName = t('enemy.' + target.sprite);
+    log(hit.crit ? tRandom('log.hitFoeCrit', 3, { name: foeName, dmg: hit.damage })
+                 : tRandom('log.hitFoe', 5, { name: foeName, dmg: hit.damage }), 'combat');
     if (target.hp <= 0) {
       audio.fx('kill'); target.alive = false;
       if (state.targetFoe === target) state.targetFoe = null;
       if (ANIM_CLIPS[target.sprite]) { anim.die(target.anim); target.deathPlaying = true; }
+      log(tRandom('log.killFoe', 5, { name: foeName }), 'combat');
       checkCombatEnd();
       syncHUD();
       syncInitiativeUI();
@@ -343,6 +353,7 @@ export async function endHeroTurn(justEntered = false) {
       audio.fx('combatstart');
       await sleep(COMBAT_ENTER_DELAY);
       showCombatBadge();
+      log(tRandom('log.combatStart', 4), 'combat');
     }
     if (state.combat.active) {
       const heroIdx = state.combat.order.findIndex(o => o.ref === 'hero');
@@ -446,7 +457,7 @@ async function spectreTurn(foe) {
       audio.fx('hurt');
       const dmg = applyIncomingHit(foe.atk, 'physical', '#e86a5c');
       if (dmg > 0) anim.hurt('hero', 'hero');
-      log(t('log.hitHero', { dmg }));
+      log(tRandom('log.hitHero', 5, { name: t('enemy.' + foe.sprite), dmg }), 'combat');
       const allies = livingFoes().filter(f => f !== foe && distTo(f, foe.x, foe.y) <= 2).length;
       if (dmg > 0 && allies > 0) {
         const healPct = Math.min(3, allies) * 0.10;
@@ -592,7 +603,7 @@ async function mageTurn(foe) {
       audio.fx('hurt');
       const dmg = applyIncomingHit(foe.atk, 'shadow', SHADOW_COLOR);
       if (dmg > 0) anim.hurt('hero', 'hero');
-      log(t('log.hitHero', { dmg }));
+      log(tRandom('log.hitHero', 5, { name: t('enemy.' + foe.sprite), dmg }), 'combat');
       syncHUD();
       if (hero.hp <= 0) { gameOver('lose'); return true; }
       await enemySleep(320);
@@ -682,6 +693,7 @@ function doMove(foe, step) {
   const fromX = foe.x, fromY = foe.y;
   foe.x = step.x; foe.y = step.y;
   anim.move(foe.anim, fromX, fromY, step.x, step.y);
+  centerOnTile(foe.x, foe.y);   // la cámara sigue al NPC paso a paso durante todo su turno
 }
 
 // El arquero dispara: daño = base + 1 por cada esqueleto a 2 casillas (tope +4).
@@ -693,7 +705,7 @@ function archerShoot(foe) {
   audio.fx('hurt');
   const dmg = applyIncomingHit(baseDmg, 'physical', '#e86a5c');
   if (dmg > 0) anim.hurt('hero', 'hero');
-  log(t('log.hitHero', { dmg }));
+  log(tRandom('log.hitHero', 5, { name: t('enemy.' + foe.sprite), dmg }), 'combat');
   syncHUD();
   if (hero.hp <= 0) { gameOver('lose'); return true; }
   return false;
@@ -746,7 +758,7 @@ async function meleeTurn(foe) {
       audio.fx('hurt');
       const dmg = applyIncomingHit(foe.atk, 'physical', '#e86a5c');
       if (dmg > 0) anim.hurt('hero', 'hero');
-      log(t('log.hitHero', { dmg }));
+      log(tRandom('log.hitHero', 5, { name: t('enemy.' + foe.sprite), dmg }), 'combat');
       syncHUD();
       if (hero.hp <= 0) { gameOver('lose'); return true; }
       await enemySleep(320);

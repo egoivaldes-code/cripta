@@ -1,15 +1,16 @@
 // Punto de entrada. Carga idioma y datos, cablea módulos y arranca el bucle.
 
-import { state, initGame } from './state.js?v=0.15';
-import { initRenderer, startLoop, centerOnHero, toggleGrid, isGridOn } from './render.js?v=0.15';
-import { onTapTile, bindDescend, startHeroTurn, endHeroTurn, afterInteract, attemptDisarm, isAITurnActive, getEnemySpeed, setEnemySpeed } from './rules.js?v=0.15';
-import { syncHUD, log, hideVeil, bindAfterInteract, bindRestart, bindAttemptDisarm, applyStaticText, syncInitiativeUI, showConfirm } from './ui.js?v=0.15';
-import { loadAssets } from './assets.js?v=0.15';
-import { initialLang, loadLang, onLangChange, getLang, t } from './i18n.js?v=0.15';
-import * as anim from './anim.js?v=0.15';
-import * as audio from './audio.js?v=0.15';
-import { VERSION } from './config.js?v=0.15';
-import { assemble } from './mapgen.js?v=0.15';
+import { state, initGame } from './state.js?v=0.16';
+import { initRenderer, startLoop, centerOnHero, toggleGrid, isGridOn } from './render.js?v=0.16';
+import { onTapTile, bindDescend, startHeroTurn, endHeroTurn, afterInteract, attemptDisarm, isAITurnActive, getEnemySpeed, setEnemySpeed } from './rules.js?v=0.16';
+import { syncHUD, log, hideVeil, bindAfterInteract, bindRestart, bindAttemptDisarm, applyStaticText, syncInitiativeUI, showConfirm, showLogHistory, hideLogHistory, logHistoryOpen } from './ui.js?v=0.16';
+import { loadAssets } from './assets.js?v=0.16';
+import { initialLang, loadLang, onLangChange, getLang, t } from './i18n.js?v=0.16';
+import * as anim from './anim.js?v=0.16';
+import * as audio from './audio.js?v=0.16';
+import { VERSION } from './config.js?v=0.16';
+import { assemble } from './mapgen.js?v=0.16';
+import { initInventory, openInventory, closeInventory, isInventoryOpen, resetInventory, refreshInventoryTexts } from './inventory.js?v=0.16';
 
 // El ensamblador de losetas (mapgen.js) sigue disponible para niveles ALEATORIOS
 // futuros; esta función queda de reserva pero no se usa por ahora, ya que el
@@ -47,7 +48,7 @@ function renderSplash() {
 
 async function boot() {
   // Idioma primero (los textos) y assets/datos en paralelo.
-  onLangChange(() => { applyStaticText(); markLang(); markEnemySpeed(); renderSplash(); });
+  onLangChange(() => { applyStaticText(); markLang(); markEnemySpeed(); renderSplash(); refreshInventoryTexts(); });
   await loadLang(initialLang());
 
   const [events, cl] = await Promise.all([
@@ -73,6 +74,7 @@ async function boot() {
     const level = await getLevel(name);
     initGame(level, events);
     if (carry) Object.assign(state.hero, carry);   // arrastra vida/oro entre niveles
+    else resetInventory();                          // partida nueva de verdad: inventario limpio
     anim.reset();
     centerOnHero(true);
     hideVeil();
@@ -101,6 +103,7 @@ async function boot() {
   bindAttemptDisarm(attemptDisarm);
 
   initRenderer(document.getElementById('map'), onTapTile);
+  initInventory();
   startLoop();
   await loadLevel('level1');
 
@@ -121,11 +124,42 @@ async function boot() {
       setTimeout(() => log(t('log.cantClose')), 300);
     });
   });
-  document.getElementById('endTurn').addEventListener('click', () => {
+  function skipTurn() {
     if (!state.busy && !isAITurnActive()) { log(t('log.turnSkipped')); endHeroTurn(); }
-  });
+  }
+  document.getElementById('endTurn').addEventListener('click', skipTurn);
   document.getElementById('recenter').addEventListener('click', () => centerOnHero(false));
   document.getElementById('hudRow').addEventListener('click', () => centerOnHero(false));
+  document.getElementById('heroPanel').addEventListener('click', e => {
+    e.stopPropagation();   // si no, el toque también recentraría la cámara (ver hudRow arriba)
+    openInventory();
+  });
+
+  // Atajos de teclado (solo tienen sentido en PC, con teclado físico —
+  // en móvil simplemente no se disparan). Se ignoran mientras se escribe en
+  // un campo de texto, y las pulsaciones mantenidas no repiten la acción.
+  document.addEventListener('keydown', e => {
+    if (e.repeat) return;
+    const tag = document.activeElement && document.activeElement.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+
+    if (e.code === 'Space') {
+      e.preventDefault();   // si no, la barra espaciadora también scrollea la página
+      skipTurn();
+      return;
+    }
+    if (e.key === 'i' || e.key === 'I') {
+      if (isInventoryOpen()) { closeInventory(); return; }
+      if (logHistoryOpen()) hideLogHistory();
+      openInventory();
+      return;
+    }
+    if (e.key === 'l' || e.key === 'L') {
+      if (logHistoryOpen()) { hideLogHistory(); return; }
+      if (isInventoryOpen()) closeInventory();
+      showLogHistory();
+    }
+  });
 
   // Pantalla de novedades: el botón Continuar la cierra y, de paso, hace de
   // primer toque para desbloquear el audio (importante en móvil).

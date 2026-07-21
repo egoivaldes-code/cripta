@@ -180,7 +180,7 @@ body.layout-edit .layoutApplyBtn{ display:block; }
 .fab.off{ opacity:.45; }
 
 .log{ bottom:max(12px,env(safe-area-inset-bottom)); left:12px; max-width:min(66vw,340px); transform:translate(var(--dragX,0px),var(--dragY,0px)) scale(var(--ui)); transform-origin:bottom left;
-  font-size:12.5px; line-height:1.35; color:var(--bone); padding:8px 11px;
+  font-size:12.5px; line-height:1.35; color:var(--bone); padding:8px 11px; cursor:pointer;
   background:rgba(26,30,39,.82); border:1px solid var(--steel); border-radius:6px; backdrop-filter:blur(3px); }
 .log:empty{ display:none; }
 .log .dmg{ color:var(--blood); } .log .heal{ color:var(--moss); }
@@ -295,3 +295,110 @@ body.layout-edit .layoutApplyBtn{ display:block; }
 .rel ul{ margin:0; padding-left:18px; }
 .rel li{ font-size:13px; line-height:1.5; color:#c4c0b2; margin-bottom:6px; }
 .rel li:last-child{ margin-bottom:0; }
+
+/* =====================================================================
+   Inventario y equipamiento (js/inventory.js). Todas las clases con
+   prefijo inv- a propósito, para no chocar con nada del resto del CSS.
+   ===================================================================== */
+#inventoryVeil.show{ display:flex; }
+#invScaler{ position:relative; }
+.inv-ui{
+  position:relative; width:1920px; height:2112px; transform-origin:top left;
+  background:url(../assets/ui/inventory_screen.jpg) center/100% 100% no-repeat;
+}
+.inv-close{
+  position:absolute; top:10px; right:14px; z-index:5; width:38px; height:38px;
+  border-radius:50%; border:1px solid #7a5a2a; background:rgba(10,8,6,.7);
+  color:#e8c986; font-size:20px; line-height:1; cursor:pointer;
+}
+.inv-equip-slot{
+  position:absolute; display:flex; align-items:center; justify-content:center;
+  cursor:pointer; border-radius:4px;
+}
+.inv-equip-slot .inv-icon{ max-width:78%; max-height:78%; pointer-events:none;
+  font-size:56px; line-height:1; text-align:center; filter:drop-shadow(0 2px 4px rgba(0,0,0,.6)); }
+.inv-equip-slot .inv-icon img{ max-width:100%; max-height:100%; display:block; }
+.inv-equip-slot.inv-debug{ outline:2px dashed #4ad; }
+.inv-debug-label{ position:absolute; top:2px; left:4px; font-size:14px; color:#7cf;
+  font-family:monospace; pointer-events:none; text-shadow:0 0 3px #000; }
+.inv-equip-slot.inv-selected{ box-shadow:0 0 0 3px #ffd76b, 0 0 14px 4px rgba(255,215,107,.65); }
+.inv-equip-slot.inv-valid-target{ background:rgba(60,220,90,.38); }
+.inv-equip-slot.inv-valid-target:hover{ background:rgba(80,255,120,.55); }
+.inv-equip-slot.inv-drag-over{ background:rgba(80,255,120,.55); }
+
+.inv-charsheet-panel{
+  position:absolute; box-sizing:border-box;
+  padding:40px 32px;                 /* sangría a los lados y arriba/abajo pedida */
+  text-align:center;                 /* el texto centrado dentro del hueco */
+  overflow-y:auto;                   /* si algún día no caben todas las stats, hace scroll en vez de desbordar */
+  color:var(--bone);
+  font-family:Georgia,"Times New Roman",serif;
+}
+.inv-stat-group{ margin-bottom:28px; }
+.inv-stat-group:last-child{ margin-bottom:0; }
+.inv-stat-heading{
+  margin:0 0 14px; font-size:22px; letter-spacing:.08em; text-transform:uppercase;
+  color:var(--gold); border-bottom:1px solid var(--steel); padding-bottom:8px;
+}
+.inv-stat-row{ font-size:17px; line-height:2; }
+.inv-stat-label{ color:var(--bone-dim); margin-right:6px; }
+.inv-stat-value{ color:var(--bone); font-weight:600; }
+
+.inv-grid{ position:absolute; display:grid; }
+.inv-slot{
+  position:relative; display:flex; align-items:center; justify-content:center;
+  cursor:pointer;
+}
+.inv-slot .inv-icon{ max-width:74%; max-height:74%; pointer-events:none;
+  font-size:34px; line-height:1; filter:drop-shadow(0 1px 3px rgba(0,0,0,.6)); }
+.inv-slot .inv-icon img{ max-width:100%; max-height:100%; display:block; }
+.inv-qty{ position:absolute; right:4px; bottom:2px; font-size:14px; color:#f2e2b8;
+  text-shadow:0 1px 2px #000, 0 0 3px #000; font-family:Georgia,serif; pointer-events:none; }
+.inv-slot.inv-selected{ box-shadow:0 0 0 3px #ffd76b, 0 0 14px 4px rgba(255,215,107,.65); z-index:2; }
+.inv-slot.inv-valid-target{ background:rgba(60,220,90,.38); }
+.inv-slot.inv-valid-target:hover{ background:rgba(80,255,120,.55); }
+.inv-slot.inv-drag-over{ background:rgba(80,255,120,.55); }
+.inv-slot.inv-debug .inv-debug-label{ font-size:10px; }
+
+/* =====================================================================
+   Historial de eventos (combate/loot/eventos). Se abre tocando el
+   registro de abajo-izquierda. En móvil ocupa casi toda la pantalla en
+   vertical; en PC con pantalla ancha se ancla a la mitad izquierda.
+   ===================================================================== */
+#logHistoryVeil{ z-index:15; }
+.loghist{
+  position:relative; height:min(92vh, 900px); max-width:92vw;
+  aspect-ratio:847/1505;
+  background:url(../assets/ui/log_history_frame.webp) center/100% 100% no-repeat;
+  display:flex; flex-direction:column;
+  padding:9% 8% 6%;   /* deja libre el marco dibujado; sangría en % para que escale con el propio panel */
+  box-sizing:border-box;
+}
+.loghist-close{
+  position:absolute; top:2%; right:4%; width:34px; height:34px; border-radius:50%;
+  border:1px solid var(--steel); background:rgba(20,16,10,.55); color:#3a2c18;
+  font-size:19px; line-height:1; cursor:pointer;
+}
+.loghist-filters{ display:flex; gap:6px; flex-wrap:wrap; justify-content:center; margin-bottom:10px; flex:0 0 auto; }
+.loghist-filterbtn{
+  flex:1; min-width:64px; background:rgba(255,255,255,.15); color:#3a2c18; border:1px solid rgba(58,44,24,.4);
+  border-radius:4px; font:inherit; font-size:12px; padding:7px 4px; cursor:pointer;
+}
+.loghist-filterbtn.on{ background:rgba(58,44,24,.85); color:#f2e2b8; border-color:#3a2c18; }
+.loghist-list{ flex:1 1 auto; overflow-y:auto; padding-right:4px; }
+.loghist-entry{
+  font-family:Georgia,"Times New Roman",serif; font-size:13.5px; line-height:1.4; color:#2a2015;
+  padding:7px 0; border-bottom:1px solid rgba(58,44,24,.18);
+}
+.loghist-entry:last-child{ border-bottom:none; }
+.loghist-entry .dmg{ color:var(--blood); font-weight:600; }
+.loghist-entry .heal{ color:#3c6b2a; font-weight:600; }
+.loghist-entry .gold{ color:#8a6a10; font-weight:600; }
+.loghist-empty{ text-align:center; color:#6b5a3e; font-style:italic; margin-top:20%; }
+
+/* PC con pantalla ancha: el historial se ancla a la mitad izquierda en vez
+   de aparecer centrado flotando, como un panel lateral de verdad. */
+@media (pointer: fine) and (min-width: 900px) {
+  #logHistoryVeil{ justify-content:flex-start; padding-left:3vw; }
+  .loghist{ height:92vh; }
+}
