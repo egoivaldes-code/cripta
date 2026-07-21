@@ -1,14 +1,14 @@
 // Reglas del juego: economía de Puntos de Acción (PA), interacción a distancia
 // y adyacente, trampas, niebla y salida de nivel. Agnóstico del dibujo.
 
-import { state, walkable, adjacent, distTo, isVisible, recomputeFog, computeReach, pathTo, findPath, findApproachPath, reachCost, blockingTriggerAt, trapAt, walkTriggerAt, stepNeighbors, foeAt, corpseAt, livingFoes, losClear } from './state.js?v=0.17';
-import { openEvent, openTrapCard, openStoryCard, syncHUD, syncInitiativeUI, showCombatBadge, showLootWindow, log, gameOver } from './ui.js?v=0.17';
-import { t, tRandom } from './i18n.js?v=0.17';
-import { MOVE_COST, ATTACK_COST, INITIATIVE_BASE, INITIATIVE_DIE, TURN_DELAY, COMBAT_ENTER_DELAY } from './config.js?v=0.17';
-import * as anim from './anim.js?v=0.17';
-import { ANIM_CLIPS } from './anim.js?v=0.17';
-import * as audio from './audio.js?v=0.17';
-import { centerOnTile } from './render.js?v=0.17';
+import { state, walkable, adjacent, distTo, isVisible, recomputeFog, computeReach, pathTo, findPath, findApproachPath, reachCost, blockingTriggerAt, trapAt, walkTriggerAt, stepNeighbors, foeAt, corpseAt, livingFoes, losClear } from './state.js?v=0.18';
+import { openEvent, openTrapCard, openStoryCard, syncHUD, syncInitiativeUI, showCombatBadge, showLootWindow, log, gameOver } from './ui.js?v=0.18';
+import { t, tRandom } from './i18n.js?v=0.18';
+import { MOVE_COST, ATTACK_COST, INITIATIVE_BASE, INITIATIVE_DIE, TURN_DELAY, COMBAT_ENTER_DELAY } from './config.js?v=0.18';
+import * as anim from './anim.js?v=0.18';
+import { ANIM_CLIPS } from './anim.js?v=0.18';
+import * as audio from './audio.js?v=0.18';
+import { centerOnTile } from './render.js?v=0.18';
 
 const sign = (n) => Math.sign(n);
 
@@ -708,6 +708,10 @@ function fleeStep(foe, ap) {
     const nd = distTo(hero, x, y);
     if (nd < cur) continue;                                   // no acercarse al héroe
     let score = nd * 100 + stepNeighbors(x, y).length * 3;    // lejos + despejado
+    // Romper la línea de visión pesa más que la distancia en sí: un
+    // arquero que consigue esconderse tras una esquina está más a salvo
+    // que otro que solo se ha alejado un poco más a la vista de todos.
+    if (!losClear(x, y, hero.x, hero.y)) score += 500;
     if (ally) {
       const before = distTo(foe, ally.x, ally.y);
       const after = Math.max(Math.abs(x - ally.x), Math.abs(y - ally.y));
@@ -775,12 +779,13 @@ function archerShoot(foe) {
 async function archerTurn(foe, cfg) {
   const { hero } = state;
   let ap = foe.apMax;
+  let fledThisTurn = false;   // si ya ha huido este turno, no deshacerlo acercándose otra vez solo porque ahora no ve
   while (ap > 0) {
     const d = distTo(foe, hero.x, hero.y);
     const canSee = losClear(foe.x, foe.y, hero.x, hero.y);
     if (d <= cfg.fleeAt) {                                     // 1) huir
       const fs = fleeStep(foe, ap);
-      if (fs) { doMove(foe, fs); ap -= fs.cost; await enemySleep(190); continue; }
+      if (fs) { doMove(foe, fs); ap -= fs.cost; fledThisTurn = true; await enemySleep(190); continue; }
       // acorralado sin salida: si tiene el tiro despejado, dispara a bocajarro (bloque 2)
     }
     if (d <= cfg.range && canSee) {                           // 2) a tiro y con visión
@@ -792,7 +797,7 @@ async function archerTurn(foe, cfg) {
       }
       break;   // en posición pero sin PA para otro tiro: se queda quieto, no se acerca al héroe
     }
-    if (ap >= MOVE_COST) {                                     // 3) lejos o sin visión: acercarse
+    if (!fledThisTurn && ap >= MOVE_COST) {                    // 3) lejos o sin visión: acercarse
       const as = approachStep(foe, ap);
       if (as) { doMove(foe, as); ap -= as.cost; await enemySleep(190); continue; }
     }

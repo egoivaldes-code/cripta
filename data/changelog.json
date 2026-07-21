@@ -1,6 +1,28 @@
 {
   "versions": [
     {
+      "v": "0.18",
+      "es": {
+        "title": "IA de movimiento mejorada",
+        "notes": [
+          "Los enemigos ya pueden pasar junto a un aliado (sin terminar encima) para colocarse mejor en pasillos estrechos, incluso con esquinas.",
+          "Los arqueros que huyen ahora prefieren esconderse (romper línea de visión) antes que solo alejarse a la vista.",
+          "Arreglado que un arquero deshacía su propia huida en el mismo turno.",
+          "Arreglado el texto de \"Toca para continuar\" que se superponía en la esquina de las cartas narrativas."
+        ]
+      },
+      "en": {
+        "title": "Improved movement AI",
+        "notes": [
+          "Enemies can now move past an ally (without ending on top of it) to better position themselves in narrow corridors, even around corners.",
+          "Fleeing archers now prefer hiding (breaking line of sight) over just moving farther away in plain sight.",
+          "Fixed an archer sometimes undoing its own retreat within the same turn.",
+          "Fixed the \"Tap to continue\" text overlapping in the corner of narrative cards."
+        ]
+      },
+      "title": "IA de movimiento mejorada"
+    },
+    {
       "v": "0.17",
       "es": {
         "title": "Botín de cadáveres y arreglos de combate",

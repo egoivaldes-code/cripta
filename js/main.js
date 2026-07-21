@@ -1,16 +1,16 @@
 // Punto de entrada. Carga idioma y datos, cablea módulos y arranca el bucle.
 
-import { state, initGame } from './state.js?v=0.17';
-import { initRenderer, startLoop, centerOnHero, toggleGrid, isGridOn } from './render.js?v=0.17';
-import { onTapTile, bindDescend, startHeroTurn, endHeroTurn, afterInteract, attemptDisarm, isAITurnActive, getEnemySpeed, setEnemySpeed } from './rules.js?v=0.17';
-import { syncHUD, log, hideVeil, bindAfterInteract, bindRestart, bindAttemptDisarm, applyStaticText, syncInitiativeUI, showConfirm, showLogHistory, hideLogHistory, logHistoryOpen } from './ui.js?v=0.17';
-import { loadAssets } from './assets.js?v=0.17';
-import { initialLang, loadLang, onLangChange, getLang, t } from './i18n.js?v=0.17';
-import * as anim from './anim.js?v=0.17';
-import * as audio from './audio.js?v=0.17';
-import { VERSION } from './config.js?v=0.17';
-import { assemble } from './mapgen.js?v=0.17';
-import { initInventory, openInventory, closeInventory, isInventoryOpen, resetInventory, refreshInventoryTexts } from './inventory.js?v=0.17';
+import { state, initGame } from './state.js?v=0.18';
+import { initRenderer, startLoop, centerOnHero, toggleGrid, isGridOn } from './render.js?v=0.18';
+import { onTapTile, bindDescend, startHeroTurn, endHeroTurn, afterInteract, attemptDisarm, isAITurnActive, getEnemySpeed, setEnemySpeed } from './rules.js?v=0.18';
+import { syncHUD, log, hideVeil, bindAfterInteract, bindRestart, bindAttemptDisarm, applyStaticText, syncInitiativeUI, showConfirm, showLogHistory, hideLogHistory, logHistoryOpen } from './ui.js?v=0.18';
+import { loadAssets } from './assets.js?v=0.18';
+import { initialLang, loadLang, onLangChange, getLang, t } from './i18n.js?v=0.18';
+import * as anim from './anim.js?v=0.18';
+import * as audio from './audio.js?v=0.18';
+import { VERSION } from './config.js?v=0.18';
+import { assemble } from './mapgen.js?v=0.18';
+import { initInventory, openInventory, closeInventory, isInventoryOpen, resetInventory, refreshInventoryTexts } from './inventory.js?v=0.18';
 
 // El ensamblador de losetas (mapgen.js) sigue disponible para niveles ALEATORIOS
 // futuros; esta función queda de reserva pero no se usa por ahora, ya que el

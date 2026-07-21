@@ -2,7 +2,7 @@
 // Incluye niebla de guerra (explored/visible) y el alcance de movimiento
 // ligado a los Puntos de Acción (PA) restantes del héroe.
 
-import { SIGHT, SIGHT_DIM, AP_MAX, CLIMB_COST, MAX_CLIMB, DIFFICULT_EXTRA } from './config.js?v=0.17';
+import { SIGHT, SIGHT_DIM, AP_MAX, CLIMB_COST, MAX_CLIMB, DIFFICULT_EXTRA } from './config.js?v=0.18';
 
 export const state = {
   cols: 0, rows: 0,
@@ -128,11 +128,21 @@ export function stepCost(x, y, nx, ny) {
   if (isDifficult(nx, ny)) cost += DIFFICULT_EXTRA;    // terreno difícil: cuesta más, pero no bloquea
   return cost;
 }
-export function stepNeighbors(x, y) {
+// `passFoes`: si es true, las casillas ocupadas por OTROS enemigos no
+// bloquean el paso (se puede atravesar, aunque no se pueda terminar el
+// movimiento ahí) — igual que en Descent: Journeys in the Dark, donde una
+// figura puede pasar a través de figuras aliadas pero nunca acabar su
+// movimiento sobre ellas. Lo usan los propios enemigos para calcular su
+// camino "ideal" hacia el héroe (ver findApproachPath más abajo).
+export function stepNeighbors(x, y, passFoes = false) {
   const out = [];
   for (const [dx, dy] of DIRS8) {
     const nx = x + dx, ny = y + dy;
-    if (!walkable(nx, ny)) continue;
+    const trap = trapAt(nx, ny);
+    const passableTerrain = inBounds(nx, ny) && state.tiles[ny][nx] === 0
+      && !blockingTriggerAt(nx, ny) && !(trap && trap.revealed);
+    const foeHere = state.foes.some(f => f.alive && f.x === nx && f.y === ny);
+    if (!passableTerrain || (foeHere && !passFoes)) continue;
     if (dx !== 0 && dy !== 0 && !diagOpen(x, y, dx, dy)) continue;
     const cost = stepCost(x, y, nx, ny);
     if (cost < 0) continue;                            // precipicio
@@ -209,7 +219,7 @@ export function computeReach() {
 // aumenta la distancia un momento, para luego rodear, nunca se elegía). Lo
 // usan los enemigos para acercarse de verdad. Sin límite de PA (el que llama
 // decide cuántos pasos del camino puede permitirse pagar este turno).
-export function findPath(fromX, fromY, toX, toY) {
+export function findPath(fromX, fromY, toX, toY, passFoes = false) {
   if (fromX === toX && fromY === toY) return [{ x: fromX, y: fromY }];
   const dist = grid(state.rows, state.cols, -1);
   const from = grid(state.rows, state.cols, null);
@@ -220,7 +230,7 @@ export function findPath(fromX, fromY, toX, toY) {
     const [d, x, y] = pq.shift();
     if (d > dist[y][x]) continue;
     if (x === toX && y === toY) break;
-    for (const [nx, ny, cost] of stepNeighbors(x, y)) {
+    for (const [nx, ny, cost] of stepNeighbors(x, y, passFoes)) {
       const nd = d + cost;
       if (dist[ny][nx] === -1 || nd < dist[ny][nx]) {
         dist[ny][nx] = nd; from[ny][nx] = [x, y]; pq.push([nd, nx, ny]);
@@ -240,45 +250,25 @@ export function inRange(x, y) {
 
 // Cuando NO hay camino directo hasta (toX,toY) — típicamente porque un
 // aliado ocupa la única casilla de paso en un pasillo estrecho — esto
-// encuentra la casilla alcanzable más cercana al objetivo (en vez de
-// quedarse quieto sin más) y devuelve el camino hasta ahí. Así, en un
-// pasillo de una sola casilla, el segundo enemigo se pone justo detrás del
-// primero en lugar de congelarse porque "no llega hasta el héroe".
+// calcula el camino MÁS CORTO real como si los aliados no bloquearan en
+// absoluto (igual que en Descent: Journeys in the Dark, donde una figura
+// puede atravesar a un aliado pero nunca terminar su movimiento sobre él),
+// y luego lo recorta justo antes del primer aliado que de verdad encuentre.
+// Así, el enemigo se coloca en la mejor posición real posible — típicamente
+// justo detrás de su aliado — en vez de quedarse quieto, y sigue eligiendo
+// bien incluso en pasillos que serpentean o tienen ramificaciones.
 export function findApproachPath(fromX, fromY, toX, toY) {
-  const dist = grid(state.rows, state.cols, -1);
-  const from = grid(state.rows, state.cols, null);
-  dist[fromY][fromX] = 0;
-  const pq = [[0, fromX, fromY]];
-  while (pq.length) {
-    pq.sort((a, b) => a[0] - b[0]);
-    const [d, x, y] = pq.shift();
-    if (d > dist[y][x]) continue;
-    for (const [nx, ny, cost] of stepNeighbors(x, y)) {
-      const nd = d + cost;
-      if (dist[ny][nx] === -1 || nd < dist[ny][nx]) {
-        dist[ny][nx] = nd; from[ny][nx] = [x, y]; pq.push([nd, nx, ny]);
-      }
-    }
+  const idealPath = findPath(fromX, fromY, toX, toY, true);   // passFoes=true: como si los aliados no estuvieran
+  if (!idealPath || idealPath.length < 2) return null;
+
+  let stopIndex = idealPath.length - 1;
+  for (let i = 1; i < idealPath.length; i++) {
+    const { x, y } = idealPath[i];
+    if (x === toX && y === toY) break;   // el propio objetivo (el héroe) no cuenta como bloqueo
+    if (state.foes.some(f => f.alive && f.x === x && f.y === y)) { stopIndex = i - 1; break; }
   }
-  // De todas las casillas a las que de verdad se puede llegar, la que quede
-  // más cerca del objetivo (y, en empate, la más barata de alcanzar) — pero
-  // solo si de verdad mejora la distancia actual, para no dar un paso sin
-  // sentido cuando ya no se puede acercar más.
-  const currentDist = Math.max(Math.abs(fromX - toX), Math.abs(fromY - toY));
-  let best = null, bestDist = currentDist, bestCost = Infinity;
-  for (let y = 0; y < state.rows; y++) for (let x = 0; x < state.cols; x++) {
-    if (dist[y][x] < 0) continue;
-    if (x === fromX && y === fromY) continue;   // quedarse quieto no cuenta como "acercarse"
-    const dToTarget = Math.max(Math.abs(x - toX), Math.abs(y - toY));
-    if (dToTarget >= currentDist) continue;      // no mejora nada: descartada
-    if (dToTarget < bestDist || (dToTarget === bestDist && dist[y][x] < bestCost)) {
-      best = [x, y]; bestDist = dToTarget; bestCost = dist[y][x];
-    }
-  }
-  if (!best) return null;
-  const path = []; let cur = best;
-  while (cur) { path.push({ x: cur[0], y: cur[1] }); cur = from[cur[1]][cur[0]]; }
-  return path.reverse();
+  if (stopIndex < 1) return null;   // el aliado está pegado desde el primer paso: no se avanza nada
+  return idealPath.slice(0, stopIndex + 1);
 }
 // Coste real en PA (ya con la altura aplicada) para llegar a (x,y), o -1 si no está en rango.
 export function reachCost(x, y) {

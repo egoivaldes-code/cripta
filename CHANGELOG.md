@@ -2,6 +2,14 @@
 
 Esquema: `0.X` = cambio grande · `0.X.Y` = cambio pequeño / fix.
 
+## 0.18 — mejoras de IA de movimiento (inspiradas en Descent: Viaje a las Tinieblas)
+- **Los enemigos ya pueden "atravesar" (sin terminar encima) a otros enemigos aliados** al calcular su ruta hacia el héroe — igual que en Descent 2E. Sustituye al parche anterior del pasillo estrecho por algo más fiel y robusto: funciona bien también en pasillos con esquinas/recodos, no solo en línea recta.
+- **Los arqueros que huyen ahora priorizan esconderse** (romper línea de visión) por encima de solo alejarse a la vista de todos.
+- Arreglado, de paso, que un arquero deshacía su propia huida en el mismo turno (huía, veía que ya no tenía línea de tiro, y "se acercaba para recuperar visión", anulando el escondite).
+- Añadida una sección nueva en `AGENTS.md` ("Referencia de diseño: la IA de movimiento de Descent") documentando qué reglas del juego de mesa se han adoptado y cuáles quedan pendientes por si hacen falta más adelante.
+- Pruebas nuevas: pasillo estrecho, pasillo en L, huida rompiendo línea de visión.
+- **Arreglado el texto de "Toca para continuar"** que se superponía en la esquina de las cartas narrativas con imagen: caja más ancha y letra más pequeña.
+
 ## 0.17 — botín de cadáveres, fuente unificada y arreglos de combate/movimiento
 - **Los enemigos sueltan oro al morir**: el cadáver (su último fotograma de muerte) se puede tocar estando adyacente para abrir una ventana de botín con el marco de pergamino nuevo — nombre del enemigo arriba, filas de objetos en medio, botón "Coger todo" abajo con el mismo marco y letra que "Saltar turno". Al vaciarse, el cadáver desaparece solo. Cerrar sin coger todo deja el cadáver tal cual para volver luego.
 - **Fuente del juego unificada**: toda la interfaz usa ya la misma tipografía que el botón de "Saltar turno" (antes era monoespaciada por defecto). De paso, el botón "Continuar" de la pantalla de novedades usa el mismo marco y letra.

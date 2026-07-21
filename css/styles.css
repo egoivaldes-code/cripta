@@ -215,10 +215,11 @@ body.layout-edit .layoutApplyBtn{ display:block; }
   display:flex; align-items:center; justify-content:center; text-align:center;
   font-family:Georgia,"Times New Roman",serif; font-size:14px; line-height:1.55;
   color:#2a2015; text-shadow:0 1px 0 rgba(255,255,255,.3); }
-.card.story .storyhint{ position:absolute; left:64%; right:5%; bottom:6%; text-align:center;
-  font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:#5a4a30; opacity:.85; }
+.card.story .storyhint{ position:absolute; left:60%; right:3%; bottom:5%; text-align:center;
+  font-size:8px; letter-spacing:.06em; text-transform:uppercase; color:#5a4a30; opacity:.85; white-space:nowrap; }
 @media (max-width:420px){
   .card.story .storytext{ font-size:12.5px; top:10%; bottom:22%; }
+  .card.story .storyhint{ font-size:7px; }
 }
 .choice{ text-align:left; width:100%; color:var(--bone);
   background:linear-gradient(rgba(9,10,14,.55),rgba(9,10,14,.55)), url(../assets/ui/choice_plaque.png);
@@ -269,7 +270,7 @@ body.layout-edit .layoutApplyBtn{ display:block; }
   .choice { font-size: 14.5px; padding: 13px 15px; }
   .choice .tag { font-size: 12px; }
   .card.story .storytext { font-size: 16px; }
-  .card.story .storyhint { font-size: 11px; }
+  .card.story .storyhint { font-size: 9px; letter-spacing: .08em; }
   .panel label { font-size: 12px; }
   .banner .again, .primary { font-size: 14.5px; padding: 13px 24px; }
 }

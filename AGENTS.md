@@ -300,6 +300,75 @@ de golpe. La solución es hacer la función de turno `async` y meter un
 con un flag tipo `aiTurnActive` que bloquee los toques del jugador mientras
 tanto (además de los ya existentes `state.busy`/`anim.active()`).
 
+## Referencia de diseño: la IA de movimiento de Descent (Viaje a las Tinieblas)
+
+Descent: Journeys in the Dark (2ª edición) y su app-compañera Road to Legend
+(la que hace de "game master" automático) llevan más de una década puliendo
+reglas de movimiento e IA para un dungeon crawler por turnos y casillas —
+muy parecido a lo que es Cripta. Antes de inventar una regla de movimiento
+nueva desde cero, merece la pena mirar aquí primero. Fuente principal: la
+Community Rules Reference Guide (CRRG) de Descent 2E, sección "Movement",
+"Engage", "Direction" y "Retreat" (descent-community.org).
+
+**Ideas ya adoptadas en Cripta:**
+
+- **"Engage"**: un enemigo que se acerca simplemente pathea hacia el
+  objetivo y se para en cuanto queda adyacente o se le acaba el PA. Es
+  literalmente `approachStep()` en `rules.js`.
+- **Regla de "Toward"**: al acercarse, una figura puede alejarse *un
+  momento* del objetivo si el resultado final la deja más cerca (rodear un
+  muro). Por eso `approachStep`/`findPath` usan Dijkstra real y no "dar
+  siempre el paso que acerca en línea recta", que se atasca en cualquier
+  esquina.
+- **Atravesar aliados, pero no terminar encima de ellos**: en Descent, una
+  figura puede *pasar a través* de casillas ocupadas por figuras aliadas al
+  moverse — solo no puede *acabar* su movimiento ahí. Cripta lo implementa
+  en `stepNeighbors(x, y, passFoes)` (`state.js`): con `passFoes=true`, los
+  enemigos vivos no bloquean el paso, solo el terreno/objetos de verdad.
+  `findApproachPath()` calcula así el camino MÁS CORTO real "como si los
+  aliados no estuvieran" y lo recorta justo antes del primer aliado que
+  encuentra de verdad — así, en un pasillo estrecho (recto o con esquinas),
+  el enemigo se coloca en la mejor posición real posible (típicamente,
+  justo detrás de su compañero) en vez de quedarse quieto sin más. Antes de
+  esto, un enemigo bloqueado por otro en el único paso hacia el héroe se
+  congelaba sin hacer nada (bug real, arreglado en v0.17/v0.18).
+- **Huir rompiendo línea de visión, no solo maximizando distancia**: la
+  condición "Terrified" de Descent hace que el monstruo termine su
+  movimiento *fuera de la vista* del objetivo con prioridad sobre
+  simplemente alejarse el máximo posible. `fleeStep()` en `rules.js` le da
+  a esconderse detrás de una esquina un bonus de puntuación (+500) muy por
+  encima de lo que puede aportar la distancia bruta, así que un arquero
+  prefiere una casilla más cercana pero oculta a otra más lejana pero a la
+  vista. Ojo con el efecto secundario que esto destapó: si el enemigo huye
+  y queda sin línea de visión, la siguiente comprobación del propio turno
+  ("lejos o sin visión: acercarse") deshacía la huida en el mismo turno —
+  hay que recordar con una bandera (`fledThisTurn`) que ya ha huido este
+  turno y no dejar que la lógica de "acercarse para recuperar visión" lo
+  contradiga en la misma activación.
+
+**Ideas que todavía NO están implementadas, por si hacen falta más adelante:**
+
+- **Selección de objetivo por prioridad + desempate por distancia**: con
+  varios héroes o aliados jugables, Road to Legend elige objetivo según una
+  prioridad fija por tipo de monstruo (p.ej. "el que más daño ha recibido"),
+  y solo si hay empate elige al más cercano. Útil el día que haya más de un
+  personaje controlable.
+- **Lista de acciones por prioridad, con "saltar si no aplica"**: cada tipo
+  de monstruo en Road to Legend tiene una lista ordenada de acciones
+  candidatas (atacar, usar habilidad, moverse...); se recorre de arriba a
+  abajo, se salta lo que no se puede hacer, y se repite hasta agotar las
+  acciones del turno. Es un árbol de comportamiento simple pero muy
+  legible — podría ser una forma más mantenible de reescribir
+  `meleeTurn`/`archerTurn`/`spectreTurn`/`mageTurn` como datos (una lista de
+  reglas por tipo) en vez de código imperativo a medida, si el roster de
+  enemigos crece mucho más.
+- **"Blocked space" también bloquea línea de visión para el propio
+  monstruo**: Descent distingue explícitamente cuándo un espacio bloquea
+  movimiento, línea de visión, o ambos (muros bloquean los dos; figuras
+  aliadas solo el movimiento para terminar ahí, no la línea de visión). Si
+  Cripta añade más tipos de terreno especial, merece la pena mantener esa
+  misma distinción explícita en vez de un único concepto de "bloqueado".
+
 ## Subir de versión
 
 ```
