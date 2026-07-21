@@ -2,6 +2,15 @@
 
 Esquema: `0.X` = cambio grande · `0.X.Y` = cambio pequeño / fix.
 
+## 0.17 — botín de cadáveres, fuente unificada y arreglos de combate/movimiento
+- **Los enemigos sueltan oro al morir**: el cadáver (su último fotograma de muerte) se puede tocar estando adyacente para abrir una ventana de botín con el marco de pergamino nuevo — nombre del enemigo arriba, filas de objetos en medio, botón "Coger todo" abajo con el mismo marco y letra que "Saltar turno". Al vaciarse, el cadáver desaparece solo. Cerrar sin coger todo deja el cadáver tal cual para volver luego.
+- **Fuente del juego unificada**: toda la interfaz usa ya la misma tipografía que el botón de "Saltar turno" (antes era monoespaciada por defecto). De paso, el botón "Continuar" de la pantalla de novedades usa el mismo marco y letra.
+- **Estadísticas del inventario en móvil**: bastante más grandes (solo en pantallas táctiles; en PC no cambia).
+- **En combate, el turno ya no pasa solo al quedarte a 0 PA** — hay que darle tú al botón o a Espacio. Fuera de combate, el movimiento libre sigue igual que siempre.
+- **El movimiento se corta al instante si se activa un enemigo a mitad de camino** (o si se dispara una trampa/evento con carta): antes se completaban las casillas ya tocadas y solo entonces "descubría" el combate.
+- **Arreglado que un segundo enemigo se quedara congelado** si el primero ya bloqueaba el único paso hacia ti (pasillos de una sola casilla): ahora se acerca todo lo que puede (típicamente, justo detrás del otro) en vez de quedarse quieto.
+- **Quitados restos de magenta** en el fondo pintado del cementerio, que se colaban en zonas nunca antes visibles tras desactivar la niebla negra.
+
 ## 0.16 — inventario, registro de eventos, cámara que sigue y correcciones varias
 - **Inventario y equipamiento**: nueva pantalla completa (huecos de equipo, hoja de personaje con Ataque/Defensa reales, rejilla de 18×8), se abre tocando el marco del héroe (arriba-izquierda) o con la tecla **I** en PC. De momento solo lleva el oro (sincronizado con el oro real, mismo icono que el HUD); el resto de huecos están listos para cuando haya objetos de verdad.
 - **Registro de eventos de verdad**: el aviso de abajo-izquierda ahora es un historial completo (tócalo, o tecla **L** en PC): golpes dados y recibidos, muertes, entrar/salir de combate y loot, cada uno con varias frases distintas elegidas al azar y con el nombre del enemigo (p.ej. "Esqueleto arquero te golpea con fuerza y te hace 8 de daño"). Filtros por Combate/Loot/Eventos.

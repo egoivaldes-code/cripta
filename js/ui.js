@@ -1,14 +1,14 @@
 // Capa DOM: HUD (con PA), cartas de evento, registro, fin de partida y ajustes.
 // Todo el texto visible pasa por t() (multiidioma). No dibuja en el canvas.
 
-import { state } from './state.js?v=0.16';
-import { t, tRandom } from './i18n.js?v=0.16';
-import * as anim from './anim.js?v=0.16';
-import { IDLE_NAME } from './anim.js?v=0.16';
-import * as audio from './audio.js?v=0.16';
-import { VERSION } from './config.js?v=0.16';
-import { images, SPRITE_TILE } from './assets.js?v=0.16';
-import { pushHistory, getHistory, clearHistory, CATEGORIES } from './eventlog.js?v=0.16';
+import { state } from './state.js?v=0.17';
+import { t, tRandom } from './i18n.js?v=0.17';
+import * as anim from './anim.js?v=0.17';
+import { IDLE_NAME } from './anim.js?v=0.17';
+import * as audio from './audio.js?v=0.17';
+import { VERSION } from './config.js?v=0.17';
+import { images, SPRITE_TILE } from './assets.js?v=0.17';
+import { pushHistory, getHistory, clearHistory, CATEGORIES } from './eventlog.js?v=0.17';
 
 let afterInteract = () => {};
 let restart = () => {};
@@ -60,6 +60,80 @@ export function hideLogHistory() { $('logHistoryVeil').classList.remove('show');
 $('log').addEventListener('click', showLogHistory);
 $('logHistCloseBtn').addEventListener('click', hideLogHistory);
 $('logHistoryVeil').addEventListener('click', e => { if (e.target === $('logHistoryVeil')) hideLogHistory(); });
+
+// --- Ventana de botín de cadáveres ------------------------------------
+// De momento solo hay oro; el icono real es el mismo que el del HUD. Deja
+// sitio para más tipos de objeto el día que haga falta (ver LOOT_ICONS y
+// applyLootEntry) sin cambiar nada más de esta ventana.
+const LOOT_ICONS = { gold: './assets/ui/gold_icon.png' };
+let lootCorpse = null;
+
+function lootEntryLabel(entry) {
+  if (entry.type === 'gold') return `+${entry.amount} ${t('loot.gold')}`;
+  return entry.type;
+}
+
+function applyLootEntry(entry) {
+  if (entry.type === 'gold') state.hero.gold = Math.max(0, state.hero.gold + entry.amount);
+  audio.fx('coins');
+}
+
+function renderLootList() {
+  const box = $('lootList');
+  box.innerHTML = '';
+  if (!lootCorpse) return;
+  lootCorpse.loot.forEach((entry, i) => {
+    const row = document.createElement('div');
+    row.className = 'loot-row';
+    row.innerHTML = `<img src="${LOOT_ICONS[entry.type] || ''}" alt=""><span>${lootEntryLabel(entry)}</span>`;
+    row.addEventListener('click', () => lootOne(i));
+    box.appendChild(row);
+  });
+}
+
+function closeLootVeil() {
+  lootCorpse = null;
+  $('lootList').innerHTML = '';
+  $('lootVeil').classList.remove('show');
+}
+
+// Coge un objeto suelto. Si era el último que quedaba, el cadáver
+// desaparece de verdad (deja de dibujarse) y la ventana se cierra sola.
+function lootOne(index) {
+  if (!lootCorpse) return;
+  const entry = lootCorpse.loot[index];
+  if (!entry) return;
+  applyLootEntry(entry);
+  lootCorpse.loot.splice(index, 1);
+  syncHUD();
+  if (lootCorpse.loot.length === 0) { lootCorpse.deathPlaying = false; closeLootVeil(); }
+  else renderLootList();
+}
+
+function lootAllNow() {
+  if (!lootCorpse) return;
+  lootCorpse.loot.forEach(applyLootEntry);
+  lootCorpse.loot = [];
+  syncHUD();
+  lootCorpse.deathPlaying = false;   // ya no queda nada: mismo mecanismo de siempre para que el cadáver desaparezca
+  closeLootVeil();
+}
+
+// La llama rules.js al tocar un cadáver adyacente con loot pendiente.
+export function showLootWindow(corpse) {
+  lootCorpse = corpse;
+  anim.loot('hero', 'hero');
+  $('lootTitle').textContent = t('enemy.' + corpse.sprite);
+  $('lootAllBtn').textContent = t('loot.takeAll');
+  renderLootList();
+  $('lootVeil').classList.add('show');
+}
+
+$('lootAllBtn').addEventListener('click', lootAllNow);
+// Cerrar sin coger todo NO hace desaparecer el cadáver: sigue ahí con lo
+// que falte por coger para cuando el jugador quiera volver.
+$('lootCloseBtn').addEventListener('click', closeLootVeil);
+$('lootVeil').addEventListener('click', e => { if (e.target === $('lootVeil')) closeLootVeil(); });
 
 // --- Confirmación genérica (reiniciar nivel, cerrar juego...) --------------
 // Un solo modal reutilizable: showConfirm(título, texto, fn) lo rellena y lo

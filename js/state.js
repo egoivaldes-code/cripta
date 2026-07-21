@@ -2,7 +2,7 @@
 // Incluye niebla de guerra (explored/visible) y el alcance de movimiento
 // ligado a los Puntos de Acción (PA) restantes del héroe.
 
-import { SIGHT, SIGHT_DIM, AP_MAX, CLIMB_COST, MAX_CLIMB, DIFFICULT_EXTRA } from './config.js?v=0.16';
+import { SIGHT, SIGHT_DIM, AP_MAX, CLIMB_COST, MAX_CLIMB, DIFFICULT_EXTRA } from './config.js?v=0.17';
 
 export const state = {
   cols: 0, rows: 0,
@@ -96,6 +96,13 @@ export function walkable(x, y) {
 // Consultas sobre los enemigos.
 export function livingFoes() { return state.foes.filter(f => f.alive); }
 export function foeAt(x, y) { return state.foes.find(f => f.alive && f.x === x && f.y === y) || null; }
+// Un "cadáver" es un enemigo muerto cuyo último fotograma sigue en pantalla
+// (deathPlaying) y todavía tiene loot sin coger — deja de contar en cuanto
+// se vacía (ver lootAll/lootItem en rules.js), aunque el sprite siga un
+// instante más en pantalla mientras se cierra la ventana.
+export function corpseAt(x, y) {
+  return state.foes.find(f => !f.alive && f.deathPlaying && f.x === x && f.y === y && f.loot && f.loot.length > 0) || null;
+}
 export function nearestFoe() {
   const { hero } = state; let best = null, bd = Infinity;
   for (const f of state.foes) { if (!f.alive) continue; const d = distTo(f, hero.x, hero.y); if (d < bd) { bd = d; best = f; } }
@@ -229,6 +236,49 @@ export function findPath(fromX, fromY, toX, toY) {
 export function inRange(x, y) {
   const d = state.reach.dist;
   return inBounds(x, y) && d[y] && d[y][x] > 0;
+}
+
+// Cuando NO hay camino directo hasta (toX,toY) — típicamente porque un
+// aliado ocupa la única casilla de paso en un pasillo estrecho — esto
+// encuentra la casilla alcanzable más cercana al objetivo (en vez de
+// quedarse quieto sin más) y devuelve el camino hasta ahí. Así, en un
+// pasillo de una sola casilla, el segundo enemigo se pone justo detrás del
+// primero en lugar de congelarse porque "no llega hasta el héroe".
+export function findApproachPath(fromX, fromY, toX, toY) {
+  const dist = grid(state.rows, state.cols, -1);
+  const from = grid(state.rows, state.cols, null);
+  dist[fromY][fromX] = 0;
+  const pq = [[0, fromX, fromY]];
+  while (pq.length) {
+    pq.sort((a, b) => a[0] - b[0]);
+    const [d, x, y] = pq.shift();
+    if (d > dist[y][x]) continue;
+    for (const [nx, ny, cost] of stepNeighbors(x, y)) {
+      const nd = d + cost;
+      if (dist[ny][nx] === -1 || nd < dist[ny][nx]) {
+        dist[ny][nx] = nd; from[ny][nx] = [x, y]; pq.push([nd, nx, ny]);
+      }
+    }
+  }
+  // De todas las casillas a las que de verdad se puede llegar, la que quede
+  // más cerca del objetivo (y, en empate, la más barata de alcanzar) — pero
+  // solo si de verdad mejora la distancia actual, para no dar un paso sin
+  // sentido cuando ya no se puede acercar más.
+  const currentDist = Math.max(Math.abs(fromX - toX), Math.abs(fromY - toY));
+  let best = null, bestDist = currentDist, bestCost = Infinity;
+  for (let y = 0; y < state.rows; y++) for (let x = 0; x < state.cols; x++) {
+    if (dist[y][x] < 0) continue;
+    if (x === fromX && y === fromY) continue;   // quedarse quieto no cuenta como "acercarse"
+    const dToTarget = Math.max(Math.abs(x - toX), Math.abs(y - toY));
+    if (dToTarget >= currentDist) continue;      // no mejora nada: descartada
+    if (dToTarget < bestDist || (dToTarget === bestDist && dist[y][x] < bestCost)) {
+      best = [x, y]; bestDist = dToTarget; bestCost = dist[y][x];
+    }
+  }
+  if (!best) return null;
+  const path = []; let cur = best;
+  while (cur) { path.push({ x: cur[0], y: cur[1] }); cur = from[cur[1]][cur[0]]; }
+  return path.reverse();
 }
 // Coste real en PA (ya con la altura aplicada) para llegar a (x,y), o -1 si no está en rango.
 export function reachCost(x, y) {

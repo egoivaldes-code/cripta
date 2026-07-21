@@ -25,8 +25,8 @@
 // icono que ya se ve en el HUD). Los 9 tipos de objeto y sus iconos están
 // listos para cuando haya objetos de verdad que equipar.
 
-import { state } from './state.js?v=0.16';
-import { t } from './i18n.js?v=0.16';
+import { state } from './state.js?v=0.17';
+import { t } from './i18n.js?v=0.17';
 
 // --- 1. Config ---------------------------------------------------------
 

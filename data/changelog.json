@@ -1,6 +1,34 @@
 {
   "versions": [
     {
+      "v": "0.17",
+      "es": {
+        "title": "Botín de cadáveres y arreglos de combate",
+        "notes": [
+          "Los enemigos ya sueltan oro al morir: toca su cadáver (adyacente) para abrir la ventana de botín, con un botón de \"Coger todo\".",
+          "Toda la interfaz usa ya la misma letra que el botón de Saltar turno.",
+          "Estadísticas del inventario más grandes en móvil.",
+          "En combate, el turno ya no pasa solo al quedarte sin PA.",
+          "El movimiento se para en el acto si se activa un enemigo a mitad de camino, en vez de completar el trayecto primero.",
+          "Arreglado que un segundo enemigo se quedara quieto si el primero bloqueaba el único paso hacia ti.",
+          "Limpiados restos de magenta en el fondo del cementerio."
+        ]
+      },
+      "en": {
+        "title": "Corpse loot and combat fixes",
+        "notes": [
+          "Enemies now drop gold on death: tap their corpse (while adjacent) to open the loot window, with a \"Take all\" button.",
+          "The whole interface now uses the same font as the Skip Turn button.",
+          "Bigger inventory stats text on mobile.",
+          "In combat, your turn no longer ends automatically just from running out of AP.",
+          "Movement now stops immediately if an enemy activates mid-path, instead of finishing the move first.",
+          "Fixed a second enemy freezing in place when the first one blocked the only way toward you.",
+          "Cleaned up leftover magenta patches in the cemetery background."
+        ]
+      },
+      "title": "Botín de cadáveres y arreglos de combate"
+    },
+    {
       "v": "0.16",
       "es": {
         "title": "Inventario, registro de eventos y cámara que sigue",

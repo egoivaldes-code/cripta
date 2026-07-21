@@ -14,7 +14,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Cripta</title>
-<link rel="stylesheet" href="./css/styles.css?v=0.16">
+<link rel="stylesheet" href="./css/styles.css?v=0.17">
 </head>
 <body>
 <div id="game">
@@ -68,6 +68,17 @@
       <button class="loghist-close" id="logHistCloseBtn" aria-label="Cerrar">×</button>
       <div class="loghist-filters" id="logHistFilters"></div>
       <div class="loghist-list" id="logHistList"></div>
+    </div>
+  </div>
+
+  <!-- Ventana de botín de cadáveres (rules.js la abre al tocar un cadáver
+       adyacente con loot pendiente). -->
+  <div class="veil" id="lootVeil">
+    <div class="loot-panel" id="lootPanel">
+      <button class="loot-close" id="lootCloseBtn" aria-label="Cerrar">×</button>
+      <h2 class="loot-name" id="lootTitle"></h2>
+      <div class="loot-list" id="lootList"></div>
+      <button class="loot-allbtn" id="lootAllBtn"></button>
     </div>
   </div>
 
@@ -150,6 +161,6 @@
   </div>
 </div>
 
-<script type="module" src="./js/main.js?v=0.16"></script>
+<script type="module" src="./js/main.js?v=0.17"></script>
 </body>
 </html>

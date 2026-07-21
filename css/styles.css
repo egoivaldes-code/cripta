@@ -8,7 +8,7 @@
 *{ box-sizing:border-box; }
 html,body{ margin:0; height:100%; background:#05060a; overflow:hidden; }
 body{
-  font-family: ui-monospace,"SFMono-Regular","Cascadia Mono",Menlo,Consolas,monospace;
+  font-family: Georgia,"Times New Roman",serif;
   color:var(--bone); -webkit-tap-highlight-color:transparent; user-select:none;
 }
 
@@ -282,7 +282,16 @@ body.layout-edit .layoutApplyBtn{ display:block; }
 .splash-head{ flex:none; display:flex; align-items:center; gap:14px;
   padding:max(14px,env(safe-area-inset-top)) 18px 12px;
   border-bottom:1px solid var(--steel); background:rgba(10,12,17,.92); backdrop-filter:blur(4px); }
-.splash-head .primary{ margin:0; font-size:14px; padding:12px 26px; }
+.splash-head .primary{
+  margin:0; width:190px; aspect-ratio:977/309; flex:none;
+  display:flex; align-items:center; justify-content:center;
+  background:url(../assets/ui/skipturn_bar.png) center/100% 100% no-repeat;
+  border:none; padding:0;
+  font-family:Georgia,"Times New Roman",serif; font-weight:700;
+  font-size:14px; letter-spacing:.05em; text-transform:uppercase;
+  color:#d9b878; text-shadow:0 1px 0 #6b4a1a, 0 -1px 1px #000, 0 2px 3px rgba(0,0,0,.7);
+}
+.splash-head .primary:hover{ color:#eccb8f; }
 .splash-title{ font-family:Georgia,"Times New Roman",serif; font-size:20px; color:var(--bone); letter-spacing:.02em; }
 /* Cuerpo scrolleable con las notas de cada versión. */
 .splash-body{ flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch;
@@ -344,6 +353,15 @@ body.layout-edit .layoutApplyBtn{ display:block; }
 .inv-stat-label{ color:var(--bone-dim); margin-right:6px; }
 .inv-stat-value{ color:var(--bone); font-weight:600; }
 
+/* En móvil, la pantalla completa del inventario (1920x2112) se escala mucho
+   más pequeña que en PC para caber en la pantalla, así que un tamaño de
+   fuente fijo que se ve bien en PC se queda diminuto en el móvil. Solo para
+   pantallas táctiles, se agranda bastante el texto de las estadísticas. */
+@media (pointer: coarse) {
+  .inv-stat-heading{ font-size:42px; margin-bottom:18px; padding-bottom:12px; }
+  .inv-stat-row{ font-size:34px; line-height:1.9; }
+}
+
 .inv-grid{ position:absolute; display:grid; }
 .inv-slot{
   position:relative; display:flex; align-items:center; justify-content:center;
@@ -402,3 +420,46 @@ body.layout-edit .layoutApplyBtn{ display:block; }
   #logHistoryVeil{ justify-content:flex-start; padding-left:3vw; }
   .loghist{ height:92vh; }
 }
+
+/* Ventana de botín de cadáveres — usa el marco de pergamino vertical
+   (assets/ui/loot_frame.webp): hueco de pergamino claro arriba para el
+   nombre del enemigo, zona oscura en medio para la lista, y el botón de
+   "coger todo" pegado abajo del todo con el mismo estilo que "saltar turno". */
+.loot-panel{
+  position:relative; height:min(82vh, 760px); max-width:82vw;
+  aspect-ratio:584/1254;
+  background:url(../assets/ui/loot_frame.webp) center/100% 100% no-repeat;
+  box-sizing:border-box;
+}
+.loot-close{
+  position:absolute; top:1%; right:6%; width:30px; height:30px; border-radius:50%;
+  border:1px solid var(--steel); background:rgba(20,16,10,.55); color:#e8dcc0;
+  font-size:16px; line-height:1; cursor:pointer; z-index:3;
+}
+.loot-name{
+  position:absolute; top:7%; left:12%; right:12%; height:7%; margin:0;
+  display:flex; align-items:center; justify-content:center; text-align:center;
+  font-family:Georgia,"Times New Roman",serif; font-size:19px; color:#3a2c18;
+  overflow:hidden; white-space:nowrap; text-overflow:ellipsis;
+}
+.loot-list{
+  position:absolute; top:18%; left:9%; right:9%; bottom:13%;
+  display:flex; flex-direction:column; gap:8px; overflow-y:auto; padding-right:4px; margin:0;
+}
+.loot-row{
+  display:flex; align-items:center; gap:10px; padding:9px 12px; cursor:pointer; flex:none;
+  background:rgba(20,16,12,.55); border:1px solid var(--steel); border-radius:5px;
+  font-size:14px; color:var(--bone);
+}
+.loot-row:hover{ background:rgba(40,32,22,.7); border-color:var(--ember); }
+.loot-row img{ width:26px; height:26px; object-fit:contain; flex:none; }
+.loot-allbtn{
+  position:absolute; bottom:2%; left:50%; transform:translateX(-50%);
+  width:64%; aspect-ratio:977/309; z-index:2;
+  background:url(../assets/ui/skipturn_bar.png) center/100% 100% no-repeat;
+  border:none; cursor:pointer; display:flex; align-items:center; justify-content:center;
+  font-family:Georgia,"Times New Roman",serif; font-weight:700;
+  font-size:13px; letter-spacing:.05em; text-transform:uppercase;
+  color:#d9b878; text-shadow:0 1px 0 #6b4a1a, 0 -1px 1px #000, 0 2px 3px rgba(0,0,0,.7);
+}
+.loot-allbtn:hover{ color:#eccb8f; }
