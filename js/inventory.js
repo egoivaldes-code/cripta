@@ -25,9 +25,9 @@
 // icono que ya se ve en el HUD). Los 9 tipos de objeto y sus iconos están
 // listos para cuando haya objetos de verdad que equipar.
 
-import { state } from './state.js?v=0.20.1';
-import { t } from './i18n.js?v=0.20.1';
-import { getPassiveOwnedSkills, getOwnedTier } from './skills.js?v=0.20.1';
+import { state } from './state.js?v=0.21';
+import { t } from './i18n.js?v=0.21';
+import { getPassiveOwnedSkills, getOwnedTier, getSkillBonuses } from './skills.js?v=0.21';
 
 // --- 1. Config ---------------------------------------------------------
 
@@ -348,9 +348,9 @@ function renderAll() { renderEquipment(); renderInventory(); renderCharSheet(); 
 // una fila más en una lista que crece hacia abajo sola — para añadir una
 // nueva estadística en el futuro solo hace falta una línea más aquí, no hay
 // que tocar ninguna coordenada.
-function statRow(label, value) {
+function statRow(label, value, boosted) {
   return `<div class="inv-stat-row"><span class="inv-stat-label">${label}</span> ` +
-         `<span class="inv-stat-value">${value}</span></div>`;
+         `<span class="inv-stat-value${boosted ? ' inv-stat-boosted' : ''}">${value}</span></div>`;
 }
 function pct(v) { return Math.round((v || 0) * 100) + '%'; }
 
@@ -359,15 +359,16 @@ function renderCharSheet() {
   const h = state.hero;
   if (!h) { charSheetEl.innerHTML = ''; return; }
   const resist = h.resist || {};
+  const bonus = getSkillBonuses();   // qué parte de crítico/armadura/esquiva viene de habilidades
 
   const attackRows = [
     statRow(t('stat.damage'), h.atk ?? 0),
-    statRow(t('stat.crit'), pct(h.critChance)),
+    statRow(t('stat.crit'), pct(h.critChance), bonus.crit > 0),
   ].join('');
 
   const defenseRows = [
-    statRow(t('stat.armor'), pct(h.armor)),
-    statRow(t('stat.dodge'), pct(h.dodgeChance)),
+    statRow(t('stat.armor'), pct(h.armor), bonus.armor > 0),
+    statRow(t('stat.dodge'), pct(h.dodgeChance), bonus.dodge > 0),
     h.hasShield ? statRow(t('stat.block'), pct(h.blockChance)) : '',
     statRow(t('stat.resist.fire'), pct(resist.fire)),
     statRow(t('stat.resist.cold'), pct(resist.cold)),

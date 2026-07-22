@@ -354,6 +354,7 @@ body.layout-edit .layoutApplyBtn{ display:block; }
 .inv-stat-empty{ color:var(--bone-dim); font-style:italic; }
 .inv-stat-label{ color:var(--bone-dim); margin-right:6px; }
 .inv-stat-value{ color:var(--bone); font-weight:600; }
+.inv-stat-value.inv-stat-boosted{ color:var(--moss); }
 
 /* En móvil, la pantalla completa del inventario (1920x2112) se escala mucho
    más pequeña que en PC para caber en la pantalla, así que un tamaño de
@@ -483,7 +484,8 @@ body.layout-edit .layoutApplyBtn{ display:block; }
   border:1px solid var(--steel); border-radius:6px; backdrop-filter:blur(3px); }
 .actionbar-slot{ width:44px; height:44px; border-radius:5px; flex:none;
   background:rgba(10,12,17,.6); border:1px solid var(--steel); }
-.actionbar-slot.actionbar-filled{ border-color:var(--ember); }
+.actionbar-slot.actionbar-filled{ border-color:var(--ember); cursor:pointer; }
+.actionbar-slot.actionbar-armed{ border-color:#f0c94a; box-shadow:0 0 0 2px rgba(240,201,74,.5); }
 .actionbar-slot .skill-icon{ width:100%; height:100%; border-radius:5px; }
 .actionbar-slot .skill-icon-letter{ font-size:16px; }
 

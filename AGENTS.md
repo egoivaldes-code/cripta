@@ -434,6 +434,55 @@ la tienda con `bindFullReset`). La diferencia es el oro y las habilidades:
 "Reiniciar partida" las conserva tal cual; "reiniciar progreso" también los
 pone a cero (1000 de oro, ninguna habilidad).
 
+## Efectos reales de las habilidades (V0.21)
+
+Desde la v0.21, las 10 habilidades de la tienda **hacen de verdad lo que
+dicen** en combate (antes eran solo catálogo/tienda, sin efecto real). Vive
+repartido así:
+
+- **`data/skills.json`**: cada tier trae un bloque `power` con los números
+  reales (`critBonus`, `armorBonus`, `dodgeBonus`, `healChance`/`healPct`,
+  `dmgPerKillPct`, `dmgMult`, `atkBuffPct`/`turns`...). Ya no son solo texto.
+- **Pasivas de estadística plana** (Precisión carnicera→crítico, Piel de
+  hierro→armadura, Reflejos felinos→esquiva): `skills.js` expone
+  `getSkillBonuses()` y `applySkillBonuses(hero)`. Esta última se llama
+  desde `main.js` cada vez que el héroe se (re)prepara — nivel nuevo, carry
+  entre niveles, o partida retomada — y **siempre recalcula desde la base**
+  (nunca suma sobre sí misma), así que es segura de llamar varias veces.
+  `inventory.js` usa `getSkillBonuses()` para pintar en verde (`--moss`) la
+  estadística que esté subida por una habilidad.
+- **Pasivas de combate** (Golpes de fe, Sed de sangre) y los multiplicadores
+  de las activas (Grito de guerra) viven en `rules.js` como estado de
+  COMBATE en marcha (no de la tienda): `skillCooldowns`, `warCryTurnsLeft`/
+  `warCryPct`, `bloodlustStacks`. Se resetean/decrementan en
+  `checkCombatEnd()` (cooldowns bajan 1 combate; Sed de sangre vuelve a 0) y
+  en `startHeroTurn()` (Grito de guerra decae 1 turno).
+- **Habilidades activas**: `rules.js` exporta `useActiveSkill(id, gx, gy)`.
+  `skills.js` gestiona el "armado" (tocar un icono de la barra de acción lo
+  arma; el siguiente toque en el mapa dispara `tryUseArmedOnTile`, enganchado
+  en `main.js` ANTES de `onTapTile` normal). Las de auto-lanzamiento
+  (`range:0`, como Grito de guerra) se usan al toque, sin esperar objetivo.
+  Como `rules.js` ya importaba cosas de `skills.js` (para leer tiers), la
+  conexión inversa (skills.js -> rules.js) se hace con un **bind**
+  (`bindUseActiveSkill`) para no crear un ciclo de imports.
+- **Limitación a propósito**: de momento los efectos son daño/curación/buff
+  INSTANTÁNEOS — no hay un motor de estados con turnos (quemadura, veneno
+  que hace tic, ralentizado, aturdido de verdad). El texto de cada tier
+  sigue describiendo la fantasía completa, pero mecánicamente hoy pega el
+  golpe de una vez. Construir ese motor de estados-por-turno es el
+  siguiente paso natural si hace falta más adelante.
+
+## Victoria de toda la mazmorra, no de una zona suelta (V0.21)
+
+Antes, limpiar los enemigos de CUALQUIER nivel (p.ej. los 2 esqueletos de
+Mausoleo 1) disparaba la pantalla de victoria de toda la partida. Ahora
+`rules.js` lleva la cuenta de bajas en `state.hero.totalKills` (viaja entre
+niveles igual que la vida/el oro, vía `carry` en `descend()`), y la victoria
+de verdad (`gameOver('win')`) solo salta cuando se iguala `totalFoeCount`
+(la suma de enemigos de cementerio+cripta+mausoleo1+mausoleo2, calculada una
+vez al arrancar en `main.js` y pasada con `setTotalFoeCount`). Limpiar un
+tramo suelto solo cierra el combate de esa zona (`checkCombatEnd`), sin más.
+
 ## La tienda de habilidades (sistema TEMPORAL de pruebas)
 
 Desde la v0.20 existe una pantalla ("Elige tus habilidades") que se abre justo

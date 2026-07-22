@@ -12,7 +12,7 @@
 // mismo número tanto en la tienda de habilidades como dentro de la mazmorra
 // — no hay dos "bolsas" separadas.
 
-import { state } from './state.js?v=0.20.1';
+import { state } from './state.js?v=0.21';
 
 const SAVE_KEY = 'cripta.save';
 const GOLD_KEY = 'cripta.gold';

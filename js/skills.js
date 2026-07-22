@@ -18,11 +18,11 @@
 // estado + render + interacción para toda esta pantalla, ya que es un bloque
 // autocontenido de la interfaz.
 
-import { state } from './state.js?v=0.20.1';
-import { t } from './i18n.js?v=0.20.1';
-import { VERSION } from './config.js?v=0.20.1';
-import { showConfirm } from './ui.js?v=0.20.1';
-import { getPersistedGold, persistGold } from './savegame.js?v=0.20.1';
+import { state } from './state.js?v=0.21';
+import { t } from './i18n.js?v=0.21';
+import { VERSION } from './config.js?v=0.21';
+import { showConfirm } from './ui.js?v=0.21';
+import { getPersistedGold, persistGold } from './savegame.js?v=0.21';
 
 const STORAGE_KEY = 'cripta.skills';
 const TIER_COUNT = 3;
@@ -52,6 +52,42 @@ function spendGold(amount) {
 // vaciadas). bindFullReset(fn) lo conecta con newGame() de main.js.
 let fullReset = () => {};
 export function bindFullReset(fn) { fullReset = fn; }
+
+// Usar una habilidad ACTIVA de verdad en combate vive en rules.js (necesita
+// el motor de daño/turnos). Para no crear un import circular (rules.js ya
+// importa cosas de aquí), se conecta con un "bind" — main.js hace de puente.
+let useSkillFn = () => false;
+export function bindUseActiveSkill(fn) { useSkillFn = fn; }
+
+// Habilidad activa "armada": esperando a que el jugador toque un objetivo
+// (o, si es de auto-lanzamiento como Grito de guerra, se usa al toque sin
+// esperar nada más). Solo puede haber una armada a la vez.
+let armedSkillId = null;
+export function getArmedSkill() { return armedSkillId; }
+
+function toggleArm(id) {
+  const s = skillDef(id);
+  if (!s || getOwnedTier(id) <= 0) return;
+  if (s.range === 0) {                 // auto-lanzamiento: no hace falta objetivo
+    useSkillFn(id, null, null);
+    renderActionBar();
+    return;
+  }
+  armedSkillId = (armedSkillId === id) ? null : id;
+  renderActionBar();
+}
+
+// Llamado desde main.js en CADA toque al mapa, antes que la lógica normal de
+// mover/atacar. Si hay una habilidad armada y el toque cae en un objetivo
+// válido, la usa y devuelve true (para que main.js no siga con onTapTile).
+export function tryUseArmedOnTile(gx, gy) {
+  if (!armedSkillId) return false;
+  const id = armedSkillId;
+  const used = useSkillFn(id, gx, gy);
+  if (used) armedSkillId = null;
+  renderActionBar();
+  return used;
+}
 
 // --- persistencia (solo los tiers comprados; el oro va aparte, ver arriba) --
 
@@ -93,6 +129,39 @@ export function getPassiveOwnedSkills() {
   return Object.keys(owned)
     .filter(id => owned[id] > 0 && skillDef(id) && skillDef(id).kind === 'passive')
     .map(id => skillDef(id));
+}
+
+export function getSkillDef(id) { return skillDef(id); }
+
+// Valores de referencia SIN ninguna habilidad — deben coincidir con los
+// valores por defecto de state.js (initGame). Si esos cambian allí, cambiar
+// también aquí para que la hoja de personaje siga sumando bien.
+const BASE_STATS = { critChance: 0.01, armor: 0.10, dodgeChance: 0.01 };
+
+// Bonus actuales aportados por las pasivas de estadística plana (no cuenta
+// Golpes de fe/Sed de sangre, que son de proc/combate, no un número fijo).
+export function getSkillBonuses() {
+  const bp = getOwnedTier('butcher_precision');
+  const is = getOwnedTier('iron_skin');
+  const cr = getOwnedTier('cat_reflexes');
+  const bpDef = skillDef('butcher_precision'), isDef = skillDef('iron_skin'), crDef = skillDef('cat_reflexes');
+  return {
+    crit: bp > 0 && bpDef ? bpDef.tiers[bp - 1].power.critBonus : 0,
+    armor: is > 0 && isDef ? isDef.tiers[is - 1].power.armorBonus : 0,
+    dodge: cr > 0 && crDef ? crDef.tiers[cr - 1].power.dodgeBonus : 0,
+  };
+}
+
+// Aplica los bonus de las pasivas de estadística plana sobre un héroe recién
+// preparado (nivel nuevo, carry entre niveles, o partida retomada). Se puede
+// llamar varias veces sin problema: siempre RECALCULA desde la base, nunca
+// suma sobre sí mismo (evita duplicar el bonus si se llama dos veces).
+export function applySkillBonuses(hero) {
+  if (!hero) return;
+  const b = getSkillBonuses();
+  hero.critChance = BASE_STATS.critChance + b.crit;
+  hero.armor = BASE_STATS.armor + b.armor;
+  hero.dodgeChance = BASE_STATS.dodgeChance + b.dodge;
 }
 
 // --- acciones ----------------------------------------------------------
@@ -221,10 +290,13 @@ function renderActionBar() {
   for (let i = 0; i < ACTIONBAR_SLOTS; i++) {
     const s = actives[i];
     slots.push(s
-      ? `<div class="actionbar-slot actionbar-filled" title="${t(`skill.${s.id}.name`)}">${iconHTML(s)}</div>`
+      ? `<div class="actionbar-slot actionbar-filled${armedSkillId === s.id ? ' actionbar-armed' : ''}" data-skill="${s.id}" title="${t(`skill.${s.id}.name`)}">${iconHTML(s)}</div>`
       : `<div class="actionbar-slot"></div>`);
   }
   actionBarEl.innerHTML = slots.join('');
+  actionBarEl.querySelectorAll('[data-skill]').forEach(el => {
+    el.addEventListener('click', () => toggleArm(el.dataset.skill));
+  });
 }
 
 // --- apertura / cierre de la tienda -------------------------------------

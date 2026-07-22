@@ -1,5 +1,5 @@
 {
-  "_comment": "Habilidades de la tienda de pruebas. Cada una tiene 3 tiers; al comprar un tier, la tarjeta pasa a ofrecer el siguiente. 'range' (casillas; 0=uno mismo, 1=cuerpo a cuerpo, null=no aplica en pasivas), 'area' (radio en casillas; null/0=objetivo único) y 'cooldown' (en combates; null=sin enfriamiento) son solo INFORMATIVOS por ahora (no hay efectos reales en rules.js todavía). 'icon' apunta al archivo real en assets/ui/skills/; si falta, la tienda dibuja un icono provisional (letra sobre círculo).",
+  "_comment": "Habilidades de la tienda de pruebas. Cada tier tiene un bloque 'power' con los números REALES que aplica el motor (rules.js/skills.js) — ya no son solo texto. 'range' (casillas; 0=uno mismo, 1=cuerpo a cuerpo, null=pasiva), 'area' (radio; null/0=objetivo único) y 'cooldown' (en combates) sí que se cumplen de verdad ahora.",
   "skills": [
     {
       "id": "butcher_precision",
@@ -8,7 +8,11 @@
       "kind": "passive",
       "damageType": "physical",
       "durationLabel": "skillshop.duration.permanent",
-      "tiers": [{ "price": 500 }, { "price": 750 }, { "price": 1000 }]
+      "tiers": [
+        { "price": 500, "power": { "critBonus": 0.10 } },
+        { "price": 750, "power": { "critBonus": 0.20 } },
+        { "price": 1000, "power": { "critBonus": 0.30 } }
+      ]
     },
     {
       "id": "faith_strikes",
@@ -17,7 +21,11 @@
       "kind": "passive",
       "damageType": "heal",
       "durationLabel": "skillshop.duration.instant",
-      "tiers": [{ "price": 500 }, { "price": 750 }, { "price": 1000 }]
+      "tiers": [
+        { "price": 500, "power": { "healChance": 0.15, "healPct": 0.25 } },
+        { "price": 750, "power": { "healChance": 0.30, "healPct": 0.25 } },
+        { "price": 1000, "power": { "healChance": 0.45, "healPct": 0.25 } }
+      ]
     },
     {
       "id": "flame_slash",
@@ -28,7 +36,11 @@
       "area": null,
       "cooldown": 1,
       "duration": 3,
-      "tiers": [{ "price": 500 }, { "price": 1000 }, { "price": 1500 }]
+      "tiers": [
+        { "price": 500, "power": { "dmgMult": 1.2 } },
+        { "price": 1000, "power": { "dmgMult": 1.5 } },
+        { "price": 1500, "power": { "dmgMult": 1.8 } }
+      ]
     },
     {
       "id": "iron_skin",
@@ -36,7 +48,11 @@
       "kind": "passive",
       "damageType": "none",
       "durationLabel": "skillshop.duration.permanent",
-      "tiers": [{ "price": 500 }, { "price": 1000 }, { "price": 1500 }]
+      "tiers": [
+        { "price": 500, "power": { "armorBonus": 0.05 } },
+        { "price": 1000, "power": { "armorBonus": 0.10 } },
+        { "price": 1500, "power": { "armorBonus": 0.15 } }
+      ]
     },
     {
       "id": "frost_arrow",
@@ -47,7 +63,11 @@
       "area": null,
       "cooldown": 1,
       "duration": 1,
-      "tiers": [{ "price": 500 }, { "price": 800 }, { "price": 1200 }]
+      "tiers": [
+        { "price": 500, "power": { "dmgMult": 1.0 } },
+        { "price": 800, "power": { "dmgMult": 1.3 } },
+        { "price": 1200, "power": { "dmgMult": 1.6 } }
+      ]
     },
     {
       "id": "poison_cloud",
@@ -58,7 +78,11 @@
       "area": 2,
       "cooldown": 3,
       "duration": 3,
-      "tiers": [{ "price": 600 }, { "price": 1000 }, { "price": 1400 }]
+      "tiers": [
+        { "price": 600, "power": { "dmgMult": 0.8 } },
+        { "price": 1000, "power": { "dmgMult": 1.0 } },
+        { "price": 1400, "power": { "dmgMult": 1.3 } }
+      ]
     },
     {
       "id": "holy_smite",
@@ -69,7 +93,11 @@
       "area": null,
       "cooldown": 2,
       "duration": null,
-      "tiers": [{ "price": 500 }, { "price": 900 }, { "price": 1300 }]
+      "tiers": [
+        { "price": 500, "power": { "dmgMult": 1.3 } },
+        { "price": 900, "power": { "dmgMult": 1.6 } },
+        { "price": 1300, "power": { "dmgMult": 2.0 } }
+      ]
     },
     {
       "id": "war_cry",
@@ -80,7 +108,11 @@
       "area": 2,
       "cooldown": 3,
       "duration": 2,
-      "tiers": [{ "price": 500 }, { "price": 850 }, { "price": 1200 }]
+      "tiers": [
+        { "price": 500, "power": { "atkBuffPct": 0.20, "turns": 2 } },
+        { "price": 850, "power": { "atkBuffPct": 0.35, "turns": 2 } },
+        { "price": 1200, "power": { "atkBuffPct": 0.50, "turns": 3 } }
+      ]
     },
     {
       "id": "cat_reflexes",
@@ -88,7 +120,11 @@
       "kind": "passive",
       "damageType": "none",
       "durationLabel": "skillshop.duration.permanent",
-      "tiers": [{ "price": 500 }, { "price": 800 }, { "price": 1100 }]
+      "tiers": [
+        { "price": 500, "power": { "dodgeBonus": 0.05 } },
+        { "price": 800, "power": { "dodgeBonus": 0.10 } },
+        { "price": 1100, "power": { "dodgeBonus": 0.15 } }
+      ]
     },
     {
       "id": "bloodlust",
@@ -96,7 +132,11 @@
       "kind": "passive",
       "damageType": "physical",
       "durationLabel": "skillshop.duration.percombat",
-      "tiers": [{ "price": 500 }, { "price": 900 }, { "price": 1300 }]
+      "tiers": [
+        { "price": 500, "power": { "dmgPerKillPct": 0.05 } },
+        { "price": 900, "power": { "dmgPerKillPct": 0.10 } },
+        { "price": 1300, "power": { "dmgPerKillPct": 0.15 } }
+      ]
     }
   ]
 }

@@ -2,6 +2,16 @@
 
 Esquema: `0.X` = cambio grande · `0.X.Y` = cambio pequeño / fix.
 
+## 0.21 — las habilidades ya hacen efecto de verdad + victoria de toda la mazmorra + más oro
+- **Las 10 habilidades ya tienen efecto real en combate** (antes solo existían en la tienda): daño/curación/buff con los números de cada tier, aplicados de verdad.
+  - Pasivas de estadística (Precisión carnicera, Piel de hierro, Reflejos felinos): suben crítico/armadura/esquiva de verdad, y se reflejan **en verde** en la hoja de personaje del inventario cuando hay bonus.
+  - Golpes de fe: cura de verdad la probabilidad y el % de su descripción al golpear cuerpo a cuerpo.
+  - Sed de sangre: sube el daño de verdad con cada baja, acumulable dentro del mismo combate.
+  - Las 5 activas (Tajo llameante, Flecha de escarcha, Nube de veneno, Golpe sagrado, Grito de guerra) ya se pueden USAR: tocar su icono en la barra de acción la arma, y el siguiente toque en un objetivo válido la dispara, con su daño/rango/área/enfriamiento reales. Grito de guerra se auto-lanza al tocarlo (no necesita objetivo).
+  - Limitación conocida: los efectos son instantáneos; todavía no hay un motor de estados por turnos (quemadura/veneno que hace tic, ralentizado, aturdido de verdad) — queda para una siguiente pasada si hace falta.
+- **Arreglado que limpiar una sola zona (p.ej. los 2 esqueletos del Mausoleo 1) daba la partida entera por terminada.** Ahora la victoria depende de limpiar TODA la mazmorra conectada (cementerio + cripta + los 2 mausoleos); limpiar un tramo suelto solo cierra ese combate, sin más.
+- **Oro de los enemigos subido temporalmente** a entre 10 y 200 por baja (antes 2-7), para poder probar la tienda con más soltura.
+
 ## 0.20.1 — recuperado el fondo pintado del cementerio y arreglado el evento de la entrada
 - **Diagnosticado comparando 0.17/0.18/0.19**: dos regresiones que ya venían de antes de esta sesión (no las causó nada de la V0.20), coladas al rehacer el cementerio grande entre la 0.18 y la 0.19.
 - **Fondo pintado recuperado**: `cemetery.json` había perdido `background:{key:bg_cemetery}` (quedó en `null`) y `assets.js` ya no registraba la imagen. El arte procesado (sin magenta) seguía en el proyecto sin usarse (`assets/backgrounds/cemetery.png`) — solo hacía falta reconectarlo.

@@ -1,18 +1,18 @@
 // Punto de entrada. Carga idioma y datos, cablea módulos y arranca el bucle.
 
-import { state, initGame, recomputeFog, computeReach } from './state.js?v=0.20.1';
-import { initRenderer, startLoop, centerOnHero, toggleGrid, isGridOn } from './render.js?v=0.20.1';
-import { onTapTile, bindDescend, startHeroTurn, endHeroTurn, afterInteract, attemptDisarm, isAITurnActive, getEnemySpeed, setEnemySpeed } from './rules.js?v=0.20.1';
-import { syncHUD, log, hideVeil, bindAfterInteract, bindRestart, bindAttemptDisarm, applyStaticText, syncInitiativeUI, showConfirm, showLogHistory, hideLogHistory, logHistoryOpen } from './ui.js?v=0.20.1';
-import { loadAssets } from './assets.js?v=0.20.1';
-import { initialLang, loadLang, onLangChange, getLang, t } from './i18n.js?v=0.20.1';
-import * as anim from './anim.js?v=0.20.1';
-import * as audio from './audio.js?v=0.20.1';
-import { VERSION } from './config.js?v=0.20.1';
-import { assemble } from './mapgen.js?v=0.20.1';
-import { initInventory, openInventory, closeInventory, isInventoryOpen, resetInventory, refreshInventoryTexts } from './inventory.js?v=0.20.1';
-import { loadSkillsData, initSkillShop, openSkillShop, closeSkillShop, refreshSkillTexts, bindFullReset } from './skills.js?v=0.20.1';
-import * as savegame from './savegame.js?v=0.20.1';
+import { state, initGame, recomputeFog, computeReach } from './state.js?v=0.21';
+import { initRenderer, startLoop, centerOnHero, toggleGrid, isGridOn } from './render.js?v=0.21';
+import { onTapTile, bindDescend, startHeroTurn, endHeroTurn, afterInteract, attemptDisarm, isAITurnActive, getEnemySpeed, setEnemySpeed, setTotalFoeCount, useActiveSkill } from './rules.js?v=0.21';
+import { syncHUD, log, hideVeil, bindAfterInteract, bindRestart, bindAttemptDisarm, applyStaticText, syncInitiativeUI, showConfirm, showLogHistory, hideLogHistory, logHistoryOpen } from './ui.js?v=0.21';
+import { loadAssets } from './assets.js?v=0.21';
+import { initialLang, loadLang, onLangChange, getLang, t } from './i18n.js?v=0.21';
+import * as anim from './anim.js?v=0.21';
+import * as audio from './audio.js?v=0.21';
+import { VERSION } from './config.js?v=0.21';
+import { assemble } from './mapgen.js?v=0.21';
+import { initInventory, openInventory, closeInventory, isInventoryOpen, resetInventory, refreshInventoryTexts } from './inventory.js?v=0.21';
+import { loadSkillsData, initSkillShop, openSkillShop, closeSkillShop, refreshSkillTexts, bindFullReset, applySkillBonuses, bindUseActiveSkill, tryUseArmedOnTile } from './skills.js?v=0.21';
+import * as savegame from './savegame.js?v=0.21';
 
 // El ensamblador de losetas (mapgen.js) sigue disponible para niveles ALEATORIOS
 // futuros; esta función queda de reserva pero no se usa por ahora, ya que el
@@ -79,7 +79,8 @@ async function boot() {
     const level = await getLevel(name);
     initGame(level, events);
     if (carry) Object.assign(state.hero, carry);        // arrastra vida/oro entre niveles (bajar de nivel)
-    else { resetInventory(); state.hero.gold = savegame.getPersistedGold(); }   // partida nueva de verdad: inventario limpio, oro = el que traías guardado (1000 la primera vez)
+    else { resetInventory(); state.hero.gold = savegame.getPersistedGold(); state.hero.totalKills = 0; }   // partida nueva de verdad: inventario limpio, oro = el que traías guardado (1000 la primera vez)
+    applySkillBonuses(state.hero);
     currentLevelName = name;
     anim.reset();
     centerOnHero(true);
@@ -102,6 +103,7 @@ async function boot() {
       const level = await getLevel(data.levelName);
       initGame(level, events);
       savegame.applySave(data);
+      applySkillBonuses(state.hero);
       recomputeFog();
       computeReach();
       currentLevelName = data.levelName;
@@ -120,7 +122,7 @@ async function boot() {
 
   function newGame() { loadLevel('level1'); }
   async function descend(to) {
-    const c = { hp: state.hero.hp, maxHp: state.hero.maxHp, atk: state.hero.atk, gold: state.hero.gold };
+    const c = { hp: state.hero.hp, maxHp: state.hero.maxHp, atk: state.hero.atk, gold: state.hero.gold, totalKills: state.hero.totalKills || 0 };
     try {
       audio.fx('descend');
       await loadLevel(to, c);
@@ -136,8 +138,27 @@ async function boot() {
   bindDescend(descend);
   bindAttemptDisarm(attemptDisarm);
   bindFullReset(newGame);   // "reiniciar progreso" en la tienda de habilidades también reinicia la mazmorra
+  bindUseActiveSkill(useActiveSkill);
 
-  initRenderer(document.getElementById('map'), onTapTile);
+  // Total de enemigos de TODAS las zonas conectadas (cementerio + cripta +
+  // mausoleos), para que la victoria dependa de limpiar la mazmorra entera y
+  // no de vaciar un único tramo (antes, entrar en el Mausoleo 1 y matar a
+  // sus 2 esqueletos daba la partida entera por terminada).
+  try {
+    const zoneNames = ['level1', 'cripta', 'mausoleo1', 'mausoleo2'];
+    let total = 0;
+    for (const n of zoneNames) {
+      const lvl = await getLevel(n);
+      const foes = lvl.start.foes || (lvl.start.foe ? [lvl.start.foe] : []);
+      total += foes.length;
+    }
+    setTotalFoeCount(total);
+  } catch (err) { console.warn('No se pudo calcular el total de enemigos de la mazmorra:', err); }
+
+  initRenderer(document.getElementById('map'), (gx, gy) => {
+    if (tryUseArmedOnTile(gx, gy)) return;   // había una habilidad activa armada esperando objetivo
+    onTapTile(gx, gy);
+  });
   initInventory();
   initSkillShop();
   startLoop();

@@ -1,16 +1,43 @@
 // Reglas del juego: economía de Puntos de Acción (PA), interacción a distancia
 // y adyacente, trampas, niebla y salida de nivel. Agnóstico del dibujo.
 
-import { state, walkable, adjacent, distTo, isVisible, recomputeFog, computeReach, pathTo, findPath, findApproachPath, reachCost, blockingTriggerAt, trapAt, walkTriggerAt, exitAt, stepNeighbors, foeAt, corpseAt, livingFoes, losClear } from './state.js?v=0.20.1';
-import { openEvent, openLeverCard, openTrapCard, openStoryCard, syncHUD, syncInitiativeUI, showCombatBadge, showLootWindow, showConfirm, log, gameOver } from './ui.js?v=0.20.1';
-import { t, tRandom } from './i18n.js?v=0.20.1';
-import { MOVE_COST, ATTACK_COST, INITIATIVE_BASE, INITIATIVE_DIE, TURN_DELAY, COMBAT_ENTER_DELAY } from './config.js?v=0.20.1';
-import * as anim from './anim.js?v=0.20.1';
-import { ANIM_CLIPS } from './anim.js?v=0.20.1';
-import * as audio from './audio.js?v=0.20.1';
-import { centerOnTile } from './render.js?v=0.20.1';
+import { state, walkable, adjacent, distTo, isVisible, recomputeFog, computeReach, pathTo, findPath, findApproachPath, reachCost, blockingTriggerAt, trapAt, walkTriggerAt, exitAt, stepNeighbors, foeAt, corpseAt, livingFoes, losClear } from './state.js?v=0.21';
+import { openEvent, openLeverCard, openTrapCard, openStoryCard, syncHUD, syncInitiativeUI, showCombatBadge, showLootWindow, showConfirm, log, gameOver } from './ui.js?v=0.21';
+import { t, tRandom } from './i18n.js?v=0.21';
+import { MOVE_COST, ATTACK_COST, INITIATIVE_BASE, INITIATIVE_DIE, TURN_DELAY, COMBAT_ENTER_DELAY } from './config.js?v=0.21';
+import * as anim from './anim.js?v=0.21';
+import { ANIM_CLIPS } from './anim.js?v=0.21';
+import * as audio from './audio.js?v=0.21';
+import { centerOnTile } from './render.js?v=0.21';
+import { getOwnedTier, getSkillDef } from './skills.js?v=0.21';
 
 const sign = (n) => Math.sign(n);
+
+// --- Habilidades: cooldowns (en combates), Grito de guerra y racha de Sed
+// de sangre. Vive aquí (no en skills.js) porque son estado de COMBATE en
+// marcha, no progreso persistente de la tienda. ---
+const skillCooldowns = {};       // id -> combates restantes hasta poder reusarla
+let warCryTurnsLeft = 0, warCryPct = 0;
+let bloodlustStacks = 0;         // se reinicia cada vez que un combate termina
+
+function isSkillReady(id) { return !(skillCooldowns[id] > 0); }
+function warCryMult() { return 1 + (warCryTurnsLeft > 0 ? warCryPct : 0); }
+function bloodlustMult() {
+  const tier = getOwnedTier('bloodlust');
+  if (!tier) return 1;
+  const def = getSkillDef('bloodlust');
+  return 1 + bloodlustStacks * def.tiers[tier - 1].power.dmgPerKillPct;
+}
+function registerBloodlustKill() { if (getOwnedTier('bloodlust') > 0) bloodlustStacks++; }
+
+const DMG_COLORS = { fire: '#e08a3c', ice: '#6ec3d8', poison: '#8a5fc9', holy: '#e8d27a', physical: '#e86a5c', none: '#e0b34a' };
+function dmgColor(type) { return DMG_COLORS[type] || '#e86a5c'; }
+
+// Total de enemigos de TODA la mazmorra (cementerio + cripta + mausoleos),
+// para que la victoria dependa de limpiarla entera y no de vaciar un único
+// tramo (ver setTotalFoeCount, llamado una vez desde main.js al arrancar).
+let totalFoeCount = null;
+export function setTotalFoeCount(n) { totalFoeCount = n; }
 
 // --- Resolución de combate (esquivar → bloquear → crítico → armadura/resistencia) ---
 // Ver combat_stats_v0.11.md para el diseño. Los monstruos NUNCA critean al
@@ -20,10 +47,12 @@ const CRIT_MULT = 2;
 const EVADE_COLOR = '#9aa0ab';
 const CRIT_COLOR = '#f0c94a';
 
-// Golpe del HÉROE contra un enemigo: solo puede critear (x2), nada más.
+// Golpe del HÉROE contra un enemigo: aplica primero los bonus de combate
+// (Grito de guerra, Sed de sangre) y solo entonces decide si critea (x2).
 function resolveHeroHit(baseDamage) {
+  const buffed = Math.round(baseDamage * warCryMult() * bloodlustMult());
   const crit = Math.random() < (state.hero.critChance || 0);
-  return { damage: crit ? Math.round(baseDamage * CRIT_MULT) : baseDamage, crit };
+  return { damage: crit ? Math.round(buffed * CRIT_MULT) : buffed, crit };
 }
 
 // Golpe de un ENEMIGO contra el héroe: esquivar → bloquear → armadura/resistencia.
@@ -118,6 +147,8 @@ function checkCombatEnd() {
     state.combat.active = false;
     state.combat.order = [];
     state.combat.idx = 0;
+    bloodlustStacks = 0;
+    for (const id in skillCooldowns) if (skillCooldowns[id] > 0) skillCooldowns[id]--;
     syncInitiativeUI();
     log(tRandom('log.combatEnd', 4), 'combat');
   }
@@ -128,13 +159,51 @@ function checkCombatEnd() {
 // haga falta sin cambiar la forma de todo lo demás (ver showLootWindow en
 // ui.js, que recorre esta lista genéricamente).
 function generateLoot(foe) {
-  const gold = 2 + Math.floor(Math.random() * 6);   // 2–7 de oro; ajustar a gusto más adelante
+  const gold = 10 + Math.floor(Math.random() * 191);   // 10–200 de oro (subido temporalmente para probar la tienda)
   return [{ type: 'gold', amount: gold }];
+}
+
+// Marca a un enemigo como muerto de verdad: animación, botín, registro, racha
+// de Sed de sangre y el contador de bajas de TODA la mazmorra (no solo este
+// nivel — ver setTotalFoeCount/gameOver más abajo). La usan tanto el ataque
+// normal (onTapTile) como las habilidades activas (useActiveSkill).
+function killFoe(target, foeName) {
+  audio.fx('kill'); target.alive = false;
+  if (state.targetFoe === target) state.targetFoe = null;
+  if (ANIM_CLIPS[target.sprite]) { anim.die(target.anim); target.deathPlaying = true; }
+  target.loot = generateLoot(target);
+  state.hero.totalKills = (state.hero.totalKills || 0) + 1;
+  registerBloodlustKill();
+  log(tRandom('log.killFoe', 5, { name: foeName }), 'combat');
+  checkCombatEnd();
+}
+
+// Si con esta muerte se ha limpiado la mazmorra ENTERA (todas las zonas
+// conectadas: cementerio + cripta + mausoleos), ahora sí toca la pantalla de
+// victoria — limpiar solo esta zona (p.ej. los 2 esqueletos de un mausoleo)
+// ya no la dispara por sí solo.
+function checkFullVictory() {
+  return totalFoeCount != null && (state.hero.totalKills || 0) >= totalFoeCount;
+}
+
+// Probabilidad de Golpes de fe (Paladín): un golpe cuerpo a cuerpo tiene
+// una probabilidad de curar parte de lo infligido.
+function maybeFaithStrikesHeal(dmgDealt) {
+  const tier = getOwnedTier('faith_strikes');
+  if (!tier || dmgDealt <= 0) return;
+  const power = getSkillDef('faith_strikes').tiers[tier - 1].power;
+  if (Math.random() >= power.healChance) return;
+  const heal = Math.max(1, Math.round(dmgDealt * power.healPct));
+  const hero = state.hero;
+  hero.hp = Math.min(hero.maxHp, hero.hp + heal);
+  anim.floatAt(hero.x, hero.y, `+${heal}`, '#7fc06a');
+  log(t('log.faithHeal', { n: heal }), 'combat');
 }
 
 // Empieza el turno del héroe: PA a tope y recalcula su alcance.
 export function startHeroTurn() {
   state.hero.ap = state.hero.apMax;
+  if (warCryTurnsLeft > 0) warCryTurnsLeft--;
   computeReach();
   syncHUD();
 }
@@ -227,6 +296,66 @@ const D_MOVE_STEP = 170;   // ritmo entre casillas al andar, a juego con la anim
 let lastHeroAttackAt = 0;
 
 // Acción del jugador al tocar una casilla (la llama render.js).
+// Usa de verdad una habilidad ACTIVA. `gx,gy` es la casilla tocada (null si
+// es de auto-lanzamiento, como Grito de guerra). Devuelve true si se ha
+// usado de verdad (para que quien llama sepa si debe desarmarla).
+export function useActiveSkill(id, gx, gy) {
+  const hero = state.hero;
+  if (state.busy || isAITurnActive()) return false;
+  const tier = getOwnedTier(id);
+  const def = getSkillDef(id);
+  if (!tier || !def || def.kind !== 'active') return false;
+  const skillName = t(`skill.${id}.name`);
+  if (!isSkillReady(id)) { log(t('log.skillCooldown', { name: skillName })); return false; }
+  if (hero.ap < ATTACK_COST) { log(t('log.noAP')); return false; }
+  const power = def.tiers[tier - 1].power;
+  if (!power) return false;
+
+  if (def.range === 0) {
+    // Auto-lanzamiento (Grito de guerra): se aplica sobre el propio héroe, sin objetivo.
+    warCryTurnsLeft = power.turns;
+    warCryPct = power.atkBuffPct;
+    anim.floatAt(hero.x, hero.y, skillName, '#f0c94a', { static: true });
+    log(t('log.skillCastSelf', { name: skillName }), 'combat');
+    audio.fx('ui');
+  } else {
+    if (gx == null || gy == null) return false;
+    const target = foeAt(gx, gy);
+    if (!target || !target.alive) return false;
+    if (!isVisible(gx, gy)) return false;
+    const dist = distTo(hero, gx, gy);
+    if (dist > def.range || (def.range === 1 && !adjacent(hero, gx, gy))) { log(t('log.skillOutOfRange')); return false; }
+
+    const targets = [target];
+    if (def.area) {
+      for (const f of state.foes) {
+        if (f.alive && f !== target && distTo(f, gx, gy) <= def.area) targets.push(f);
+      }
+    }
+    for (const foe of targets) {
+      const dmg = Math.max(1, Math.round(hero.atk * power.dmgMult * warCryMult() * bloodlustMult()));
+      anim.hurt(foe.anim, foe.sprite);
+      anim.floatAt(foe.x, foe.y, `−${dmg}`, dmgColor(def.damageType));
+      foe.hp -= dmg;
+      foe.dormant = false;
+      const foeName = t('enemy.' + foe.sprite);
+      if (foe.hp <= 0 && foe.alive) killFoe(foe, foeName);
+    }
+    log(t('log.skillHit', { name: skillName }), 'combat');
+    audio.fx('attack');
+  }
+
+  hero.ap -= ATTACK_COST;
+  skillCooldowns[id] = def.cooldown || 0;
+  syncHUD();
+  syncInitiativeUI();
+  computeReach();
+  if (checkFullVictory()) { gameOver('win'); return true; }
+  const justEnteredCombat = scanForNewCombatants();
+  if (justEnteredCombat || (hero.ap <= 0 && !state.combat.active)) endHeroTurn(justEnteredCombat);
+  return true;
+}
+
 export async function onTapTile(gx, gy) {
   const { hero } = state;
   if (heroMoving) return;   // ya está andando; ignora el toque hasta que termine (o se corte por combate/carta)
@@ -247,19 +376,15 @@ export async function onTapTile(gx, gy) {
     else anim.floatAt(target.x, target.y, `−${hit.damage}`, '#e86a5c');
     target.hp -= hit.damage;
     target.dormant = false;                 // si le pegas, despierta
+    maybeFaithStrikesHeal(hit.damage);
     const foeName = t('enemy.' + target.sprite);
     log(hit.crit ? tRandom('log.hitFoeCrit', 3, { name: foeName, dmg: hit.damage })
                  : tRandom('log.hitFoe', 5, { name: foeName, dmg: hit.damage }), 'combat');
     if (target.hp <= 0) {
-      audio.fx('kill'); target.alive = false;
-      if (state.targetFoe === target) state.targetFoe = null;
-      if (ANIM_CLIPS[target.sprite]) { anim.die(target.anim); target.deathPlaying = true; }
-      target.loot = generateLoot(target);
-      log(tRandom('log.killFoe', 5, { name: foeName }), 'combat');
-      checkCombatEnd();
+      killFoe(target, foeName);
       syncHUD();
       syncInitiativeUI();
-      if (livingFoes().length === 0) return gameOver('win');
+      if (checkFullVictory()) return gameOver('win');
     } else {
       audio.fx('attack'); syncHUD();
     }

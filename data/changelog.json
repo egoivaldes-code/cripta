@@ -1,6 +1,29 @@
 {
   "versions": [
     {
+      "v": "0.21",
+      "es": {
+        "title": "Las habilidades ya hacen efecto de verdad",
+        "notes": [
+          "Las 10 habilidades ya funcionan de verdad en combate, no solo en la tienda.",
+          "Tócalas en la barra de acción para usarlas: apuntan, hacen daño/curan/potencian según su nivel.",
+          "El crítico, la armadura y la esquiva de las pasivas se ven en verde en la hoja de personaje.",
+          "Arreglado: limpiar una sola zona (como el Mausoleo 1) ya no termina la partida entera; hay que limpiar toda la mazmorra.",
+          "Oro de los enemigos subido temporalmente (10 a 200) para probar la tienda con más soltura."
+        ]
+      },
+      "en": {
+        "title": "Skills now have real effects",
+        "notes": [
+          "All 10 skills now actually work in combat, not just in the shop.",
+          "Tap them on the action bar to use them: they target, deal damage, heal or buff based on their tier.",
+          "Crit, armor and dodge from passives now show up in green in the character sheet.",
+          "Fixed: clearing a single area (like Mausoleum 1) no longer ends the whole run; you need to clear the entire dungeon.",
+          "Enemy gold temporarily increased (10 to 200) to test the shop more freely."
+        ]
+      }
+    },
+    {
       "v": "0.20.1",
       "es": {
         "title": "Arreglos del cementerio",

@@ -2,7 +2,7 @@
 // usan un pitido suave sintetizado. De fondo: ambiente de bosque en bucle + ulular
 // de búho de vez en cuando. En móvil el sonido solo arranca tras tocar -> unlock().
 
-import { VERSION } from './config.js?v=0.20.1';
+import { VERSION } from './config.js?v=0.21';
 
 let ctx, master, fxGain, ambGain;
 let ambSource = null, owlTimer = null;
