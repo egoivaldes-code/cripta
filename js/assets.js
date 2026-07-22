@@ -6,7 +6,7 @@
 // Qué claves tienen animaciones de verdad se define en ANIM_CLIPS (anim.js);
 // aquí solo hace falta indicar dónde está cada hoja.
 
-import { VERSION } from './config.js?v=0.18';
+import { VERSION } from './config.js?v=0.19';
 
 export const ATLAS_TILE = 128;  // px por celda en el tileset fuente (dungeon.png)
 export const SPRITE_TILE = 128; // px por fotograma en las hojas de sprites
@@ -62,7 +62,10 @@ const sources = {
   target: './assets/props/target_marker.png',
   // crypt / crypt_in: aparcados (arte isométrico; el cementerio ahora usa un fondo
   // pintado cenital). Los archivos siguen en el proyecto por si se retoman.
-  bg_cemetery: './assets/backgrounds/cemetery.png',
+  bg_mausoleum1: './assets/backgrounds/mausoleum1.jpg',
+  bg_mausoleum2: './assets/backgrounds/mausoleum2.jpg',
+  void_forest: './assets/backgrounds/void_forest.jpg',           // fondo de "vacío" para biomas de exterior/bosque
+  void_underground: './assets/backgrounds/void_underground.jpg', // fondo de "vacío" para biomas subterráneos
   story_cemetery_noises: './assets/ui/story_cemetery_noises.jpg',
 };
 

@@ -2,6 +2,16 @@
 
 Esquema: `0.X` = cambio grande · `0.X.Y` = cambio pequeño / fix.
 
+## 0.19 — el cementerio grande, sus 4 salidas y la palanca de los mausoleos
+- **El cementerio pasa a ser el mapa grande definitivo** (30×20, bioma bosque), con sus 16 enemigos, cofre, altar, trampas y objeto de ambientación ya colocados.
+- **El motor soporta ahora varias salidas por nivel** (antes solo una): cada salida es un objeto "mueble" — ocupa su casilla, se interactúa desde al lado, no se anda por encima. Los niveles con una sola salida (Cripta, Mausoleo 1, Mausoleo 2, Nivel 2) siguen igual, sin tocar.
+- **Las 4 salidas del cementerio ya están conectadas**: 1 y 2 llevan a la Cripta (siempre abiertas, es el portón grande de dos casillas); 3 lleva al Mausoleo 1 y 4 al Mausoleo 2, ambas bloqueadas hasta activar la palanca.
+- **Nueva palanca con su propia carta**: pregunta "¿Quieres tirar de la palanca?" (Sí/No); si se acepta, se anota en el registro, la misma tarjeta cambia su texto a la escena de resultado ("Mueves la palanca y oyes cómo un mecanismo se libera...") y se desbloquean las dos salidas de los mausoleos. Patrón reutilizable para futuras palancas sin tocar el motor (solo `events.json` + textos).
+- Arreglado un bug ya en producción: la salida del cementerio apuntaba a `"Cripta"` (con mayúscula) en vez de `cripta.json` (minúscula) — en GitHub Pages, que distingue mayúsculas/minúsculas, habría dado un error 404.
+- Se añadieron el Mausoleo 1 y el Mausoleo 2 como niveles jugables completos, con su propio fondo.
+- Nuevo sistema de **biomas** (`bosque` / `subterráneo`) por nivel, que decide qué imagen de "vacío" (fuera del mapa pintado) usar alrededor del escenario.
+- Verificado con las reglas reales del motor: las 4 salidas, la palanca y el resto de objetos son alcanzables desde el punto de partida en los 5 niveles, sin colisiones entre héroe/enemigos/objetos/salidas.
+
 ## 0.18 — mejoras de IA de movimiento (inspiradas en Descent: Viaje a las Tinieblas)
 - **Los enemigos ya pueden "atravesar" (sin terminar encima) a otros enemigos aliados** al calcular su ruta hacia el héroe — igual que en Descent 2E. Sustituye al parche anterior del pasillo estrecho por algo más fiel y robusto: funciona bien también en pasillos con esquinas/recodos, no solo en línea recta.
 - **Los arqueros que huyen ahora priorizan esconderse** (romper línea de visión) por encima de solo alejarse a la vista de todos.

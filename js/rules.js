@@ -1,14 +1,14 @@
 // Reglas del juego: economía de Puntos de Acción (PA), interacción a distancia
 // y adyacente, trampas, niebla y salida de nivel. Agnóstico del dibujo.
 
-import { state, walkable, adjacent, distTo, isVisible, recomputeFog, computeReach, pathTo, findPath, findApproachPath, reachCost, blockingTriggerAt, trapAt, walkTriggerAt, stepNeighbors, foeAt, corpseAt, livingFoes, losClear } from './state.js?v=0.18';
-import { openEvent, openTrapCard, openStoryCard, syncHUD, syncInitiativeUI, showCombatBadge, showLootWindow, log, gameOver } from './ui.js?v=0.18';
-import { t, tRandom } from './i18n.js?v=0.18';
-import { MOVE_COST, ATTACK_COST, INITIATIVE_BASE, INITIATIVE_DIE, TURN_DELAY, COMBAT_ENTER_DELAY } from './config.js?v=0.18';
-import * as anim from './anim.js?v=0.18';
-import { ANIM_CLIPS } from './anim.js?v=0.18';
-import * as audio from './audio.js?v=0.18';
-import { centerOnTile } from './render.js?v=0.18';
+import { state, walkable, adjacent, distTo, isVisible, recomputeFog, computeReach, pathTo, findPath, findApproachPath, reachCost, blockingTriggerAt, trapAt, walkTriggerAt, exitAt, stepNeighbors, foeAt, corpseAt, livingFoes, losClear } from './state.js?v=0.19';
+import { openEvent, openLeverCard, openTrapCard, openStoryCard, syncHUD, syncInitiativeUI, showCombatBadge, showLootWindow, showConfirm, log, gameOver } from './ui.js?v=0.19';
+import { t, tRandom } from './i18n.js?v=0.19';
+import { MOVE_COST, ATTACK_COST, INITIATIVE_BASE, INITIATIVE_DIE, TURN_DELAY, COMBAT_ENTER_DELAY } from './config.js?v=0.19';
+import * as anim from './anim.js?v=0.19';
+import { ANIM_CLIPS } from './anim.js?v=0.19';
+import * as audio from './audio.js?v=0.19';
+import { centerOnTile } from './render.js?v=0.19';
 
 const sign = (n) => Math.sign(n);
 
@@ -52,6 +52,10 @@ function applyIncomingHit(baseDamage, damageType, color) {
 
 let onDescend = () => {};
 export function bindDescend(fn) { onDescend = fn; }
+
+// Destinos por los que ya se preguntó "¿seguro?" y se confirmó Sí — evita que
+// una salida se resuelva dos veces si el jugador toca la confirmación rápido.
+function goExit(to) { onDescend(to); }
 
 // --- Iniciativa -------------------------------------------------------------
 // Tirada de iniciativa: base por tipo + 1-6, una sola vez por escaramuza (no
@@ -297,9 +301,35 @@ export async function onTapTile(gx, gy) {
       } else {
         anim.activateAnim('hero', 'hero');
       }
-      openEvent(tr);
+      if (tr.type === 'lever') openLeverCard(tr);
+      else openEvent(tr);
     } else if (isVisible(gx, gy)) {
       showHint(tr);
+    }
+    return;
+  }
+
+  // --- ¿Salida (formato nuevo: portón/verja, varias por nivel)? Adyacente =
+  // usarla (si está bloqueada, solo avisa; si no, pregunta antes de bajar de
+  // nivel); a distancia = pista, igual que el resto de objetos. No cuesta PA:
+  // es solo una transición, no una acción de combate. ---
+  const ex = exitAt(gx, gy);
+  if (ex) {
+    const d = distTo(hero, gx, gy);
+    const ev = state.events[ex.id];
+    if (d <= 1) {
+      if (ex.blocked) {
+        if (ev) log(`<b>${t(ev.i18n + '.kicker')}</b> — ${t(ev.i18n + '.blockedHint')}`);
+        else log(t('log.exitBlocked'));
+      } else if (ev) {
+        showConfirm(t(ev.i18n + '.title'), t(ev.i18n + '.question'), () => goExit(ex.to));
+      } else {
+        // Sin evento conectado todavía (salida recién colocada en el editor,
+        // sin enlazar): mismo criterio que el resto de objetos sin conectar.
+        log(t('log.noEventYet'));
+      }
+    } else if (isVisible(gx, gy)) {
+      showHint(ex);
     }
     return;
   }
@@ -349,7 +379,7 @@ export async function onTapTile(gx, gy) {
       if (wt) triggerWalkEvent(wt);
       if (state.busy) return;                             // se abrió una carta (evento de historia): se para aquí
 
-      if (state.exit && cell.x === state.exit.x && cell.y === state.exit.y) { onDescend(); return; }
+      if (state.exit && cell.x === state.exit.x && cell.y === state.exit.y) { onDescend(state.exit.to); return; }
 
       computeReach();
       // Fuera de combate el movimiento es libre (sin turnos); en cuanto un

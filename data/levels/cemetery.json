@@ -1,8 +1,6 @@
 {
   "name": "El cementerio",
-  "background": {
-    "key": "bg_cemetery"
-  },
+  "biome": "forest",
   "tiles": [
     [
       1,
@@ -473,7 +471,7 @@
       0,
       0,
       1,
-      1,
+      0,
       0,
       0,
       0,
@@ -527,7 +525,7 @@
       0,
       0,
       0,
-      0,
+      1,
       1,
       1,
       1,
@@ -559,7 +557,7 @@
       1,
       0,
       0,
-      0,
+      1,
       1,
       1,
       0,
@@ -2040,16 +2038,6 @@
         "wakeR": 4
       },
       {
-        "x": 14,
-        "y": 6,
-        "sprite": "enemy4",
-        "hp": 9,
-        "maxHp": 9,
-        "atk": 3,
-        "dormant": true,
-        "wakeR": 4
-      },
-      {
         "x": 15,
         "y": 8,
         "sprite": "enemy1",
@@ -2098,6 +2086,16 @@
         "atk": 4,
         "dormant": true,
         "wakeR": 3
+      },
+      {
+        "x": 13,
+        "y": 6,
+        "sprite": "enemy4",
+        "hp": 9,
+        "maxHp": 9,
+        "atk": 3,
+        "dormant": true,
+        "wakeR": 4
       }
     ]
   },
@@ -2127,13 +2125,6 @@
       "type": "lever"
     },
     {
-      "x": 14,
-      "y": 16,
-      "id": "evento_1",
-      "type": "event",
-      "walkTrigger": true
-    },
-    {
       "x": 3,
       "y": 12,
       "id": "trap_3",
@@ -2150,11 +2141,42 @@
       "y": 10,
       "id": "altar_1",
       "type": "altar"
+    },
+    {
+      "x": 14,
+      "y": 17,
+      "id": "event_1",
+      "type": "event"
     }
   ],
-  "exit": {
-    "x": 15,
-    "y": 6,
-    "to": "Cripta"
-  }
+  "exits": [
+    {
+      "id": "exit_1",
+      "x": 14,
+      "y": 5,
+      "to": "cripta",
+      "blocked": false
+    },
+    {
+      "id": "exit_2",
+      "x": 15,
+      "y": 5,
+      "to": "cripta",
+      "blocked": false
+    },
+    {
+      "id": "exit_3",
+      "x": 25,
+      "y": 14,
+      "to": "mausoleo1",
+      "blocked": true
+    },
+    {
+      "id": "exit_4",
+      "x": 22,
+      "y": 13,
+      "to": "mausoleo2",
+      "blocked": true
+    }
+  ]
 }

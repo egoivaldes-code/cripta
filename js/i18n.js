@@ -2,7 +2,7 @@
 // t('log.hitFoe', { dmg: 6 })  ->  "Golpeas al acechador. −6"
 // Ningún texto visible debe estar en el código: todo pasa por aquí.
 
-import { VERSION } from './config.js?v=0.18';
+import { VERSION } from './config.js?v=0.19';
 
 let dict = {};
 let current = 'es';

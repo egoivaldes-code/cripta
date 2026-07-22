@@ -395,11 +395,17 @@ y `data/changelog.json` (splash del juego, en es/en) para esa versión.
 
 Ver `CHANGELOG.md` y `data/changelog.json` para el historial completo. A
 grandes rasgos, sigue pendiente:
-- Terminar de pintar el terreno y las entidades de la "cripta de prueba" en
-  el editor de niveles (la salida del cementerio ya apunta ahí, pero el
-  archivo `data/levels/cripta_prueba.json` todavía no existe — si se pisa
-  esa salida, el juego avisa con un mensaje en vez de romperse, pero no lleva
-  a ningún sitio real todavía).
+- **Las 4 salidas del cementerio grande ya están conectadas**: 1 y 2 llevan
+  a `cripta` (siempre abiertas), 3 a `mausoleo1` y 4 a `mausoleo2`, ambas
+  bloqueadas hasta tirar de `lever_1` (adyacente). El motor ahora soporta
+  **varias salidas por nivel** (`state.exits`, cada una "mueble": ocupa su
+  casilla, se interactúa desde al lado, opcionalmente `blocked`) además del
+  formato antiguo de una sola (`state.exit`, sigue igual para Cripta,
+  Mausoleo1, Mausoleo2 y level2 — no hacía falta tocarlos). La carta de la
+  palanca sigue el patrón "pregunta Sí/No → la misma tarjeta cambia a texto
+  de resultado" (`ev.<id>.question` / `.result` en events.json, con
+  `unlocks: [ids de salidas]`) — reutilizable para futuras palancas sin
+  tocar el motor, solo añadiendo la entrada en `events.json` + i18n.
 - Enganchar `cast`/`potion` (héroe y esqueleto) a algún efecto de juego real.
 - Animar a los otros dos tipos de esqueleto (espada+escudo, con armadura)
   cuando lleguen sus sprites — hoy están desactivados en el manifiesto.

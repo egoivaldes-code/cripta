@@ -2,7 +2,7 @@
 // Incluye niebla de guerra (explored/visible) y el alcance de movimiento
 // ligado a los Puntos de Acción (PA) restantes del héroe.
 
-import { SIGHT, SIGHT_DIM, AP_MAX, CLIMB_COST, MAX_CLIMB, DIFFICULT_EXTRA } from './config.js?v=0.18';
+import { SIGHT, SIGHT_DIM, AP_MAX, CLIMB_COST, MAX_CLIMB, DIFFICULT_EXTRA } from './config.js?v=0.19';
 
 export const state = {
   cols: 0, rows: 0,
@@ -11,7 +11,7 @@ export const state = {
   difficult: [],             // terreno difícil (matorrales, escombros...): true = cuesta más cruzarlo
   background: null,          // { key } si el nivel usa una imagen de fondo pintada, en vez de losetas
   hero: null, foes: [],      // hero.ap = PA restantes este turno; .apMax = PA por turno
-  triggers: [], exit: null,
+  triggers: [], exit: null, exits: [],
   events: {},
   explored: [], visible: [],
   reach: { dist: [], from: [] },   // alcance de movimiento según PA restantes
@@ -39,6 +39,7 @@ export function initGame(level, events) {
   state.elev = level.elev || grid(state.rows, state.cols, 0);
   state.difficult = level.difficult || grid(state.rows, state.cols, false);
   state.background = level.background || null;
+  state.biome = level.biome || 'underground';   // 'forest' | 'underground' -> qué fondo de vacío usar (ver render.js)
   state.hero = {
     critChance: 0.01, dodgeChance: 0.01, armor: 0.10,
     hasShield: true, blockChance: 0.20,
@@ -55,6 +56,12 @@ export function initGame(level, events) {
   }));
   state.triggers = level.triggers.map(t => ({ ...t, used: false }));
   state.exit = level.exit ? { ...level.exit } : null;
+  // Formato nuevo: varias salidas por nivel, cada una "mueble" (no se anda
+  // encima, se interactúa desde al lado) y opcionalmente bloqueada hasta que
+  // algo la desbloquee (p.ej. una palanca). Convive con `exit` (el formato
+  // antiguo de una sola salida transitable) para no tocar los niveles que ya
+  // lo usan así.
+  state.exits = (level.exits || []).map(e => ({ ...e, blocked: !!e.blocked }));
   state.events = events;
   state.explored = grid(state.rows, state.cols, false);
   state.visible = grid(state.rows, state.cols, false);
@@ -76,6 +83,12 @@ export function blockingTriggerAt(x, y) {
 export function trapAt(x, y) {
   return state.triggers.find(t => !t.used && t.type === 'trap' && t.x === x && t.y === y);
 }
+// Salida (formato nuevo, con id): ocupa su casilla igual que un objeto
+// "mueble" — no se anda por encima, se interactúa desde al lado (portón,
+// verja...), esté o no bloqueada.
+export function exitAt(x, y) {
+  return state.exits.find(e => e.x === x && e.y === y) || null;
+}
 // Objetos marcados como walkTrigger (p.ej. un evento de ambientación): no
 // bloquean su casilla y se disparan solos al pisarlos, como una trampa pero
 // sin daño — el efecto concreto lo decide quien lo dispare (ver rules.js).
@@ -91,6 +104,7 @@ export function walkable(x, y) {
   return inBounds(x, y) && state.tiles[y][x] === 0
     && !state.foes.some(f => f.alive && f.x === x && f.y === y)
     && !blockingTriggerAt(x, y)
+    && !exitAt(x, y)
     && !(trap && trap.revealed);   // ya descubierta: bloquea como un mueble, no se cruza por encima
 }
 // Consultas sobre los enemigos.
@@ -140,7 +154,7 @@ export function stepNeighbors(x, y, passFoes = false) {
     const nx = x + dx, ny = y + dy;
     const trap = trapAt(nx, ny);
     const passableTerrain = inBounds(nx, ny) && state.tiles[ny][nx] === 0
-      && !blockingTriggerAt(nx, ny) && !(trap && trap.revealed);
+      && !blockingTriggerAt(nx, ny) && !exitAt(nx, ny) && !(trap && trap.revealed);
     const foeHere = state.foes.some(f => f.alive && f.x === nx && f.y === ny);
     if (!passableTerrain || (foeHere && !passFoes)) continue;
     if (dx !== 0 && dy !== 0 && !diagOpen(x, y, dx, dy)) continue;

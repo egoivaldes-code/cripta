@@ -1,6 +1,28 @@
 {
   "versions": [
     {
+      "v": "0.19",
+      "es": {
+        "title": "El cementerio grande y la palanca de los mausoleos",
+        "notes": [
+          "El cementerio ya es el mapa grande definitivo, con sus 4 salidas.",
+          "1 y 2 llevan a la Cripta (el portón siempre abierto); 3 y 4 llevan a los dos mausoleos, bloqueadas hasta tirar de la palanca.",
+          "Nueva palanca: pregunta antes de activarla y cuenta lo que pasa al hacerlo.",
+          "Añadidos el Mausoleo 1 y el Mausoleo 2 como zonas explorables."
+        ]
+      },
+      "en": {
+        "title": "The large cemetery and the mausoleum lever",
+        "notes": [
+          "The cemetery is now the final large map, with its 4 exits.",
+          "Exits 1 and 2 lead to the Crypt (the gate is always open); 3 and 4 lead to the two mausoleums, locked until the lever is pulled.",
+          "New lever: asks before activating it and tells you what happens when you do.",
+          "Added Mausoleum 1 and Mausoleum 2 as explorable areas."
+        ]
+      },
+      "title": "El cementerio grande y la palanca de los mausoleos"
+    },
+    {
       "v": "0.18",
       "es": {
         "title": "IA de movimiento mejorada",

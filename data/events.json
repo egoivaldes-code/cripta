@@ -168,19 +168,26 @@
     ]
   },
   "lever_1": {
-    "i18n": "ev.palanca",
+    "i18n": "ev.palanca1",
     "type": "lever",
     "actionCost": 1,
-    "choices": [
-      {
-        "effect": {
-          "gold": 6
-        }
-      },
-      {
-        "effect": {}
-      }
-    ]
+    "unlocks": ["exit_3", "exit_4"]
+  },
+  "exit_1": {
+    "i18n": "ev.exit1",
+    "type": "exit"
+  },
+  "exit_2": {
+    "i18n": "ev.exit2",
+    "type": "exit"
+  },
+  "exit_3": {
+    "i18n": "ev.exit3",
+    "type": "exit"
+  },
+  "exit_4": {
+    "i18n": "ev.exit4",
+    "type": "exit"
   },
   "item_1": {
     "i18n": "ev.tumba",

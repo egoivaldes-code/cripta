@@ -7,11 +7,11 @@
 // La altura de cada casilla se pinta con un tinte y, en los escalones, un
 // borde de color: VERDE en el lado alto, ROJO en el lado bajo (estilo Descent).
 
-import { state, elevAt, pathTo, foeAt, blockingTriggerAt, adjacent } from './state.js?v=0.18';
-import { isAITurnActive } from './rules.js?v=0.18';
-import { TILE, CAMERA_MARGIN, ZOOM_MIN, ZOOM_MAX, ZOOM_DEFAULT, TOKEN_TALL, HERO_TALL, PROP_TALL } from './config.js?v=0.18';
-import { images, ATLAS_TILE, SPRITE_TILE } from './assets.js?v=0.18';
-import * as anim from './anim.js?v=0.18';
+import { state, elevAt, pathTo, foeAt, blockingTriggerAt, exitAt, adjacent } from './state.js?v=0.19';
+import { isAITurnActive } from './rules.js?v=0.19';
+import { TILE, CAMERA_MARGIN, ZOOM_MIN, ZOOM_MAX, ZOOM_DEFAULT, TOKEN_TALL, HERO_TALL, PROP_TALL } from './config.js?v=0.19';
+import { images, ATLAS_TILE, SPRITE_TILE } from './assets.js?v=0.19';
+import * as anim from './anim.js?v=0.19';
 
 // Algunos artes vienen dibujados mirando a la izquierda de serie (en vez de a
 // la derecha, que es lo que se asume en el resto del código al calcular hacia
@@ -99,7 +99,7 @@ function updateCursor() {
     if (hoverGX === hero.x && hoverGY === hero.y) actionable = true;               // recentrar
     else if (foeAt(hoverGX, hoverGY) && adjacent(hero, hoverGX, hoverGY)) actionable = true; // atacar
     else if (state.reach.dist[hoverGY] && state.reach.dist[hoverGY][hoverGX] > 0) actionable = true; // moverse
-    else { const tr = blockingTriggerAt(hoverGX, hoverGY); if (tr && Math.max(Math.abs(hero.x-hoverGX),Math.abs(hero.y-hoverGY))<=1) actionable = true; }
+    else { const tr = blockingTriggerAt(hoverGX, hoverGY) || exitAt(hoverGX, hoverGY); if (tr && Math.max(Math.abs(hero.x-hoverGX),Math.abs(hero.y-hoverGY))<=1) actionable = true; }
   }
   canvas.style.cursor = actionable
     ? "url('./assets/ui/cursor_action.png') 4 4, pointer"
@@ -296,11 +296,41 @@ function drawActor(name, sheet, gx, gy, ts, fallback, show = true, kind = 'legac
   if (a.hurt > 0) disc(s.x, s.y - 4*zoom, T * 0.42, `rgba(210,60,50,${0.35 * a.hurt})`);
 }
 
+// Fondo de "vacío" tipo Terraria: se ve por detrás del nivel, en los bordes
+// del mapa donde antes solo había negro liso. Se mueve con la cámara pero
+// MUY poco (factor 0.15) para dar sensación de profundidad, en vez de ir
+// pegado 1:1 al resto del mundo (que se notaría raro, como si fuera parte
+// del propio nivel). No escala con el zoom, igual que un fondo de cielo.
+// Cada nivel elige cuál usar con `"biome": "forest"` o `"underground"` en su
+// JSON (ver data/levels/*.json); si no lo indica, se asume subterráneo (la
+// mayoría de mazmorras lo son) — solo El Cementerio es de exterior por ahora.
+const VOID_PARALLAX = 0.15;
+const VOID_BY_BIOME = { forest: 'void_forest', underground: 'void_underground' };
+
+function drawVoidBackground() {
+  const key = VOID_BY_BIOME[state.biome] || VOID_BY_BIOME.underground;
+  const img = images[key];
+  if (!img || !img.complete || !img.naturalWidth) return;
+  const iw = img.naturalWidth, ih = img.naturalHeight;
+  const offX = ((camera.x * VOID_PARALLAX) % iw + iw) % iw;
+  const offY = ((camera.y * VOID_PARALLAX) % ih + ih) % ih;
+  for (let y = -offY; y < VH; y += ih) {
+    for (let x = -offX; x < VW; x += iw) {
+      ctx.drawImage(img, x, y, iw, ih);
+    }
+  }
+  // Un velo oscuro por encima para que no destaque más que el propio nivel
+  // (que se dibuja justo a continuación, tapándolo donde exista mapa real).
+  ctx.fillStyle = 'rgba(2,3,6,.45)';
+  ctx.fillRect(0, 0, VW, VH);
+}
+
 function draw(ts) {
   if (!state.cols) return;
   const { hero, triggers, tiles, elev } = state;
   updateCamera(ts);
   ctx.clearRect(0, 0, VW, VH);
+  drawVoidBackground();
   const T = TILE * zoom;
 
   const atlas = images.tiles;
@@ -447,6 +477,19 @@ function draw(ts) {
       ring(s.x, s.y, 14*zoom, on ? 'rgba(224,138,60,0.85)' : 'rgba(224,138,60,0.4)', 2);
       glyph(s.x, s.y, glyphFor(tr.type), on ? '#e08a3c' : '#8a6a44', 20*zoom);
     }
+  }
+
+  // Salidas (formato nuevo, varias por nivel): mismo trato visual que el
+  // resto de objetos — un color si están abiertas, otro (apagado) si siguen
+  // bloqueadas a la espera de algo (p.ej. una palanca).
+  for (const ex of state.exits) {
+    if (!state.explored[ex.y] || !state.explored[ex.y][ex.x]) continue;
+    const s = worldToScreen(ex.x * TILE + TILE/2, ex.y * TILE + TILE/2);
+    const on = state.visible[ex.y][ex.x];
+    const col = ex.blocked ? '#8a5a4a' : '#5aa9c9';
+    disc(s.x, s.y, 20*zoom, `rgba(${ex.blocked ? '138,90,74' : '90,169,201'},${(on ? 0.10 : 0.05) + 0.10 * glow})`);
+    ring(s.x, s.y, 14*zoom, on ? col : col + '99', 2);
+    glyph(s.x, s.y, ex.blocked ? '▮' : '▯', on ? col : '#6a6a6a', 20*zoom);
   }
 
   // Enemigos: cada uno con su sprite; su animación siempre avanza; se dibuja si está a la vista.

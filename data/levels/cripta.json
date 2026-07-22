@@ -1,5 +1,6 @@
 {
   "name": "Cripta",
+  "biome": "underground",
   "tiles": [
     [
       1,

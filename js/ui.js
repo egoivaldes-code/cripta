@@ -1,14 +1,14 @@
 // Capa DOM: HUD (con PA), cartas de evento, registro, fin de partida y ajustes.
 // Todo el texto visible pasa por t() (multiidioma). No dibuja en el canvas.
 
-import { state } from './state.js?v=0.18';
-import { t, tRandom } from './i18n.js?v=0.18';
-import * as anim from './anim.js?v=0.18';
-import { IDLE_NAME } from './anim.js?v=0.18';
-import * as audio from './audio.js?v=0.18';
-import { VERSION } from './config.js?v=0.18';
-import { images, SPRITE_TILE } from './assets.js?v=0.18';
-import { pushHistory, getHistory, clearHistory, CATEGORIES } from './eventlog.js?v=0.18';
+import { state } from './state.js?v=0.19';
+import { t, tRandom } from './i18n.js?v=0.19';
+import * as anim from './anim.js?v=0.19';
+import { IDLE_NAME } from './anim.js?v=0.19';
+import * as audio from './audio.js?v=0.19';
+import { VERSION } from './config.js?v=0.19';
+import { images, SPRITE_TILE } from './assets.js?v=0.19';
+import { pushHistory, getHistory, clearHistory, CATEGORIES } from './eventlog.js?v=0.19';
 
 let afterInteract = () => {};
 let restart = () => {};
@@ -295,12 +295,25 @@ export function openStoryCard(ev) {
   audio.fx('ui');
 }
 
+// Palanca (o cualquier mecanismo futuro con el mismo patrón): primero
+// pregunta Sí/No; si se acepta, la MISMA tarjeta cambia su texto al
+// resultado (sin cerrarse) y se cierra al tocar, igual que una carta
+// de ambientación. Reutilizable para futuras palancas.
+export function openLeverCard(trig) {
+  state.busy = true;
+  open = { type: 'lever', trig, stage: 'ask' };
+  renderCard();
+  $('veil').classList.add('show');
+  audio.fx('ui');
+}
+
 function renderCard() {
   if (!open) return;
   const card = $('card');
   if (open.type === 'over') { renderOver(card, open.kind); return; }
   if (open.type === 'trap') { renderTrapCard(card, open.trap); return; }
   if (open.type === 'story') { renderStoryCard(card, open.ev); return; }
+  if (open.type === 'lever') { renderLeverCard(card, open); return; }
 
   const ev = state.events[open.trig.id];
   const b = ev.i18n;
@@ -359,6 +372,62 @@ function renderTrapCard(card, trap) {
   no.onclick = () => { state.busy = false; hideVeil(); };
   box.appendChild(yes);
   box.appendChild(no);
+}
+
+// Palanca: etapa 'ask' (pregunta Sí/No) o 'stage' 'result' (texto final,
+// se cierra al tocar en cualquier parte de la tarjeta, como una carta de
+// ambientación). El efecto (desbloquear salidas) se aplica al pasar a
+// 'result', antes de repintar.
+function renderLeverCard(card, o) {
+  const ev = state.events[o.trig.id];
+  const b = ev ? ev.i18n : null;
+  if (!b) { card.innerHTML = `<p>${t('log.noEventYet')}</p>`; return; }
+  card.onclick = null;
+  if (o.stage === 'ask') {
+    card.innerHTML =
+      `<div class="kicker">${t(b + '.kicker')}</div>
+       <h2>${t(b + '.title')}</h2>
+       <p>${t(b + '.question')}</p>
+       <div class="choices"></div>`;
+    const box = card.querySelector('.choices');
+    const yes = document.createElement('button');
+    yes.className = 'choice';
+    yes.innerHTML = `<span>${t('ui.yes')}</span>`;
+    yes.onclick = () => activateLever(o, ev, b);
+    const no = document.createElement('button');
+    no.className = 'choice';
+    no.innerHTML = `<span>${t('ui.no')}</span>`;
+    no.onclick = () => { state.busy = false; hideVeil(); };
+    box.appendChild(yes);
+    box.appendChild(no);
+  } else {
+    card.innerHTML =
+      `<div class="kicker">${t(b + '.kicker')}</div>
+       <h2>${t(b + '.title')}</h2>
+       <p>${t(b + '.result')}</p>
+       <div class="storyhint">${t('ui.clickContinue')}</div>`;
+    card.onclick = () => {
+      card.onclick = null;
+      state.busy = false;
+      hideVeil();
+      afterInteract(o.trig);
+    };
+  }
+}
+
+// Aplica el efecto de la palanca (desbloquea las salidas que le toquen),
+// avisa en el registro, y pasa la MISMA tarjeta a su etapa de resultado.
+function activateLever(o, ev, b) {
+  o.trig.used = true;
+  const ids = (ev && ev.unlocks) || [];
+  for (const id of ids) {
+    const ex = state.exits.find(e => e.id === id);
+    if (ex) ex.blocked = false;
+  }
+  log(t('log.leverActivated'), 'event');
+  audio.fx('ui');
+  o.stage = 'result';
+  renderCard();
 }
 
 function resolveChoice(trig, ch, i, b) {

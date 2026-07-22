@@ -1,5 +1,6 @@
 {
   "name": "Cripta profunda",
+  "biome": "underground",
   "tiles": [
     [
       1,
