@@ -1,5 +1,8 @@
 {
   "name": "El cementerio",
+  "background": {
+    "key": "bg_cemetery"
+  },
   "biome": "forest",
   "tiles": [
     [
@@ -2144,9 +2147,10 @@
     },
     {
       "x": 14,
-      "y": 17,
-      "id": "event_1",
-      "type": "event"
+      "y": 16,
+      "id": "evento_1",
+      "type": "event",
+      "walkTrigger": true
     }
   ],
   "exits": [

@@ -1,18 +1,18 @@
 // Punto de entrada. Carga idioma y datos, cablea módulos y arranca el bucle.
 
-import { state, initGame, recomputeFog, computeReach } from './state.js?v=0.20';
-import { initRenderer, startLoop, centerOnHero, toggleGrid, isGridOn } from './render.js?v=0.20';
-import { onTapTile, bindDescend, startHeroTurn, endHeroTurn, afterInteract, attemptDisarm, isAITurnActive, getEnemySpeed, setEnemySpeed } from './rules.js?v=0.20';
-import { syncHUD, log, hideVeil, bindAfterInteract, bindRestart, bindAttemptDisarm, applyStaticText, syncInitiativeUI, showConfirm, showLogHistory, hideLogHistory, logHistoryOpen } from './ui.js?v=0.20';
-import { loadAssets } from './assets.js?v=0.20';
-import { initialLang, loadLang, onLangChange, getLang, t } from './i18n.js?v=0.20';
-import * as anim from './anim.js?v=0.20';
-import * as audio from './audio.js?v=0.20';
-import { VERSION } from './config.js?v=0.20';
-import { assemble } from './mapgen.js?v=0.20';
-import { initInventory, openInventory, closeInventory, isInventoryOpen, resetInventory, refreshInventoryTexts } from './inventory.js?v=0.20';
-import { loadSkillsData, initSkillShop, openSkillShop, closeSkillShop, refreshSkillTexts, bindFullReset } from './skills.js?v=0.20';
-import * as savegame from './savegame.js?v=0.20';
+import { state, initGame, recomputeFog, computeReach } from './state.js?v=0.20.1';
+import { initRenderer, startLoop, centerOnHero, toggleGrid, isGridOn } from './render.js?v=0.20.1';
+import { onTapTile, bindDescend, startHeroTurn, endHeroTurn, afterInteract, attemptDisarm, isAITurnActive, getEnemySpeed, setEnemySpeed } from './rules.js?v=0.20.1';
+import { syncHUD, log, hideVeil, bindAfterInteract, bindRestart, bindAttemptDisarm, applyStaticText, syncInitiativeUI, showConfirm, showLogHistory, hideLogHistory, logHistoryOpen } from './ui.js?v=0.20.1';
+import { loadAssets } from './assets.js?v=0.20.1';
+import { initialLang, loadLang, onLangChange, getLang, t } from './i18n.js?v=0.20.1';
+import * as anim from './anim.js?v=0.20.1';
+import * as audio from './audio.js?v=0.20.1';
+import { VERSION } from './config.js?v=0.20.1';
+import { assemble } from './mapgen.js?v=0.20.1';
+import { initInventory, openInventory, closeInventory, isInventoryOpen, resetInventory, refreshInventoryTexts } from './inventory.js?v=0.20.1';
+import { loadSkillsData, initSkillShop, openSkillShop, closeSkillShop, refreshSkillTexts, bindFullReset } from './skills.js?v=0.20.1';
+import * as savegame from './savegame.js?v=0.20.1';
 
 // El ensamblador de losetas (mapgen.js) sigue disponible para niveles ALEATORIOS
 // futuros; esta función queda de reserva pero no se usa por ahora, ya que el

@@ -7,11 +7,11 @@
 // La altura de cada casilla se pinta con un tinte y, en los escalones, un
 // borde de color: VERDE en el lado alto, ROJO en el lado bajo (estilo Descent).
 
-import { state, elevAt, pathTo, foeAt, blockingTriggerAt, exitAt, adjacent } from './state.js?v=0.20';
-import { isAITurnActive } from './rules.js?v=0.20';
-import { TILE, CAMERA_MARGIN, ZOOM_MIN, ZOOM_MAX, ZOOM_DEFAULT, TOKEN_TALL, HERO_TALL, PROP_TALL } from './config.js?v=0.20';
-import { images, ATLAS_TILE, SPRITE_TILE } from './assets.js?v=0.20';
-import * as anim from './anim.js?v=0.20';
+import { state, elevAt, pathTo, foeAt, blockingTriggerAt, exitAt, adjacent } from './state.js?v=0.20.1';
+import { isAITurnActive } from './rules.js?v=0.20.1';
+import { TILE, CAMERA_MARGIN, ZOOM_MIN, ZOOM_MAX, ZOOM_DEFAULT, TOKEN_TALL, HERO_TALL, PROP_TALL } from './config.js?v=0.20.1';
+import { images, ATLAS_TILE, SPRITE_TILE } from './assets.js?v=0.20.1';
+import * as anim from './anim.js?v=0.20.1';
 
 // Algunos artes vienen dibujados mirando a la izquierda de serie (en vez de a
 // la derecha, que es lo que se asume en el resto del código al calcular hacia

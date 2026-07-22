@@ -6,7 +6,7 @@
 //     (paz/combate) que cambian solas según haya un enemigo cerca, con una transición.
 // Además: sacudida al recibir daño y números flotantes (daño/curación).
 
-import { TILE } from './config.js?v=0.20';
+import { TILE } from './config.js?v=0.20.1';
 
 const D_MOVE = 170;
 const D_ATTACK_LEGACY = 220;

@@ -1,6 +1,25 @@
 {
   "versions": [
     {
+      "v": "0.20.1",
+      "es": {
+        "title": "Arreglos del cementerio",
+        "notes": [
+          "Recuperado el fondo pintado del cementerio, que se había desconectado por error.",
+          "Arreglado un evento junto a la entrada que bloqueaba el paso sin querer.",
+          "Si vienes de la versión anterior, dale una vez a 'Reiniciar partida' en ajustes para ver el arreglo."
+        ]
+      },
+      "en": {
+        "title": "Cemetery fixes",
+        "notes": [
+          "Restored the cemetery's painted background, which had been disconnected by mistake.",
+          "Fixed an event near the entrance that was blocking the way by accident.",
+          "If you're coming from the previous version, tap 'Restart run' once in settings to see the fix."
+        ]
+      }
+    },
+    {
       "v": "0.20",
       "es": {
         "title": "Tienda de habilidades (pruebas)",

@@ -489,6 +489,21 @@ Cuando llegue ese sistema, esto se puede sustituir sin tocar el motor.
 
 ## Pendiente / próximos pasos posibles
 
+**Lección de la 0.20.1**: entre la 0.18 y la 0.19 se colaron dos regresiones
+en `cemetery.json` (se perdió `background:{key:bg_cemetery}` y un evento
+junto a la entrada perdió su `walkTrigger:true`, además de cambiar de id sin
+querer y quedar desconectado de `events.json`). Ninguna se detectó a tiempo
+porque la batería de pruebas headless no comprueba fondos pintados ni el
+contenido de `events.json` contra los triggers de cada nivel — solo
+conectividad/solapes. Si se retoca `cemetery.json` (o cualquier nivel con
+fondo pintado) en el futuro, comprobar a mano estos dos puntos antes de dar
+la versión por buena: 1) `background` sigue apuntando a una clave real de
+`assets.js`; 2) cada trigger con `walkTrigger` en la versión anterior lo
+sigue teniendo, y su `id` sigue coincidiendo con la clave real en
+`events.json` (no basta con que el juego no reviente — puede fallar en
+silencio mostrando el mensaje neutro de "sin evento conectado" en vez del
+contenido real).
+
 Ver `CHANGELOG.md` y `data/changelog.json` para el historial completo. A
 grandes rasgos, sigue pendiente:
 - **Las 4 salidas del cementerio grande ya están conectadas**: 1 y 2 llevan

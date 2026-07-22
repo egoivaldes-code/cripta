@@ -2,6 +2,12 @@
 
 Esquema: `0.X` = cambio grande · `0.X.Y` = cambio pequeño / fix.
 
+## 0.20.1 — recuperado el fondo pintado del cementerio y arreglado el evento de la entrada
+- **Diagnosticado comparando 0.17/0.18/0.19**: dos regresiones que ya venían de antes de esta sesión (no las causó nada de la V0.20), coladas al rehacer el cementerio grande entre la 0.18 y la 0.19.
+- **Fondo pintado recuperado**: `cemetery.json` había perdido `background:{key:bg_cemetery}` (quedó en `null`) y `assets.js` ya no registraba la imagen. El arte procesado (sin magenta) seguía en el proyecto sin usarse (`assets/backgrounds/cemetery.png`) — solo hacía falta reconectarlo.
+- **Evento de la entrada arreglado**: el evento junto a la entrada había pasado de `{x:14,y:16, id:'evento_1', walkTrigger:true}` (0.18, no bloqueaba) a `{x:14,y:17, id:'event_1'}` (0.19, sin `walkTrigger` y con el id cambiado) — eso lo convirtió en un objeto "mueble" que bloqueaba el paso justo en la entrada, y además lo desconectó de su contenido real en `events.json` (que sigue usando la clave `evento_1`). Vuelto a la configuración de la 0.18.
+- **Importante si ya habías abierto la 0.19/0.20 antes**: el nuevo guardado de partida (ver 0.20) puede tener cacheada la versión rota del nivel. Tras actualizar, dale una vez a "Reiniciar partida" en ajustes para que cargue el cementerio ya arreglado.
+
 ## 0.20 — tienda de habilidades (sistema TEMPORAL de pruebas) + barra de acción
 - **Nueva pantalla de "elige tus habilidades"**, justo después de pulsar "Continuar" en las novedades y antes de entrar en la partida: oro inicial de 1000, tarjetas con icono, nombre, tipo de daño, activa/pasiva, duración y precio de cada habilidad disponible.
 - **Sistema de 3 tiers por habilidad**: al comprar un tier, la misma tarjeta pasa a ofrecer el siguiente (precio más alto), hasta llegar al máximo. Se puede subir de tier cualquier habilidad en cualquier momento, sin requisitos entre ellas.
