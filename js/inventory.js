@@ -25,8 +25,9 @@
 // icono que ya se ve en el HUD). Los 9 tipos de objeto y sus iconos están
 // listos para cuando haya objetos de verdad que equipar.
 
-import { state } from './state.js?v=0.19';
-import { t } from './i18n.js?v=0.19';
+import { state } from './state.js?v=0.20';
+import { t } from './i18n.js?v=0.20';
+import { getPassiveOwnedSkills, getOwnedTier } from './skills.js?v=0.20';
 
 // --- 1. Config ---------------------------------------------------------
 
@@ -375,9 +376,19 @@ function renderCharSheet() {
     statRow(t('stat.resist.holy'), pct(resist.holy)),
   ].join('');
 
+  // Habilidades PASIVAS compradas en la tienda (sistema temporal de
+  // pruebas, ver js/skills.js): de momento solo se listan por nombre y
+  // tier, sin desglosar el número exacto que aportan (eso llegará con el
+  // sistema de habilidades definitivo).
+  const passives = getPassiveOwnedSkills();
+  const passiveRows = passives.length
+    ? passives.map(s => statRow(t(`skill.${s.id}.name`), '★'.repeat(getOwnedTier(s.id)))).join('')
+    : `<div class="inv-stat-row inv-stat-empty">${t('stat.group.skillsEmpty')}</div>`;
+
   charSheetEl.innerHTML =
     `<div class="inv-stat-group"><h3 class="inv-stat-heading">${t('stat.group.attack')}</h3>${attackRows}</div>` +
-    `<div class="inv-stat-group"><h3 class="inv-stat-heading">${t('stat.group.defense')}</h3>${defenseRows}</div>`;
+    `<div class="inv-stat-group"><h3 class="inv-stat-heading">${t('stat.group.defense')}</h3>${defenseRows}</div>` +
+    `<div class="inv-stat-group"><h3 class="inv-stat-heading">${t('stat.group.skills')}</h3>${passiveRows}</div>`;
 }
 
 function updateValidSlotHighlights() {

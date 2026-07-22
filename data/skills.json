@@ -1,0 +1,102 @@
+{
+  "_comment": "Habilidades de la tienda de pruebas. Cada una tiene 3 tiers; al comprar un tier, la tarjeta pasa a ofrecer el siguiente. 'range' (casillas; 0=uno mismo, 1=cuerpo a cuerpo, null=no aplica en pasivas), 'area' (radio en casillas; null/0=objetivo único) y 'cooldown' (en combates; null=sin enfriamiento) son solo INFORMATIVOS por ahora (no hay efectos reales en rules.js todavía). 'icon' apunta al archivo real en assets/ui/skills/; si falta, la tienda dibuja un icono provisional (letra sobre círculo).",
+  "skills": [
+    {
+      "id": "butcher_precision",
+      "icon": "./assets/ui/skills/warrior_butcherprecision.png",
+      "class": "warrior",
+      "kind": "passive",
+      "damageType": "physical",
+      "durationLabel": "skillshop.duration.permanent",
+      "tiers": [{ "price": 500 }, { "price": 750 }, { "price": 1000 }]
+    },
+    {
+      "id": "faith_strikes",
+      "icon": "./assets/ui/skills/paladin_faithstrikes.png",
+      "class": "paladin",
+      "kind": "passive",
+      "damageType": "heal",
+      "durationLabel": "skillshop.duration.instant",
+      "tiers": [{ "price": 500 }, { "price": 750 }, { "price": 1000 }]
+    },
+    {
+      "id": "flame_slash",
+      "icon": "./assets/ui/skills/flame_slash.png",
+      "kind": "active",
+      "damageType": "fire",
+      "range": 1,
+      "area": null,
+      "cooldown": 1,
+      "duration": 3,
+      "tiers": [{ "price": 500 }, { "price": 1000 }, { "price": 1500 }]
+    },
+    {
+      "id": "iron_skin",
+      "icon": "./assets/ui/skills/iron_skin.png",
+      "kind": "passive",
+      "damageType": "none",
+      "durationLabel": "skillshop.duration.permanent",
+      "tiers": [{ "price": 500 }, { "price": 1000 }, { "price": 1500 }]
+    },
+    {
+      "id": "frost_arrow",
+      "icon": "./assets/ui/skills/frost_arrow.png",
+      "kind": "active",
+      "damageType": "ice",
+      "range": 4,
+      "area": null,
+      "cooldown": 1,
+      "duration": 1,
+      "tiers": [{ "price": 500 }, { "price": 800 }, { "price": 1200 }]
+    },
+    {
+      "id": "poison_cloud",
+      "icon": "./assets/ui/skills/poison_cloud.png",
+      "kind": "active",
+      "damageType": "poison",
+      "range": 3,
+      "area": 2,
+      "cooldown": 3,
+      "duration": 3,
+      "tiers": [{ "price": 600 }, { "price": 1000 }, { "price": 1400 }]
+    },
+    {
+      "id": "holy_smite",
+      "icon": "./assets/ui/skills/holy_smite.png",
+      "kind": "active",
+      "damageType": "holy",
+      "range": 1,
+      "area": null,
+      "cooldown": 2,
+      "duration": null,
+      "tiers": [{ "price": 500 }, { "price": 900 }, { "price": 1300 }]
+    },
+    {
+      "id": "war_cry",
+      "icon": "./assets/ui/skills/war_cry.png",
+      "kind": "active",
+      "damageType": "none",
+      "range": 0,
+      "area": 2,
+      "cooldown": 3,
+      "duration": 2,
+      "tiers": [{ "price": 500 }, { "price": 850 }, { "price": 1200 }]
+    },
+    {
+      "id": "cat_reflexes",
+      "icon": "./assets/ui/skills/cat_reflexes.png",
+      "kind": "passive",
+      "damageType": "none",
+      "durationLabel": "skillshop.duration.permanent",
+      "tiers": [{ "price": 500 }, { "price": 800 }, { "price": 1100 }]
+    },
+    {
+      "id": "bloodlust",
+      "icon": "./assets/ui/skills/bloodlust.png",
+      "kind": "passive",
+      "damageType": "physical",
+      "durationLabel": "skillshop.duration.percombat",
+      "tiers": [{ "price": 500 }, { "price": 900 }, { "price": 1300 }]
+    }
+  ]
+}

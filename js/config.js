@@ -39,4 +39,4 @@ export const TURN_DELAY = 1000;  // ms de pausa entre el fin de un turno y el si
 export const COMBAT_ENTER_DELAY = 1000;  // ms de respiro al entrar en combate, antes de congelar el juego
 
 // --- versión (fuente única; también se usa para el cache-busting de assets) ---
-export const VERSION = '0.19';
+export const VERSION = '0.20';

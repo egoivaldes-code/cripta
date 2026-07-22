@@ -14,7 +14,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Cripta</title>
-<link rel="stylesheet" href="./css/styles.css?v=0.19">
+<link rel="stylesheet" href="./css/styles.css?v=0.20">
 </head>
 <body>
 <div id="game">
@@ -58,6 +58,12 @@
       <button class="fab" id="recenter" aria-label="Centrar">⌖</button>
     </div>
   </div>
+
+  <!-- Barra de acción (10 huecos) con los iconos de las habilidades ACTIVAS
+       compradas en la tienda. Movible por separado del resto (ver
+       LAYOUT_IDS en main.js). Las pasivas no salen aquí, se reflejan en el
+       panel de estadísticas del inventario. -->
+  <div class="ui actionbar" id="actionbar"></div>
 
   <!-- Registro (abajo-izquierda). Tocarlo abre el historial completo. -->
   <div class="ui log" id="log" role="button" aria-label="Ver historial"></div>
@@ -159,8 +165,25 @@
     </div>
     <div class="splash-body" id="splashBody"></div>
   </div>
+
+  <!-- Tienda de habilidades — SISTEMA TEMPORAL DE PRUEBAS (ver js/skills.js).
+       Se muestra justo después de pulsar "Continuar" en las novedades, antes
+       de entrar en la partida de verdad. -->
+  <div class="skillshop" id="skillShop">
+    <div class="skillshop-head">
+      <div class="skillshop-gold"><img class="goldIcon" src="./assets/ui/gold_icon.png" alt=""><b id="shopGold">1000</b></div>
+      <div class="skillshop-title" id="skillShopTitle"></div>
+      <button class="primary ghost skillshop-reset" id="shopResetBtn"></button>
+    </div>
+    <div class="skillshop-subtitle" id="skillShopSubtitle"></div>
+    <div class="skillshop-notice" id="shopNotice"></div>
+    <div class="skillshop-body" id="skillShopBody"></div>
+    <div class="skillshop-foot">
+      <button class="primary skillshop-finish" id="shopFinishBtn"></button>
+    </div>
+  </div>
 </div>
 
-<script type="module" src="./js/main.js?v=0.19"></script>
+<script type="module" src="./js/main.js?v=0.20"></script>
 </body>
 </html>

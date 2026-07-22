@@ -1,6 +1,33 @@
 {
   "versions": [
     {
+      "v": "0.20",
+      "es": {
+        "title": "Tienda de habilidades (pruebas)",
+        "notes": [
+          "Nueva pantalla para elegir habilidades antes de empezar la partida.",
+          "Cada habilidad tiene 3 niveles: al comprar uno, la tarjeta pasa a ofrecer el siguiente.",
+          "10 habilidades para probar: Precisión carnicera, Golpes de fe, Tajo llameante, Piel de hierro, Flecha de escarcha, Nube de veneno, Golpe sagrado, Grito de guerra, Reflejos felinos y Sed de sangre.",
+          "Nueva barra de acción con las habilidades activas compradas, movible como el resto de la interfaz.",
+          "Las habilidades pasivas se ven en las estadísticas del inventario.",
+          "Guardado de partida: cerrar la app a mitad de una mazmorra y volver a abrirla retoma justo donde lo dejaste.",
+          "El oro ya es el mismo en la tienda y en la partida: lo que ganas o gastas dentro se puede usar para comprar más la próxima vez."
+        ]
+      },
+      "en": {
+        "title": "Skill shop (testing)",
+        "notes": [
+          "New screen to choose skills before starting the run.",
+          "Each skill has 3 tiers: buying one makes the card offer the next.",
+          "10 skills to test: Butcher's Precision, Faith Strikes, Flame Slash, Iron Skin, Frost Arrow, Poison Cloud, Holy Smite, War Cry, Cat Reflexes and Bloodlust.",
+          "New action bar with the active skills bought, movable like the rest of the interface.",
+          "Passive skills show up in the inventory stats.",
+          "Save system: closing the app mid-dungeon and reopening it resumes right where you left off.",
+          "Gold is now the same in the shop and in the run: whatever you earn or spend inside carries over to buy more next time."
+        ]
+      }
+    },
+    {
       "v": "0.19",
       "es": {
         "title": "El cementerio grande y la palanca de los mausoleos",

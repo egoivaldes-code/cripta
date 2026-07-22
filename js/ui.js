@@ -1,14 +1,14 @@
 // Capa DOM: HUD (con PA), cartas de evento, registro, fin de partida y ajustes.
 // Todo el texto visible pasa por t() (multiidioma). No dibuja en el canvas.
 
-import { state } from './state.js?v=0.19';
-import { t, tRandom } from './i18n.js?v=0.19';
-import * as anim from './anim.js?v=0.19';
-import { IDLE_NAME } from './anim.js?v=0.19';
-import * as audio from './audio.js?v=0.19';
-import { VERSION } from './config.js?v=0.19';
-import { images, SPRITE_TILE } from './assets.js?v=0.19';
-import { pushHistory, getHistory, clearHistory, CATEGORIES } from './eventlog.js?v=0.19';
+import { state } from './state.js?v=0.20';
+import { t, tRandom } from './i18n.js?v=0.20';
+import * as anim from './anim.js?v=0.20';
+import { IDLE_NAME } from './anim.js?v=0.20';
+import * as audio from './audio.js?v=0.20';
+import { VERSION } from './config.js?v=0.20';
+import { images, SPRITE_TILE } from './assets.js?v=0.20';
+import { pushHistory, getHistory, clearHistory, CATEGORIES } from './eventlog.js?v=0.20';
 
 let afterInteract = () => {};
 let restart = () => {};
@@ -492,6 +492,10 @@ export function applyStaticText() {
   $('verTagPanel').textContent = 'cripta v' + VERSION;
   $('splashTitle').textContent = t('splash.title');
   $('splashContinue').textContent = t('btn.continue');
+  $('skillShopTitle').textContent = t('skillshop.title');
+  $('skillShopSubtitle').textContent = t('skillshop.subtitle');
+  $('shopResetBtn').textContent = t('skillshop.reset');
+  $('shopFinishBtn').textContent = t('skillshop.finish');
   if (open) renderCard();
   syncFoeRow();
 }

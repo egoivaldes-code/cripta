@@ -163,6 +163,8 @@ qué módulo le corresponde:
 | `ui.js` | HUD, cartas de evento, ajustes, fin de partida. Todo el texto pasa por `t()`. |
 | `mapgen.js` | Ensamblador de losetas tipo Descent para mapas **aleatorios**. Probado pero sin usar en ningún nivel activo (reserva para el futuro). |
 | `main.js` | Punto de entrada: carga idioma/datos, cablea módulos, arranca el bucle. |
+| `skills.js` | Tienda de habilidades (SISTEMA TEMPORAL de pruebas, ver sección propia más abajo) + barra de acción. Mismo patrón que `inventory.js`: datos + estado + render + interacción en un solo módulo autocontenido. |
+| `savegame.js` | Guardado/resume de partida (ver sección propia) + oro persistido. No dibuja ni toca el DOM. |
 
 Datos en `data/`: `events.json` (objetos/eventos), `i18n/es.json` y
 `en.json` (todo el texto del juego), `levels/*.json` (mapas), `manifest.json`
@@ -391,6 +393,100 @@ y `data/changelog.json` (splash del juego, en es/en) para esa versión.
 - No asumir rutas absolutas ni nada específico de GitHub Pages (de cara a
   Capacitor/Electron más adelante).
 
+## Guardado de partida (junto a la tienda de habilidades)
+
+Desde la v0.20, cerrar la app a mitad de una mazmorra y volver a abrirla
+**retoma exacto donde se dejó**: mismo nivel, posición, vida, PA restantes,
+enemigos vivos/muertos, niebla explorada y el orden de combate en curso. Vive
+en `js/savegame.js`, aparte de `state.js`/`rules.js` a propósito (mismo
+espíritu que `skills.js`): guarda/restaura el estado por fuera, sin que el
+motor necesite saber que existe un sistema de guardado.
+
+**Qué se guarda y qué no:** todo lo DINÁMICO de `state` (héroe completo,
+enemigos, triggers, salidas, niebla explorada, combate/targetFoe). Lo
+ESTÁTICO de cada nivel (tiles, elevación, terreno difícil, `events.json`) NO
+se guarda — se vuelve a cargar siempre desde `data/levels/<nivel>.json` y el
+guardado se aplica ENCIMA. El inventario de equipo no se guarda aparte
+porque, de momento, solo refleja el oro (no hay objetos de verdad todavía);
+en cuanto haya equipo real habrá que añadirlo aquí.
+
+**El oro es la única excepción**: vive en su propia clave (`cripta.gold`),
+separada de la partida guardada (`cripta.save`), y es **un único número
+compartido de verdad** entre la tienda de habilidades y `state.hero.gold` —
+nunca dos bolsas distintas. Por eso sobrevive a un "Reiniciar partida" (que
+sí borra la mazmorra en curso) y por eso lo que se gana o gasta dentro de la
+mazmorra ya está disponible la próxima vez que se abre la tienda.
+
+**Cuándo se guarda** (para que cerrar la app en cualquier momento pierda lo
+mínimo posible): al cargar cualquier nivel, tras interactuar con un objeto,
+al saltar turno, cada 3 segundos como red de seguridad (cubre turnos de la
+IA y animaciones que no pasan por un clic directo), y al esconderse/cerrarse
+la pestaña (`visibilitychange`/`beforeunload`). Limitación conocida: si se
+guarda justo a mitad de una animación o de un turno de IA, el resume puede
+no ser pixel-perfect en ese instante concreto (por ejemplo, un enemigo a
+mitad de un desplazamiento) — no es grave, solo un pequeño salto visual, y
+mejorar esto más no compensa mientras el sistema siga siendo temporal.
+
+**"Reiniciar partida"** (botón de ajustes) y **"reiniciar progreso"** (botón
+de la tienda de habilidades) hacen lo mismo con la mazmorra: la vuelven a
+crear desde cero en el nivel 1 (mismo `newGame()` de `main.js`, enganchado a
+la tienda con `bindFullReset`). La diferencia es el oro y las habilidades:
+"Reiniciar partida" las conserva tal cual; "reiniciar progreso" también los
+pone a cero (1000 de oro, ninguna habilidad).
+
+## La tienda de habilidades (sistema TEMPORAL de pruebas)
+
+Desde la v0.20 existe una pantalla ("Elige tus habilidades") que se abre justo
+después de pulsar "Continuar" en las novedades, antes de entrar en la
+partida. Vive entera en `js/skills.js` (datos + estado + render), a
+propósito **desacoplada de `rules.js`**: de momento las habilidades no tienen
+efecto real en combate, solo sirve para ir probando el catálogo (icono,
+nombre, tipo de daño, activa/pasiva, duración, precio) e ir ajustando cada
+una antes de que exista el sistema definitivo con sus efectos de verdad.
+Cuando llegue ese sistema, esto se puede sustituir sin tocar el motor.
+
+**Cómo está montado:**
+- Catálogo en `data/skills.json`: cada habilidad tiene `id`, `icon` (ruta a
+  `assets/ui/skills/<id>.png`), `kind` (`active`/`passive`), `damageType`,
+  opcionalmente `class` (guerrero/paladín/...), `duration` (turnos del
+  efecto) o `durationLabel` (clave i18n directa, para casos como
+  "Permanente"/"Instantánea" que no son un número de turnos), y en las
+  activas además `range` (casillas; `0`=uno mismo, `1`=cuerpo a cuerpo,
+  `null`=no aplica), `area` (radio; `null`/`0`=objetivo único) y `cooldown`
+  (en combates; `null`=sin enfriamiento). Un array `tiers` de 3 con el
+  precio de cada uno. **`range`/`area`/`cooldown` son solo informativos por
+  ahora** (no hay efectos reales en `rules.js` todavía). Los textos van en
+  i18n: `skill.<id>.name`, `.desc`, `.tier1`/`.tier2`/`.tier3`.
+- **3 tiers por habilidad**: al comprar un tier, la misma tarjeta pasa a
+  ofrecer el siguiente (mismo hueco, no aparecen tarjetas nuevas). El precio
+  sube por tier; se puede subir de tier cualquier habilidad en cualquier
+  momento, sin requisitos entre ellas.
+- **Iconos con fallback automático**: si `assets/ui/skills/<id>.png` no
+  existe todavía, se ve un círculo con la inicial del nombre; en cuanto el
+  archivo real se sube al proyecto, el `<img onerror>` dejar de disparar y
+  se ve solo, sin tocar código. Los iconos reales que sube el usuario (arte
+  Nano Banana, fondo magenta) se procesan igual que los sprites: quitar
+  magenta por color, recortar al contenido real y guardar en
+  `assets/ui/skills/<id>.png`.
+- **Progreso persistente**: los tiers comprados en `localStorage`
+  (`cripta.skills`), con su propio botón de "reiniciar progreso" dentro de
+  la tienda (separado del "Reiniciar partida" de siempre; ver sección de
+  guardado más arriba). El oro NO vive aquí — es el mismo `state.hero.gold`
+  de siempre (ver sección de guardado).
+- Al pulsar "Terminar" (con confirmación) se entra al juego, que ya estaba
+  cargado en segundo plano desde el arranque (partida nueva o retomada).
+- **Barra de acción de 10 huecos** (`#actionbar` en `index.html`), con los
+  iconos de las habilidades ACTIVAS compradas, en el orden en que se
+  compraron. Es un bloque más de `LAYOUT_IDS` en `main.js` (movible por
+  separado con el reposicionador de interfaz de siempre).
+- Las habilidades PASIVAS compradas se listan (nombre + tier en estrellas)
+  en un grupo nuevo ("Habilidades") en la hoja de estadísticas del
+  inventario (`js/inventory.js`), sin inventar un efecto numérico concreto
+  todavía.
+- El modal de confirmación genérico (`showConfirm`, `#confirmVeil`) se
+  reutiliza aquí; por eso su z-index se subió a 25, por encima de la propia
+  tienda (z-index 20), para que se vea encima al confirmar desde dentro.
+
 ## Pendiente / próximos pasos posibles
 
 Ver `CHANGELOG.md` y `data/changelog.json` para el historial completo. A
@@ -407,6 +503,9 @@ grandes rasgos, sigue pendiente:
   `unlocks: [ids de salidas]`) — reutilizable para futuras palancas sin
   tocar el motor, solo añadiendo la entrada en `events.json` + i18n.
 - Enganchar `cast`/`potion` (héroe y esqueleto) a algún efecto de juego real.
+- Ir ampliando `data/skills.json` con habilidades reales (una a una, con
+  supervisión del usuario) y, más adelante, sustituir el sistema temporal de
+  pruebas por uno con efectos de verdad en combate.
 - Animar a los otros dos tipos de esqueleto (espada+escudo, con armadura)
   cuando lleguen sus sprites — hoy están desactivados en el manifiesto.
 - Usar el ensamblador de losetas (`mapgen.js`) para un nivel aleatorio.

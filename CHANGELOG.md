@@ -2,6 +2,22 @@
 
 Esquema: `0.X` = cambio grande · `0.X.Y` = cambio pequeño / fix.
 
+## 0.20 — tienda de habilidades (sistema TEMPORAL de pruebas) + barra de acción
+- **Nueva pantalla de "elige tus habilidades"**, justo después de pulsar "Continuar" en las novedades y antes de entrar en la partida: oro inicial de 1000, tarjetas con icono, nombre, tipo de daño, activa/pasiva, duración y precio de cada habilidad disponible.
+- **Sistema de 3 tiers por habilidad**: al comprar un tier, la misma tarjeta pasa a ofrecer el siguiente (precio más alto), hasta llegar al máximo. Se puede subir de tier cualquier habilidad en cualquier momento, sin requisitos entre ellas.
+- **Botón "Terminar"** (con confirmación): entra en la partida con las habilidades compradas y el oro sobrante como oro real.
+- **Botón "Reiniciar progreso"** dentro de la propia tienda (con confirmación): vuelve a 1000 de oro y ninguna habilidad comprada.
+- Progreso (oro + tiers) **persistente** entre sesiones (localStorage), igual que el resto de ajustes.
+- **Nueva barra de acción de 10 huecos**, encima del historial, con los iconos de las habilidades ACTIVAS compradas. Movible por separado del resto de bloques con el mismo sistema de reposicionar interfaz ya existente.
+- Las habilidades PASIVAS compradas se reflejan en un grupo nuevo ("Habilidades") dentro de la hoja de estadísticas del inventario.
+- Datos de habilidades en `data/skills.json` (nuevo), textos en `i18n` como siempre. Primeras 2 habilidades reales ya cargadas: **Precisión carnicera** (Guerrero, pasiva, físico) y **Golpes de fe** (Paladín, pasiva, curación), con sus iconos definitivos (procesados desde el arte del usuario, fondo magenta quitado). Se irán añadiendo más una a una.
+- Catálogo ampliado a 10 habilidades de relleno para probar variedad: 5 activas (Tajo llameante/fuego, Flecha de escarcha/hielo con rango, Nube de veneno/veneno con área, Golpe sagrado/sagrado, Grito de guerra/buff) y 5 pasivas (Precisión carnicera, Golpes de fe, Piel de hierro, Reflejos felinos, Sed de sangre). Las activas ya muestran rango, área y enfriamiento (en combates) cuando aplica — de momento solo informativo, sin efecto real en combate todavía.
+- **Guardado de partida**: cerrar la app a mitad de una mazmorra y volver a abrirla retoma EXACTO donde se dejó (nivel, posición, vida, PA, enemigos vivos/muertos, niebla explorada, combate en curso). Nuevo módulo `js/savegame.js`, autoguardado en puntos clave + cada 3s + al esconder/cerrar la pestaña.
+- **El oro es ahora un único número siempre sincronizado** entre la tienda de habilidades y la partida (`state.hero.gold`): lo que se gana o gasta dentro de la mazmorra ya está disponible la próxima vez que se abre la tienda. Persiste aparte de la partida guardada, así que "Reiniciar partida" no lo borra.
+- Iconos de habilidad con fallback automático: si `assets/ui/skills/<id>.png` aún no existe, se ve un icono provisional (círculo con letra) que desaparece solo en cuanto se sube el archivo real.
+- **Este sistema es temporal**: sirve para ir probando habilidades una a una mientras no existe el sistema definitivo (con efectos reales en combate). Vive aislado en `js/skills.js`, sin tocar `rules.js`, para poder sustituirlo más adelante sin rehacer nada del motor.
+- Probado en headless (sin DOM): progresión de tiers y precios, compra bloqueada sin oro suficiente, reinicio de progreso, y persistencia del progreso entre "sesiones" simuladas.
+
 ## 0.19 — el cementerio grande, sus 4 salidas y la palanca de los mausoleos
 - **El cementerio pasa a ser el mapa grande definitivo** (30×20, bioma bosque), con sus 16 enemigos, cofre, altar, trampas y objeto de ambientación ya colocados.
 - **El motor soporta ahora varias salidas por nivel** (antes solo una): cada salida es un objeto "mueble" — ocupa su casilla, se interactúa desde al lado, no se anda por encima. Los niveles con una sola salida (Cripta, Mausoleo 1, Mausoleo 2, Nivel 2) siguen igual, sin tocar.

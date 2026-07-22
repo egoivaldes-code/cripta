@@ -1,16 +1,18 @@
 // Punto de entrada. Carga idioma y datos, cablea módulos y arranca el bucle.
 
-import { state, initGame } from './state.js?v=0.19';
-import { initRenderer, startLoop, centerOnHero, toggleGrid, isGridOn } from './render.js?v=0.19';
-import { onTapTile, bindDescend, startHeroTurn, endHeroTurn, afterInteract, attemptDisarm, isAITurnActive, getEnemySpeed, setEnemySpeed } from './rules.js?v=0.19';
-import { syncHUD, log, hideVeil, bindAfterInteract, bindRestart, bindAttemptDisarm, applyStaticText, syncInitiativeUI, showConfirm, showLogHistory, hideLogHistory, logHistoryOpen } from './ui.js?v=0.19';
-import { loadAssets } from './assets.js?v=0.19';
-import { initialLang, loadLang, onLangChange, getLang, t } from './i18n.js?v=0.19';
-import * as anim from './anim.js?v=0.19';
-import * as audio from './audio.js?v=0.19';
-import { VERSION } from './config.js?v=0.19';
-import { assemble } from './mapgen.js?v=0.19';
-import { initInventory, openInventory, closeInventory, isInventoryOpen, resetInventory, refreshInventoryTexts } from './inventory.js?v=0.19';
+import { state, initGame, recomputeFog, computeReach } from './state.js?v=0.20';
+import { initRenderer, startLoop, centerOnHero, toggleGrid, isGridOn } from './render.js?v=0.20';
+import { onTapTile, bindDescend, startHeroTurn, endHeroTurn, afterInteract, attemptDisarm, isAITurnActive, getEnemySpeed, setEnemySpeed } from './rules.js?v=0.20';
+import { syncHUD, log, hideVeil, bindAfterInteract, bindRestart, bindAttemptDisarm, applyStaticText, syncInitiativeUI, showConfirm, showLogHistory, hideLogHistory, logHistoryOpen } from './ui.js?v=0.20';
+import { loadAssets } from './assets.js?v=0.20';
+import { initialLang, loadLang, onLangChange, getLang, t } from './i18n.js?v=0.20';
+import * as anim from './anim.js?v=0.20';
+import * as audio from './audio.js?v=0.20';
+import { VERSION } from './config.js?v=0.20';
+import { assemble } from './mapgen.js?v=0.20';
+import { initInventory, openInventory, closeInventory, isInventoryOpen, resetInventory, refreshInventoryTexts } from './inventory.js?v=0.20';
+import { loadSkillsData, initSkillShop, openSkillShop, closeSkillShop, refreshSkillTexts, bindFullReset } from './skills.js?v=0.20';
+import * as savegame from './savegame.js?v=0.20';
 
 // El ensamblador de losetas (mapgen.js) sigue disponible para niveles ALEATORIOS
 // futuros; esta función queda de reserva pero no se usa por ahora, ya que el
@@ -48,13 +50,14 @@ function renderSplash() {
 
 async function boot() {
   // Idioma primero (los textos) y assets/datos en paralelo.
-  onLangChange(() => { applyStaticText(); markLang(); markEnemySpeed(); renderSplash(); refreshInventoryTexts(); });
+  onLangChange(() => { applyStaticText(); markLang(); markEnemySpeed(); renderSplash(); refreshInventoryTexts(); refreshSkillTexts(); });
   await loadLang(initialLang());
 
   const [events, cl] = await Promise.all([
     fetch(`./data/events.json?v=${VERSION}`).then(r => r.json()),
     fetch(`./data/changelog.json?v=${VERSION}`).then(r => r.json()).catch(() => ({ versions: [] })),
     loadAssets().catch(err => console.warn('Assets:', err.message)),
+    loadSkillsData().catch(err => console.warn('Habilidades:', err.message)),
   ]);
   changelog = cl;
   renderSplash();
@@ -70,11 +73,14 @@ async function boot() {
     return levelCache[file];
   }
 
+  let currentLevelName = null;   // nombre tal cual se le pasa a loadLevel/getLevel (p.ej. 'level1', 'cripta'...)
+
   async function loadLevel(name, carry) {
     const level = await getLevel(name);
     initGame(level, events);
-    if (carry) Object.assign(state.hero, carry);   // arrastra vida/oro entre niveles
-    else resetInventory();                          // partida nueva de verdad: inventario limpio
+    if (carry) Object.assign(state.hero, carry);        // arrastra vida/oro entre niveles (bajar de nivel)
+    else { resetInventory(); state.hero.gold = savegame.getPersistedGold(); }   // partida nueva de verdad: inventario limpio, oro = el que traías guardado (1000 la primera vez)
+    currentLevelName = name;
     anim.reset();
     centerOnHero(true);
     hideVeil();
@@ -82,6 +88,34 @@ async function boot() {
     syncHUD();
     syncInitiativeUI();
     log(t('log.intro'));
+    savegame.saveGame(currentLevelName);
+  }
+
+  // Al arrancar: si hay una partida guardada, se retoma EXACTA (mismo nivel,
+  // posición, vida, enemigos vivos/muertos, niebla explorada...); si no hay
+  // guardado o algo falla al cargarlo (p.ej. un nivel que ya no existe), se
+  // empieza una partida nueva normal en el nivel 1.
+  async function bootLevel() {
+    if (!savegame.hasSave()) return loadLevel('level1');
+    const data = savegame.loadSave();
+    try {
+      const level = await getLevel(data.levelName);
+      initGame(level, events);
+      savegame.applySave(data);
+      recomputeFog();
+      computeReach();
+      currentLevelName = data.levelName;
+      anim.reset();
+      centerOnHero(true);
+      hideVeil();
+      syncHUD();
+      syncInitiativeUI();
+      log(t('log.resumed'));
+    } catch (err) {
+      console.warn('No se pudo retomar la partida guardada, se empieza de nuevo:', err);
+      savegame.clearSave();
+      await loadLevel('level1');
+    }
   }
 
   function newGame() { loadLevel('level1'); }
@@ -97,15 +131,27 @@ async function boot() {
     }
   }
 
-  bindAfterInteract(afterInteract);
+  bindAfterInteract(trig => { afterInteract(trig); savegame.saveGame(currentLevelName); });
   bindRestart(newGame);
   bindDescend(descend);
   bindAttemptDisarm(attemptDisarm);
+  bindFullReset(newGame);   // "reiniciar progreso" en la tienda de habilidades también reinicia la mazmorra
 
   initRenderer(document.getElementById('map'), onTapTile);
   initInventory();
+  initSkillShop();
   startLoop();
-  await loadLevel('level1');
+  await bootLevel();
+
+  // Autoguardado: red de seguridad para cambios que no pasan por un clic
+  // directo (turnos de la IA, animaciones...). Además se guarda al cerrar o
+  // esconder la pestaña, y en los puntos clave de arriba (interactuar, subir
+  // de nivel, saltar turno).
+  setInterval(() => savegame.saveGame(currentLevelName), 3000);
+  window.addEventListener('beforeunload', () => savegame.saveGame(currentLevelName));
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') savegame.saveGame(currentLevelName);
+  });
 
   // --- controles ---
   document.getElementById('reset').addEventListener('click', () => {
@@ -125,7 +171,7 @@ async function boot() {
     });
   });
   function skipTurn() {
-    if (!state.busy && !isAITurnActive()) { log(t('log.turnSkipped')); endHeroTurn(); }
+    if (!state.busy && !isAITurnActive()) { log(t('log.turnSkipped')); endHeroTurn(); savegame.saveGame(currentLevelName); }
   }
   document.getElementById('endTurn').addEventListener('click', skipTurn);
   document.getElementById('recenter').addEventListener('click', () => centerOnHero(false));
@@ -161,11 +207,23 @@ async function boot() {
     }
   });
 
-  // Pantalla de novedades: el botón Continuar la cierra y, de paso, hace de
-  // primer toque para desbloquear el audio (importante en móvil).
+  // Pantalla de novedades: el botón Continuar la cierra y abre la tienda de
+  // habilidades (sistema temporal de pruebas, ver js/skills.js). De paso hace
+  // de primer toque para desbloquear el audio (importante en móvil).
   document.getElementById('splashContinue').addEventListener('click', () => {
     document.getElementById('splash').classList.remove('show');
     audio.unlock();
+    openSkillShop();
+  });
+
+  // Tienda de habilidades: "Terminar" pide confirmación y entra en el juego
+  // (ya cargado en segundo plano desde el arranque, con el oro que se haya
+  // gastado ya descontado — es el mismo state.hero.gold en todo momento).
+  document.getElementById('shopFinishBtn').addEventListener('click', () => {
+    showConfirm(t('confirm.finishShop.title'), t('confirm.finishShop.text'), () => {
+      savegame.saveGame(currentLevelName);
+      closeSkillShop();
+    });
   });
 
   // Rejilla: alterna visible/invisible y refleja el estado en el propio botón.
@@ -237,7 +295,7 @@ function markEnemySpeed() {
 // --ui ni las media queries de pantallas estrechas, que siguen aplicando
 // igual encima del arrastre.
 const LAYOUT_KEY = 'cripta.layout';
-const LAYOUT_IDS = ['hud', 'topright', 'bottomright', 'log'];
+const LAYOUT_IDS = ['hud', 'topright', 'bottomright', 'log', 'actionbar'];
 
 function loadLayoutOffsets() {
   try { return JSON.parse(localStorage.getItem(LAYOUT_KEY) || '{}'); } catch { return {}; }
