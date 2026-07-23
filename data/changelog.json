@@ -1,6 +1,21 @@
 {
   "versions": [
     {
+      "v": "0.21.1",
+      "es": {
+        "title": "Iconos de habilidades",
+        "notes": [
+          "Ya todas las habilidades tienen su icono real, ninguna se queda con el círculo provisional."
+        ]
+      },
+      "en": {
+        "title": "Skill icons",
+        "notes": [
+          "All skills now have their real icon, none left with the placeholder circle."
+        ]
+      }
+    },
+    {
       "v": "0.21",
       "es": {
         "title": "Las habilidades ya hacen efecto de verdad",

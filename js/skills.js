@@ -18,11 +18,11 @@
 // estado + render + interacción para toda esta pantalla, ya que es un bloque
 // autocontenido de la interfaz.
 
-import { state } from './state.js?v=0.21';
-import { t } from './i18n.js?v=0.21';
-import { VERSION } from './config.js?v=0.21';
-import { showConfirm } from './ui.js?v=0.21';
-import { getPersistedGold, persistGold } from './savegame.js?v=0.21';
+import { state } from './state.js?v=0.21.1';
+import { t } from './i18n.js?v=0.21.1';
+import { VERSION } from './config.js?v=0.21.1';
+import { showConfirm } from './ui.js?v=0.21.1';
+import { getPersistedGold, persistGold } from './savegame.js?v=0.21.1';
 
 const STORAGE_KEY = 'cripta.skills';
 const TIER_COUNT = 3;

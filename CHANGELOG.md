@@ -2,6 +2,9 @@
 
 Esquema: `0.X` = cambio grande · `0.X.Y` = cambio pequeño / fix.
 
+## 0.21.1 — iconos reales para las 8 habilidades que faltaban
+- Añadidos `flame_slash.png`, `iron_skin.png`, `frost_arrow.png`, `poison_cloud.png`, `holy_smite.png`, `war_cry.png`, `cat_reflexes.png` y `bloodlust.png` en `assets/ui/skills/` (arte del usuario, fondo magenta quitado, recortado a su contenido real). Ya no se ve ningún icono provisional (letra sobre círculo) en la tienda.
+
 ## 0.21 — las habilidades ya hacen efecto de verdad + victoria de toda la mazmorra + más oro
 - **Las 10 habilidades ya tienen efecto real en combate** (antes solo existían en la tienda): daño/curación/buff con los números de cada tier, aplicados de verdad.
   - Pasivas de estadística (Precisión carnicera, Piel de hierro, Reflejos felinos): suben crítico/armadura/esquiva de verdad, y se reflejan **en verde** en la hoja de personaje del inventario cuando hay bonus.
