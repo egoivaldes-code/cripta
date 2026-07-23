@@ -2,6 +2,17 @@
 
 Esquema: `0.X` = cambio grande · `0.X.Y` = cambio pequeño / fix.
 
+## 0.21.2 — contenedores de botín + emboscada sincronizada en Mausoleo 2
+- **Emboscada sincronizada**: los 2 marcadores de evento del centro de Mausoleo 2 ahora están enlazados — activar cualquiera de los dos hace aparecer 6 Espectros de golpe alrededor de ambos, en casillas libres al azar (nunca sobre el héroe, un muro, otro enemigo, un altar/contenedor/marcador). Los espectros nacen ya despiertos y entran en combate de inmediato, interrumpiendo el turno del héroe como cualquier emboscada real.
+- Los props tipo `item` ("Objeto" en el editor) pasan a ser **contenedores de botín** genéricos (`type: "container"`), pensados como base del futuro sistema de itemización completo (afijos, sufijos, únicos, sets, palabras rúnicas). De momento solo dan **oro aleatorio (10-200)**, mismo rango que los enemigos.
+- **Sin carta de evento**: a diferencia del `chest` narrativo (que sigue igual, ligado a `events.json`), los contenedores se abren directo al tocarlos adyacentes — misma ventana de botín que un cadáver, sin coste de PA.
+- **Arte y sonido diferenciados**: el `chest` narrativo usa el baúl de madera (`assets/props/chest/`, se abre con bisagra) con el sonido `chestopen.mp3`; el `container` genérico usa un jarrón de barro (`assets/props/container/`, se rompe en pedazos) con el sonido `containerbreak.mp3`. Ambos arte de usuario, magenta quitado.
+- **De paso, arreglado**: los cofres narrativos (`chest`) llevaban desde hace tiempo su animación lista pero nunca conectada a ningún nivel — ahora los 3 cofres existentes (cementerio, cripta, mausoleo2) ya se ven con el baúl real en vez del icono genérico.
+- **Desaparecen al vaciarse**: una vez se coge todo el oro del contenedor, deja de dibujarse para siempre (no se puede volver a saquear).
+- `showLootWindow` (ventana de botín) generalizada para servir tanto a cadáveres como a contenedores del mapa.
+- Eliminado el evento suelto `item_1` (una tumba con 5 de oro/nada) — ya no aplica, los contenedores no pasan por el sistema de cartas.
+- **Pendiente para el editor de niveles** (artifact aparte): el desplegable debería mostrar ya "Contenedor" en vez de "Objeto" al leer el manifest actualizado, pero conviene comprobarlo la próxima vez que se abra.
+
 ## 0.21.1 — iconos reales para las 8 habilidades que faltaban
 - Añadidos `flame_slash.png`, `iron_skin.png`, `frost_arrow.png`, `poison_cloud.png`, `holy_smite.png`, `war_cry.png`, `cat_reflexes.png` y `bloodlust.png` en `assets/ui/skills/` (arte del usuario, fondo magenta quitado, recortado a su contenido real). Ya no se ve ningún icono provisional (letra sobre círculo) en la tienda.
 

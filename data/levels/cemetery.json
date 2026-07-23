@@ -2119,7 +2119,8 @@
       "x": 23,
       "y": 4,
       "id": "chest_1",
-      "type": "chest"
+      "type": "chest",
+      "sprite": "chest"
     },
     {
       "x": 21,
@@ -2137,7 +2138,8 @@
       "x": 7,
       "y": 4,
       "id": "item_1",
-      "type": "item"
+      "type": "container",
+      "sprite": "container"
     },
     {
       "x": 3,

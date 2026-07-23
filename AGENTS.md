@@ -536,6 +536,119 @@ Cuando llegue ese sistema, esto se puede sustituir sin tocar el motor.
   reutiliza aquí; por eso su z-index se subió a 25, por encima de la propia
   tienda (z-index 20), para que se vea encima al confirmar desde dentro.
 
+## Emboscada sincronizada (V0.21.2) — los 2 sigilos de Mausoleo 2
+
+Mausoleo 2 no tenía ningún enemigo colocado a mano — su única "amenaza" son
+los 2 marcadores de evento del centro de la sala (`event_1`/`event_2`,
+ahora renombrados), pensados como una emboscada: activar CUALQUIERA de los
+dos hace aparecer 6 Espectros de golpe alrededor de ambos, en casillas
+libres al azar.
+
+**Cómo está montado (todo en `rules.js`, sección "Emboscada sincronizada"):**
+- Nuevo tipo de trigger: `type: "ambush"`. Los 2 marcadores comparten el
+  MISMO `id` (`mausoleo2_ambush`) — por eso basta una sola entrada en
+  `events.json` para los dos, y sirve también para encontrar al "gemelo": al
+  activar uno, `triggerAmbush()` busca todos los triggers `ambush` con ese
+  mismo id y los marca `used` de golpe (el otro deja de poder tocarse y,
+  como cualquier trigger no-cofre ya usado, deja de dibujarse).
+- `spawnAmbushSpectres(origins, count=6, maxDist=3)` reutiliza
+  `freeTilesNear()` (la misma función del Esqueleto Mago para invocar) desde
+  CADA uno de los orígenes del grupo, junta las casillas candidatas sin
+  repetir, las baraja (Fisher-Yates, dando algo de preferencia a las más
+  cercanas por el orden de partida) y coloca ahí a los 6 Espectros
+  (`sprite: 'enemy5'`, mismas stats que los de siempre: hp 16, atk 4).
+  `freeTilesNear` ya descarta por sí sola la casilla del héroe, muros,
+  otros enemigos y cualquier objeto/altar/marcador bloqueante — exactamente
+  la condición pedida ("nunca encima de marcadores de evento, objetos,
+  altares...").
+- Los Espectros nacen ya despiertos (`dormant: false`): en cuanto se
+  generan, `scanForNewCombatants()` los mete en la cola de iniciativa de
+  inmediato y, si esto entra en combate por primera vez, se llama a
+  `endHeroTurn(true)` — el mismo mecanismo de "despertar a mitad de camino"
+  que ya existía para enemigos dormidos — así la emboscada de verdad
+  interrumpe al héroe en vez de esperar a que acabe su turno.
+- Carta de aviso en `events.json`/i18n (`ev.mausoleo2Ambush`): una sola
+  opción ("Tocar el sigilo"), sin efecto de stats — el efecto real es la
+  invocación, no algo que pase por `resolveChoice`.
+
+## Contenedores de botín (V0.21.2) — primer paso del sistema de items
+
+Los antiguos props tipo `item` ("Objeto" en el editor) pasan a ser
+**contenedores de botín** genéricos: objetos repartidos por el mapa que
+sueltan oro aleatorio, pensados como la base sobre la que en el futuro se
+construirá el sistema de itemización completo (afijos, sufijos, únicos,
+sets, palabras rúnicas — estilo Diablo 2). De momento **solo dan oro**, con
+el mismo rango que los enemigos (10-200, subido temporalmente para probar
+la tienda).
+
+**Diferencia clave con el `chest`:** `chest` es el cofre narrativo especial
+(ligado a una carta de `events.json`, y a futuro podrá llevar cerraduras,
+trampas o checkeos de stats). `container` es el genérico y repetible, **sin
+carta de evento** — se abre directo, como un cadáver. Cada uno tiene su
+propio arte y su propio sonido — **no hay que confundirlos**:
+- `chest` → arte de baúl de madera (`assets/props/chest/`), se abre con
+  bisagra (clip `open`, 4 fotogramas), sonido `chestOpen`
+  (`assets/audio/chestopen.mp3`).
+- `container` → arte de jarrón de barro (`assets/props/container/`), se
+  **rompe** en vez de abrirse (mismo clip `open` a nivel de código, pero
+  visualmente es una secuencia de rotura: entero → agrietado → hecho
+  pedazos → escombros), sonido `containerBreak`
+  (`assets/audio/containerbreak.mp3`).
+
+**Cómo está montado:**
+- Tipo de prop nuevo: `container`, con su propio clip de animación en
+  `anim.js` (`ANIM_CLIPS.container`: `idle` 1 fotograma, `open` 4
+  fotogramas — el nombre de clip `open` es solo la etiqueta de código
+  compartida con `chest`; el contenido real es la rotura del jarrón) y sus
+  imágenes en `assets/props/container/idle.png` / `open.png` (arte de Nano
+  Banana, magenta recortado agrupando por bandas horizontales —los
+  fragmentos sueltos del jarrón roto quedan repartidos en varios
+  componentes conectados independientes del cuerpo principal, así que se
+  agrupan por su posición en la hoja en vez de por componente—, escala
+  normalizada por el fotograma más alto del clip).
+- El `chest` ya tenía su clip de animación reservado desde antes, pero
+  nunca había llegado a conectarse a ningún nivel (los triggers `type:
+  "chest"` no llevaban `sprite`, así que se veían con el icono ▪ genérico).
+  Ahora los 3 cofres existentes (cementerio, cripta, mausoleo2/level2)
+  llevan `"sprite": "chest"` y ya se ven con el baúl de madera real.
+- En los niveles (`data/levels/*.json`), los triggers de contenedor ya no
+  son `type: "item"` sino `type: "container"` y llevan `"sprite":
+  "container"` para que `render.js` los pinte con el jarrón real en vez del
+  icono ★ genérico de siempre.
+- **Interacción** (`rules.js`, antes de entrar en el bloque genérico de
+  objetos con carta): si el contenedor está adyacente, se reproduce la
+  animación de saqueo del héroe + la rotura (`anim.openProp(...,
+  'container')`) + el sonido `containerBreak` (solo la primera vez), se
+  genera su botín una sola vez (`generateLoot()`, la misma función que usan
+  los enemigos al morir — el parámetro `foe` no se usa, está reservado) y
+  se abre la MISMA ventana de botín que un cadáver (`showLootWindow`). No
+  cuesta PA, igual que recoger de un cadáver.
+- El sonido `chestOpen` se dispara en `afterInteract` (rules.js), justo
+  cuando el cofre narrativo se abre de verdad tras cerrar su carta.
+- **Ventana de botín generalizada** (`ui.js`): antes solo la usaban
+  cadáveres; ahora `showLootWindow(source)` distingue por
+  `source.type === 'container'` para el título ("Contenedor" / i18n
+  `loot.container`, en vez del nombre del enemigo) y para cómo desaparece al
+  vaciarse: un cadáver pone `deathPlaying = false` (sistema de siempre); un
+  contenedor pone `tr.used = true`, que ya hace que `render.js` deje de
+  pintarlo (mismo criterio que cualquier otro prop de un solo uso) — así
+  desaparece del mapa para siempre en cuanto se coge todo el botín.
+- El manifest (`data/manifest.json`) tiene la clave `container` en vez de
+  `item`, y ambos (`chest`/`container`) llevan ya su `sprite` de fábrica
+  para que el editor de niveles (artifact aparte) lo asigne solo a
+  cualquier cofre/contenedor nuevo que se coloque — pero el desplegable
+  también debe actualizarse por su cuenta para mostrar "Contenedor" en vez
+  de "Objeto"; lee el manifest en vivo, así que en cuanto esta versión esté
+  publicada ya debería verlo solo.
+- Se eliminó el evento suelto `item_1` de `events.json` (una tumba con 5 de
+  oro/nada): ya no aplica, los contenedores no pasan por el sistema de
+  cartas.
+
+**Pendiente de verdad (fase 2, más adelante):** todo el sistema real de
+itemización — rareza, afijos/sufijos, únicos, sets, palabras rúnicas, tablas
+de drop por nivel — se construirá por partes, con preguntas concretas en
+cada paso.
+
 ## Pendiente / próximos pasos posibles
 
 **Lección de la 0.20.1**: entre la 0.18 y la 0.19 se colaron dos regresiones

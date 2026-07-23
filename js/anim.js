@@ -6,7 +6,7 @@
 //     (paz/combate) que cambian solas según haya un enemigo cerca, con una transición.
 // Además: sacudida al recibir daño y números flotantes (daño/curación).
 
-import { TILE } from './config.js?v=0.21.1';
+import { TILE } from './config.js?v=0.21.2';
 
 const D_MOVE = 170;
 const D_ATTACK_LEGACY = 220;
@@ -17,6 +17,10 @@ const D_HURT = 300;   // duración de la sacudida (todos los personajes)
 // Los nombres de clip coinciden EXACTAMENTE con las claves cargadas en assets.js.
 export const ANIM_CLIPS = {
   chest: {
+    idle: { frames: 1, fps: 1, loop: true  },
+    open: { frames: 4, fps: 6, loop: false },
+  },
+  container: {
     idle: { frames: 1, fps: 1, loop: true  },
     open: { frames: 4, fps: 6, loop: false },
   },
@@ -63,7 +67,7 @@ export const ANIM_CLIPS = {
 
 // Qué clip hace de idle normal / idle de combate / transición, por tipo (solo el
 // héroe tiene los dos idles; el esqueleto usa el mismo "idle" siempre).
-export const IDLE_NAME = { enemy1: 'idle', enemy4: 'idle', enemy5: 'idle', enemy6: 'idle', hero: 'idlepeace', chest: 'idle' };
+export const IDLE_NAME = { enemy1: 'idle', enemy4: 'idle', enemy5: 'idle', enemy6: 'idle', hero: 'idlepeace', chest: 'idle', container: 'idle' };
 const IDLE_COMBAT_NAME = { hero: 'idlecombat' };
 const STANCECHANGE_NAME = { hero: 'stancechange' };
 // Variantes de ataque entre las que elegir al azar cada vez.

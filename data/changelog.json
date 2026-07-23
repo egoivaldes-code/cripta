@@ -1,6 +1,27 @@
 {
   "versions": [
     {
+      "v": "0.21.2",
+      "es": {
+        "title": "Contenedores de botín",
+        "notes": [
+          "Los objetos sueltos del mapa ahora son jarrones que se rompen y sueltan oro al tocarlos, con su propio sonido.",
+          "Los cofres ya se ven con su baúl de madera real, con su propio sonido al abrirse.",
+          "Una vez vacíos, los contenedores desaparecen para siempre.",
+          "Mausoleo 2 esconde una emboscada: dos sigilos gemelos que despiertan 6 espectros a la vez."
+        ]
+      },
+      "en": {
+        "title": "Loot containers",
+        "notes": [
+          "Loose objects on the map are now urns that shatter and drop gold when tapped, with their own sound.",
+          "Chests now show their real wooden model, with their own opening sound.",
+          "Once emptied, containers disappear for good.",
+          "Mausoleum 2 hides an ambush: two twin sigils that wake 6 spectres at once."
+        ]
+      }
+    },
+    {
       "v": "0.21.1",
       "es": {
         "title": "Iconos de habilidades",

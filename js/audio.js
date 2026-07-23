@@ -2,7 +2,7 @@
 // usan un pitido suave sintetizado. De fondo: ambiente de bosque en bucle + ulular
 // de búho de vez en cuando. En móvil el sonido solo arranca tras tocar -> unlock().
 
-import { VERSION } from './config.js?v=0.21.1';
+import { VERSION } from './config.js?v=0.21.2';
 
 let ctx, master, fxGain, ambGain;
 let ambSource = null, owlTimer = null;
@@ -19,7 +19,7 @@ export function initialMusicVol() { return musicVol; }
 export function initialFxVol() { return fxVol; }
 
 // Muestras a decodificar. 'ambience' va en bucle; 'owl' se lanza suelto; el resto, efectos.
-const SAMPLE_FILES = ['footsteps', 'swing', 'hit', 'grunt1', 'grunt2', 'crit', 'coins', 'owl', 'ambience', 'combatstart'];
+const SAMPLE_FILES = ['footsteps', 'swing', 'hit', 'grunt1', 'grunt2', 'crit', 'coins', 'owl', 'ambience', 'combatstart', 'chestopen', 'containerbreak'];
 const buffers = {};
 
 // Evento del juego -> cómo suena.
@@ -30,6 +30,8 @@ const CUES = {
   hurt:   { pool: ['grunt1', 'grunt2'], gain: 0.9 },
   coins:  { one: 'coins', gain: 0.8 },
   combatstart: { one: 'combatstart', gain: 0.85 },   // entrada en combate (antes era un pitido)
+  chestOpen: { one: 'chestopen', gain: 0.85 },             // se abre el cofre narrativo (events.json)
+  containerBreak: { one: 'containerbreak', gain: 0.85 },   // se rompe un contenedor genérico del mapa
 };
 
 export function unlock() {

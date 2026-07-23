@@ -6,7 +6,7 @@
 // Qué claves tienen animaciones de verdad se define en ANIM_CLIPS (anim.js);
 // aquí solo hace falta indicar dónde está cada hoja.
 
-import { VERSION } from './config.js?v=0.21.1';
+import { VERSION } from './config.js?v=0.21.2';
 
 export const ATLAS_TILE = 128;  // px por celda en el tileset fuente (dungeon.png)
 export const SPRITE_TILE = 128; // px por fotograma en las hojas de sprites
@@ -58,6 +58,10 @@ const sources = {
   chest: {
     idle: './assets/props/chest/idle.png',
     open: './assets/props/chest/open.png',
+  },
+  container: {
+    idle: './assets/props/container/idle.png',
+    open: './assets/props/container/open.png',
   },
   target: './assets/props/target_marker.png',
   // crypt / crypt_in: aparcados (arte isométrico; el cementerio ahora usa un fondo

@@ -652,38 +652,42 @@
     {
       "x": 8,
       "y": 5,
-      "id": "event_1",
-      "type": "event"
+      "id": "mausoleo2_ambush",
+      "type": "ambush"
     },
     {
       "x": 8,
       "y": 6,
-      "id": "event_2",
-      "type": "event"
+      "id": "mausoleo2_ambush",
+      "type": "ambush"
     },
     {
       "x": 3,
       "y": 8,
       "id": "item_1",
-      "type": "item"
+      "type": "container",
+      "sprite": "container"
     },
     {
       "x": 13,
       "y": 4,
       "id": "item_2",
-      "type": "item"
+      "type": "container",
+      "sprite": "container"
     },
     {
       "x": 4,
       "y": 3,
       "id": "item_3",
-      "type": "item"
+      "type": "container",
+      "sprite": "container"
     },
     {
       "x": 3,
       "y": 4,
       "id": "item_4",
-      "type": "item"
+      "type": "container",
+      "sprite": "container"
     }
   ],
   "exit": {

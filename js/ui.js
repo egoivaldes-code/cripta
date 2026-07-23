@@ -1,14 +1,14 @@
 // Capa DOM: HUD (con PA), cartas de evento, registro, fin de partida y ajustes.
 // Todo el texto visible pasa por t() (multiidioma). No dibuja en el canvas.
 
-import { state } from './state.js?v=0.21.1';
-import { t, tRandom } from './i18n.js?v=0.21.1';
-import * as anim from './anim.js?v=0.21.1';
-import { IDLE_NAME } from './anim.js?v=0.21.1';
-import * as audio from './audio.js?v=0.21.1';
-import { VERSION } from './config.js?v=0.21.1';
-import { images, SPRITE_TILE } from './assets.js?v=0.21.1';
-import { pushHistory, getHistory, clearHistory, CATEGORIES } from './eventlog.js?v=0.21.1';
+import { state } from './state.js?v=0.21.2';
+import { t, tRandom } from './i18n.js?v=0.21.2';
+import * as anim from './anim.js?v=0.21.2';
+import { IDLE_NAME } from './anim.js?v=0.21.2';
+import * as audio from './audio.js?v=0.21.2';
+import { VERSION } from './config.js?v=0.21.2';
+import { images, SPRITE_TILE } from './assets.js?v=0.21.2';
+import { pushHistory, getHistory, clearHistory, CATEGORIES } from './eventlog.js?v=0.21.2';
 
 let afterInteract = () => {};
 let restart = () => {};
@@ -97,8 +97,18 @@ function closeLootVeil() {
   $('lootVeil').classList.remove('show');
 }
 
-// Coge un objeto suelto. Si era el último que quedaba, el cadáver
-// desaparece de verdad (deja de dibujarse) y la ventana se cierra sola.
+// Cuando el botín se vacía del todo, cada tipo de "fuente" desaparece a su
+// manera: un cadáver deja de dibujarse (deathPlaying=false, sistema de
+// siempre); un contenedor del mapa (cofre/urna) se marca como usado, que ya
+// hace que render.js deje de pintarlo (mismo criterio que el resto de
+// props de un solo uso).
+function markLootSourceEmptied(source) {
+  if (source.type === 'container') source.used = true;
+  else source.deathPlaying = false;
+}
+
+// Coge un objeto suelto. Si era el último que quedaba, la fuente (cadáver o
+// contenedor) desaparece de verdad y la ventana se cierra sola.
 function lootOne(index) {
   if (!lootCorpse) return;
   const entry = lootCorpse.loot[index];
@@ -106,7 +116,7 @@ function lootOne(index) {
   applyLootEntry(entry);
   lootCorpse.loot.splice(index, 1);
   syncHUD();
-  if (lootCorpse.loot.length === 0) { lootCorpse.deathPlaying = false; closeLootVeil(); }
+  if (lootCorpse.loot.length === 0) { markLootSourceEmptied(lootCorpse); closeLootVeil(); }
   else renderLootList();
 }
 
@@ -115,15 +125,17 @@ function lootAllNow() {
   lootCorpse.loot.forEach(applyLootEntry);
   lootCorpse.loot = [];
   syncHUD();
-  lootCorpse.deathPlaying = false;   // ya no queda nada: mismo mecanismo de siempre para que el cadáver desaparezca
+  markLootSourceEmptied(lootCorpse);   // ya no queda nada: la fuente desaparece
   closeLootVeil();
 }
 
-// La llama rules.js al tocar un cadáver adyacente con loot pendiente.
-export function showLootWindow(corpse) {
-  lootCorpse = corpse;
+// La llama rules.js al tocar un cadáver o un contenedor adyacente con loot
+// pendiente. `source.type === 'container'` distingue un contenedor del mapa
+// (título genérico) de un cadáver de enemigo (título = nombre del enemigo).
+export function showLootWindow(source) {
+  lootCorpse = source;
   anim.loot('hero', 'hero');
-  $('lootTitle').textContent = t('enemy.' + corpse.sprite);
+  $('lootTitle').textContent = source.type === 'container' ? t('loot.container') : t('enemy.' + source.sprite);
   $('lootAllBtn').textContent = t('loot.takeAll');
   renderLootList();
   $('lootVeil').classList.add('show');

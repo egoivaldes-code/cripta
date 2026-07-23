@@ -677,19 +677,22 @@
       "x": 2,
       "y": 2,
       "id": "item_1",
-      "type": "item"
+      "type": "container",
+      "sprite": "container"
     },
     {
       "x": 9,
       "y": 2,
       "id": "item_2",
-      "type": "item"
+      "type": "container",
+      "sprite": "container"
     },
     {
       "x": 2,
       "y": 7,
       "id": "item_3",
-      "type": "item"
+      "type": "container",
+      "sprite": "container"
     },
     {
       "x": 4,

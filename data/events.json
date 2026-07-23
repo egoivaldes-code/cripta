@@ -20,6 +20,16 @@
       }
     ]
   },
+  "mausoleo2_ambush": {
+    "i18n": "ev.mausoleo2Ambush",
+    "type": "ambush",
+    "actionCost": 1,
+    "choices": [
+      {
+        "effect": {}
+      }
+    ]
+  },
   "altar": {
     "i18n": "ev.altar",
     "type": "altar",
@@ -171,7 +181,10 @@
     "i18n": "ev.palanca1",
     "type": "lever",
     "actionCost": 1,
-    "unlocks": ["exit_3", "exit_4"]
+    "unlocks": [
+      "exit_3",
+      "exit_4"
+    ]
   },
   "exit_1": {
     "i18n": "ev.exit1",
@@ -188,21 +201,6 @@
   "exit_4": {
     "i18n": "ev.exit4",
     "type": "exit"
-  },
-  "item_1": {
-    "i18n": "ev.tumba",
-    "type": "grave",
-    "actionCost": 1,
-    "choices": [
-      {
-        "effect": {
-          "gold": 5
-        }
-      },
-      {
-        "effect": {}
-      }
-    ]
   },
   "altar_1": {
     "i18n": "ev.altar",

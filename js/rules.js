@@ -1,15 +1,15 @@
 // Reglas del juego: economía de Puntos de Acción (PA), interacción a distancia
 // y adyacente, trampas, niebla y salida de nivel. Agnóstico del dibujo.
 
-import { state, walkable, adjacent, distTo, isVisible, recomputeFog, computeReach, pathTo, findPath, findApproachPath, reachCost, blockingTriggerAt, trapAt, walkTriggerAt, exitAt, stepNeighbors, foeAt, corpseAt, livingFoes, losClear } from './state.js?v=0.21.1';
-import { openEvent, openLeverCard, openTrapCard, openStoryCard, syncHUD, syncInitiativeUI, showCombatBadge, showLootWindow, showConfirm, log, gameOver } from './ui.js?v=0.21.1';
-import { t, tRandom } from './i18n.js?v=0.21.1';
-import { MOVE_COST, ATTACK_COST, INITIATIVE_BASE, INITIATIVE_DIE, TURN_DELAY, COMBAT_ENTER_DELAY } from './config.js?v=0.21.1';
-import * as anim from './anim.js?v=0.21.1';
-import { ANIM_CLIPS } from './anim.js?v=0.21.1';
-import * as audio from './audio.js?v=0.21.1';
-import { centerOnTile } from './render.js?v=0.21.1';
-import { getOwnedTier, getSkillDef } from './skills.js?v=0.21.1';
+import { state, walkable, adjacent, distTo, isVisible, recomputeFog, computeReach, pathTo, findPath, findApproachPath, reachCost, blockingTriggerAt, trapAt, walkTriggerAt, exitAt, stepNeighbors, foeAt, corpseAt, livingFoes, losClear } from './state.js?v=0.21.2';
+import { openEvent, openLeverCard, openTrapCard, openStoryCard, syncHUD, syncInitiativeUI, showCombatBadge, showLootWindow, showConfirm, log, gameOver } from './ui.js?v=0.21.2';
+import { t, tRandom } from './i18n.js?v=0.21.2';
+import { MOVE_COST, ATTACK_COST, INITIATIVE_BASE, INITIATIVE_DIE, TURN_DELAY, COMBAT_ENTER_DELAY } from './config.js?v=0.21.2';
+import * as anim from './anim.js?v=0.21.2';
+import { ANIM_CLIPS } from './anim.js?v=0.21.2';
+import * as audio from './audio.js?v=0.21.2';
+import { centerOnTile } from './render.js?v=0.21.2';
+import { getOwnedTier, getSkillDef } from './skills.js?v=0.21.2';
 
 const sign = (n) => Math.sign(n);
 
@@ -154,10 +154,12 @@ function checkCombatEnd() {
   }
 }
 
-// Loot al morir un enemigo — de momento solo oro. Es un array a propósito
-// (no un número suelto) para poder añadir más tipos de objeto el día que
-// haga falta sin cambiar la forma de todo lo demás (ver showLootWindow en
-// ui.js, que recorre esta lista genéricamente).
+// Botín al morir un enemigo O al abrir un contenedor del mapa — de momento
+// solo oro. Es un array a propósito (no un número suelto) para poder añadir
+// más tipos de objeto el día que haga falta (afijos, únicos...) sin cambiar
+// la forma de todo lo demás (ver showLootWindow en ui.js, que recorre esta
+// lista genéricamente). El parámetro `foe` no se usa todavía (reservado para
+// cuando el botín dependa del tipo de enemigo/contenedor).
 function generateLoot(foe) {
   const gold = 10 + Math.floor(Math.random() * 191);   // 10–200 de oro (subido temporalmente para probar la tienda)
   return [{ type: 'gold', amount: gold }];
@@ -404,11 +406,29 @@ export async function onTapTile(gx, gy) {
     return;
   }
 
+  // --- ¿Contenedor de botín (cofre/urna genérico, futuro sistema de items)?
+  // No usa cartas de evento: adyacente = se abre con su animación y aparece
+  // la misma ventana de botín que un cadáver (de momento solo oro aleatorio,
+  // 10-200). No cuesta PA, igual que recoger de un cadáver. Al vaciarlo del
+  // todo desaparece del mapa para siempre (no se puede volver a saquear). ---
+  const tr = blockingTriggerAt(gx, gy);
+  if (tr && tr.type === 'container') {
+    const d = distTo(hero, gx, gy);
+    if (d <= 1) {
+      anim.loot('hero', 'hero');
+      anim.openProp(`prop:${tr.x}:${tr.y}`, 'container');
+      if (!tr.loot) { tr.loot = generateLoot(); audio.fx('containerBreak'); }
+      showLootWindow(tr);
+    } else if (isVisible(gx, gy)) {
+      showHint(tr);
+    }
+    return;
+  }
+
   // --- ¿Objeto (cofre, altar, palanca, orbe, mesa, evento...)? Adyacente =
   // interactuar; a distancia = pista. Si todavía no tiene un evento conectado
   // en events.json (p.ej. un "Evento" recién colocado en el editor, sin
   // enlazar aún), no revienta: se avisa con un mensaje neutro y no pasa nada más. ---
-  const tr = blockingTriggerAt(gx, gy);
   if (tr) {
     const d = distTo(hero, gx, gy);
     if (d <= 1) {
@@ -421,7 +441,7 @@ export async function onTapTile(gx, gy) {
         // El cofre se abre DESPUÉS de resolver la tarjeta (ver afterInteract);
         // aquí solo se reproduce la animación de activar/inspeccionar.
         anim.activateAnim('hero', 'hero');
-      } else if (['grave', 'item'].includes(tr.type)) {
+      } else if (tr.type === 'grave') {
         anim.loot('hero', 'hero');
       } else {
         anim.activateAnim('hero', 'hero');
@@ -531,9 +551,61 @@ export function afterInteract(trig) {
   if (trig && trig.type === 'chest') {
     anim.loot('hero', 'hero');
     anim.openProp(`prop:${trig.x}:${trig.y}`, 'chest');
+    audio.fx('chestOpen');
+  } else if (trig && trig.type === 'ambush') {
+    triggerAmbush(trig);
+    return;   // la propia emboscada decide cómo termina el turno (ver más abajo)
   }
   computeReach();
   if (state.hero.hp > 0 && state.hero.ap <= 0 && !state.combat.active) endHeroTurn();
+}
+
+// --- Emboscada sincronizada (p.ej. los 2 sigilos gemelos de Mausoleo 2) -----
+// Varios triggers `type: "ambush"` pueden compartir el mismo `id` (por tanto
+// la misma carta de events.json): al activar CUALQUIERA de ellos, todos los
+// del grupo se marcan usados de golpe (el otro deja de poder tocarse) y se
+// invocan enemigos alrededor de TODOS los orígenes del grupo a la vez.
+function triggerAmbush(trig) {
+  const group = state.triggers.filter(t => t.type === 'ambush' && t.id === trig.id);
+  for (const t of group) t.used = true;
+  spawnAmbushSpectres(group);
+  const justEntered = scanForNewCombatants();
+  if (justEntered) endHeroTurn(true);   // igual que despertar a un enemigo dormido a mitad de camino
+  else { computeReach(); if (state.hero.ap <= 0 && !state.combat.active) endHeroTurn(); }
+}
+
+// Reparte `count` espectros en casillas libres alrededor de los orígenes dados
+// (radio `maxDist` cada uno), sin pisarse entre sí ni con nada ya ocupado.
+// `freeTilesNear` ya excluye al héroe, muros, otros enemigos y cualquier
+// objeto/altar/marcador bloqueante — exactamente lo que hace falta aquí.
+function spawnAmbushSpectres(origins, count = 6, maxDist = 3) {
+  const seen = new Set();
+  const candidates = [];
+  for (const o of origins) {
+    for (const spot of freeTilesNear(o.x, o.y, maxDist)) {
+      const key = `${spot.x},${spot.y}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      candidates.push(spot);
+    }
+  }
+  // Barajar (Fisher-Yates) para que el patrón de aparición no sea siempre
+  // el mismo, dando prioridad relativa a las casillas más cercanas.
+  candidates.sort((a, b) => a.d - b.d);
+  for (let i = candidates.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [candidates[i], candidates[j]] = [candidates[j], candidates[i]];
+  }
+  const chosen = candidates.slice(0, count);
+  for (const spot of chosen) {
+    state.foes.push({
+      x: spot.x, y: spot.y, alive: true,
+      hp: 16, maxHp: 16, atk: 4,
+      sprite: 'enemy5', apMax: 4,
+      anim: 'foe' + state.foes.length, dormant: false, wakeR: 0,
+    });
+  }
+  syncHUD();
 }
 
 // Fin del turno del héroe (botón, o automático al llegar a 0 PA). Detecta

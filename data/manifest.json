@@ -1,6 +1,6 @@
 {
-  "version": "0.12",
-  "updated": "2026-07-18",
+  "version": "0.13",
+  "updated": "2026-07-23",
   "enemies": [
     { "key": "enemy1", "label": "Esqueleto (básico)", "hp": 12, "atk": 4, "color": "#b5443a", "animated": true },
     { "key": "enemy4", "label": "Esqueleto arquero", "hp": 9, "atk": 3, "color": "#5fae7a", "animated": true, "range": 4, "note": "dispara a 4 casillas; huye si te acercas; más fuerte rodeado de esqueletos" },
@@ -13,12 +13,12 @@
   ],
   "props": [
     { "key": "grave", "label": "Tumba",    "glyph": "†", "color": "#8a7a5c", "blocking": true  },
-    { "key": "chest", "label": "Cofre",    "glyph": "▪", "color": "#c99a3e", "blocking": true  },
+    { "key": "chest", "label": "Cofre",    "glyph": "▪", "color": "#c99a3e", "blocking": true, "sprite": "chest" },
     { "key": "altar", "label": "Altar",    "glyph": "◆", "color": "#e08a3c", "blocking": true  },
     { "key": "lever", "label": "Palanca",  "glyph": "/", "color": "#9aa0a8", "blocking": true  },
     { "key": "orb",   "label": "Orbe",     "glyph": "●", "color": "#5aa8d8", "blocking": true  },
     { "key": "table", "label": "Mesa",     "glyph": "▦", "color": "#a08858", "blocking": true  },
-    { "key": "item",  "label": "Objeto",   "glyph": "★", "color": "#e8d24c", "blocking": true  },
+    { "key": "container", "label": "Contenedor", "glyph": "★", "color": "#e8d24c", "blocking": true, "sprite": "container" },
     { "key": "trap",  "label": "Trampa",   "glyph": "▲", "color": "#a8382e", "blocking": false },
     { "key": "event", "label": "Evento",   "glyph": "!", "color": "#c94cd0", "blocking": false }
   ]
