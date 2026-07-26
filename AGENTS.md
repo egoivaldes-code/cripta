@@ -735,7 +735,81 @@ itemización — rareza, afijos/sufijos, únicos, sets, palabras rúnicas, tabla
 de drop por nivel — se construirá por partes, con preguntas concretas en
 cada paso.
 
-## Pendiente / próximos pasos posibles
+## Efectos reales de las 11 habilidades nuevas (V0.23)
+
+Se añaden 11 habilidades más de 7 clases nuevas (Asesino, Mago, Brujo,
+Clérigo, Druida, Nigromante, Cazador), todas con efecto real en combate
+desde el minuto uno (mismo criterio que las 10 de la V0.21 — nada de
+catálogo-sin-efecto). Aparcadas a propósito (ver "Pendiente" más abajo):
+**Levantar Muertos** y **Vínculo con la Fiera** (necesitan aliados/mascota
+controlados por IA propia) y **Maldición Persistente** (necesitaría un
+motor de estados-por-turno real que hoy no existe).
+
+- **Golpe desde las Sombras** (Asesino, activa): teletransporta al héroe a
+  una casilla libre junto al objetivo (`freeTileAdjacentTo`) y golpea con
+  más probabilidad de crítico. Tier 3 = crítico garantizado, pero solo
+  **una vez por combate** (`shadowStrikeUsedThisCombat`, se resetea en
+  `checkCombatEnd`). Nota: el tier 2 no puede "ignorar armadura" porque los
+  enemigos no tienen armadura propia en este motor — se convirtió en un
+  pequeño bonus de daño en su lugar.
+- **Instinto Letal** (Asesino, pasiva): bonus de daño si el objetivo está
+  por debajo del % de vida de su tier. Se aplica dentro de `resolveHeroHit`
+  a CUALQUIER golpe del héroe (normal o activa), no solo a una habilidad.
+- **Cadena Arcana** (Mago, activa): golpea al objetivo y salta al enemigo
+  vivo más cercano (dentro de `jumpRange`) sin repetir, perdiendo `falloffPct`
+  de daño en cada salto, hasta `jumps` veces.
+- **Sobrecarga Arcana** (Mago, pasiva): al usar CUALQUIER activa, tira su
+  probabilidad de no gastar el enfriamiento (`finishActiveSkillUse`). Tier 3
+  cura un poco si son 2 procs seguidos (`arcaneOverloadStreak`).
+- **Pacto de Sangre** (Brujo, activa): descuenta un % de la vida ACTUAL del
+  héroe (nunca lo deja a 0, mínimo 1) e inflige daño de sombra alto; tier 3
+  roba parte de ese daño como vida si el golpe mata.
+- **Círculo de Renacer** (Clérigo, activa, auto-lanzamiento): cura al
+  instante y, desde tier 2, deja una zona en el suelo (`holyZones`, radio
+  `area`) que sigue curando cada turno del héroe mientras esté dentro y
+  dura lo que indique `durationTurns`. Tier 3 añade `preventLethalOnce`: un
+  golpe que dejaría al héroe a 0 lo deja en 1 en su lugar, una sola vez por
+  zona lanzada (comprobado en `applyIncomingHit` → `tryLethalWard`).
+- **Gracia Vigilante** (Clérigo, pasiva): `hero.wardShield` se PONE (no se
+  suma) a `shieldPct × maxHp` al empezar cada turno del héroe
+  (`refreshWardShield`), y absorbe daño antes que la vida en
+  `applyIncomingHit`. Tier 3 cura un poco si el escudo del turno anterior
+  seguía en pie al refrescarlo.
+- **Forma Salvaje** (Druida, activa, auto-lanzamiento): buff temporal por
+  turnos (mismo patrón que Grito de guerra: `wildShapeTurnsLeft`, decrece en
+  `startHeroTurn`) con bonus de daño, armadura y curación al golpear. Se
+  quitó la "penalización a distancia" del diseño original: el héroe no tiene
+  una probabilidad de acierto a distancia que penalizar en este motor, así
+  que el texto del tier 1 se simplificó para no prometer algo que no pasa.
+- **Simbiosis Natural** (Druida, pasiva): `damageTakenLastTurn` se acumula en
+  `applyIncomingHit` (por tanto solo cuenta golpes de combate, no trampas) y
+  se revisa en `startHeroTurn` para curar si el turno anterior fue limpio (o
+  de poco daño, desde tier 2). Tier 3 añade armadura mientras esté a vida
+  completa.
+- **Cosecha de Almas** (Nigromante, pasiva): misma mecánica que Sed de
+  sangre (racha que se resetea al acabar el combate) pero solo cuenta
+  muertes dentro de `nearbyRange` del héroe, y se aplica como multiplicador
+  GENERAL de daño (no solo a hechizos de sombra) para que no sea una pasiva
+  muerta mientras el héroe no tenga más hechizos de esa escuela. Tier 3: a 5
+  stacks, el próximo uso de cualquier activa no gasta enfriamiento (comparte
+  el mismo "vale" que Sobrecarga Arcana, `freeNextCastSkip`).
+- **Disparo Múltiple** (Cazador, activa): traza una línea recta de 8
+  direcciones desde el héroe hacia la casilla tocada (`foesInLine`, se para
+  en el primer muro) y golpea a los primeros `maxTargets` enemigos que
+  encuentra. Tier 3 añade `slowedTurns`: el enemigo afectado actúa con 1 PA
+  menos en su PRÓXIMO turno, sea cual sea su tipo de IA (se resta y se
+  restaura en el único punto común de las 4 variantes de turno enemigo,
+  `runSingleFoeTurn`, sin tocar cada una por separado).
+
+**Limitación conocida** (igual que ya advertía la V0.21): sigue sin existir
+un motor de estados-por-turno de verdad. Todo lo de arriba son
+turnos-contados a mano (como ya hacía Grito de guerra), no un sistema
+genérico de "efectos con duración" reutilizable — construir ESE sistema es
+lo que de verdad haría falta para Maldición Persistente (y para que
+Tajo llameante/Nube de veneno quemen o envenenen de verdad turno a turno,
+en vez de golpear una sola vez).
+
+
 
 **Lección de la 0.20.1**: entre la 0.18 y la 0.19 se colaron dos regresiones
 en `cemetery.json` (se perdió `background:{key:bg_cemetery}` y un evento
@@ -766,9 +840,13 @@ grandes rasgos, sigue pendiente:
   `unlocks: [ids de salidas]`) — reutilizable para futuras palancas sin
   tocar el motor, solo añadiendo la entrada en `events.json` + i18n.
 - Enganchar `cast`/`potion` (héroe y esqueleto) a algún efecto de juego real.
-- Ir ampliando `data/skills.json` con habilidades reales (una a una, con
-  supervisión del usuario) y, más adelante, sustituir el sistema temporal de
-  pruebas por uno con efectos de verdad en combate.
+- **Aparcadas a propósito tras la V0.23** (mismo calibre de trabajo, mejor
+  todas juntas cuando toque): **Levantar Muertos** (Nigromante, necesita
+  aliados invocados con IA propia, distinta del héroe y del enemigo — tocaría
+  bastante `rules.js`/`state.js`), **Vínculo con la Fiera** (Cazador, necesita
+  un sistema de mascota controlable que hoy no existe), y **Maldición
+  Persistente** (Brujo, necesitaría el motor de estados-por-turno real
+  mencionado arriba, que hoy tampoco existe).
 - Animar a los otros dos tipos de esqueleto (espada+escudo, con armadura)
   cuando lleguen sus sprites — hoy están desactivados en el manifiesto.
 - Usar el ensamblador de losetas (`mapgen.js`) para un nivel aleatorio.

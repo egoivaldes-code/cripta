@@ -1,15 +1,15 @@
 // Reglas del juego: economía de Puntos de Acción (PA), interacción a distancia
 // y adyacente, trampas, niebla y salida de nivel. Agnóstico del dibujo.
 
-import { state, walkable, adjacent, distTo, isVisible, recomputeFog, computeReach, pathTo, findPath, findApproachPath, reachCost, blockingTriggerAt, trapAt, walkTriggerAt, exitAt, stepNeighbors, foeAt, corpseAt, livingFoes, losClear } from './state.js?v=0.22';
-import { openEvent, openLeverCard, openTrapCard, openStoryCard, syncHUD, syncInitiativeUI, showCombatBadge, showLootWindow, showConfirm, log, gameOver } from './ui.js?v=0.22';
-import { t, tRandom } from './i18n.js?v=0.22';
-import { MOVE_COST, ATTACK_COST, INITIATIVE_BASE, INITIATIVE_DIE, TURN_DELAY, COMBAT_ENTER_DELAY, getGameSpeed, setGameSpeed, speedMult, moveDurationMs } from './config.js?v=0.22';
-import * as anim from './anim.js?v=0.22';
-import { ANIM_CLIPS } from './anim.js?v=0.22';
-import * as audio from './audio.js?v=0.22';
-import { centerOnTile } from './render.js?v=0.22';
-import { getOwnedTier, getSkillDef } from './skills.js?v=0.22';
+import { state, walkable, isWall, adjacent, distTo, isVisible, recomputeFog, computeReach, pathTo, findPath, findApproachPath, reachCost, blockingTriggerAt, trapAt, walkTriggerAt, exitAt, stepNeighbors, foeAt, corpseAt, livingFoes, losClear } from './state.js?v=0.23';
+import { openEvent, openLeverCard, openTrapCard, openStoryCard, syncHUD, syncInitiativeUI, showCombatBadge, showLootWindow, showConfirm, log, gameOver } from './ui.js?v=0.23';
+import { t, tRandom } from './i18n.js?v=0.23';
+import { MOVE_COST, ATTACK_COST, INITIATIVE_BASE, INITIATIVE_DIE, TURN_DELAY, COMBAT_ENTER_DELAY, getGameSpeed, setGameSpeed, speedMult, moveDurationMs } from './config.js?v=0.23';
+import * as anim from './anim.js?v=0.23';
+import { ANIM_CLIPS } from './anim.js?v=0.23';
+import * as audio from './audio.js?v=0.23';
+import { centerOnTile } from './render.js?v=0.23';
+import { getOwnedTier, getSkillDef } from './skills.js?v=0.23';
 
 const sign = (n) => Math.sign(n);
 
@@ -30,7 +30,63 @@ function bloodlustMult() {
 }
 function registerBloodlustKill() { if (getOwnedTier('bloodlust') > 0) bloodlustStacks++; }
 
-const DMG_COLORS = { fire: '#e08a3c', ice: '#6ec3d8', poison: '#8a5fc9', holy: '#e8d27a', physical: '#e86a5c', none: '#e0b34a' };
+// --- Habilidades nuevas (V0.23): mismo criterio que arriba — estado de
+// COMBATE en marcha, no progreso persistente de la tienda (eso vive en
+// skills.js). Cada bloque documenta a qué habilidad pertenece. ---
+
+// Golpe desde las Sombras (Asesino): el crítico garantizado del tier 3 solo
+// se puede usar una vez por combate; se reinicia en checkCombatEnd() igual
+// que la racha de Sed de sangre.
+let shadowStrikeUsedThisCombat = false;
+
+// Cosecha de Almas (Nigromante): misma mecánica que Sed de sangre (racha que
+// se resetea al acabar el combate), pero solo cuenta muertes CERCA del héroe
+// (power.nearbyRange) y se aplica como multiplicador general de daño, igual
+// que Sed de sangre, para que no sea una pasiva "muerta" mientras no haya
+// hechizos de sombra propios.
+let soulHarvestStacks = 0;
+function soulHarvestMult() {
+  const tier = getOwnedTier('soul_harvest');
+  if (!tier) return 1;
+  const def = getSkillDef('soul_harvest');
+  return 1 + soulHarvestStacks * def.tiers[tier - 1].power.dmgPerNearbyDeathPct;
+}
+function registerSoulHarvestKill(target) {
+  const tier = getOwnedTier('soul_harvest');
+  if (!tier) return;
+  const def = getSkillDef('soul_harvest');
+  const power = def.tiers[tier - 1].power;
+  if (distTo(state.hero, target.x, target.y) > power.nearbyRange) return;
+  soulHarvestStacks++;
+  if (power.freeCastAtStacks && soulHarvestStacks >= power.freeCastAtStacks) {
+    freeNextCastSkip = true;
+    soulHarvestStacks = 0;
+  }
+}
+
+// Sobrecarga Arcana (Mago): probabilidad de que una activa no gaste su
+// enfriamiento. `freeNextCastSkip` es un "vale" de un solo uso que también
+// puede activar Cosecha de Almas (tier 3) — cualquiera de los dos lo deja a
+// true y el próximo useActiveSkill() que lo encuentre activo se lo come.
+let arcaneOverloadStreak = 0;    // procs consecutivos, para el tier 3 (cura si son 2 seguidos)
+let freeNextCastSkip = false;
+
+// Forma Salvaje (Druida): buff temporal por turnos, mismo patrón que Grito
+// de guerra (warCryTurnsLeft/Pct) pero con más de un número asociado.
+let wildShapeTurnsLeft = 0;
+let wildShapePower = null;   // { dmgBonusPct, armorBonusPct, healOnHitPct } mientras dura
+
+// Círculo de Renacer (Clérigo): zonas de curación que quedan en el mapa,
+// se comprueban en cada startHeroTurn(). Varias pueden coexistir si se lanza
+// más de una vez (poco probable con su enfriamiento de 4 combates, pero no
+// se impide). `wardConsumed` evita que la MISMA zona salve dos veces.
+const holyZones = [];   // { x, y, radius, turnsLeft, healPerTurn, preventLethalOnce, wardConsumed }
+
+// Simbiosis Natural (Druida): cuánto daño ha recibido el héroe durante el
+// turno que acaba de pasar, para decidir si cura al empezar el siguiente.
+let damageTakenLastTurn = 0;
+
+const DMG_COLORS = { fire: '#e08a3c', ice: '#6ec3d8', poison: '#8a5fc9', holy: '#e8d27a', physical: '#e86a5c', none: '#e0b34a', shadow: '#8a5fc9', nature: '#7fc06a', arcane: '#6a8fe8' };
 function dmgColor(type) { return DMG_COLORS[type] || '#e86a5c'; }
 
 // Total de enemigos de TODA la mazmorra (cementerio + cripta + mausoleos),
@@ -47,12 +103,58 @@ const CRIT_MULT = 2;
 const EVADE_COLOR = '#9aa0ab';
 const CRIT_COLOR = '#f0c94a';
 
+// Instinto Letal (Asesino): bonus de daño plano si el objetivo está por
+// debajo del % de vida de su tier. Se aplica a CUALQUIER golpe del héroe
+// (ataque normal o habilidad activa), no solo a una habilidad concreta.
+function lethalInstinctMult(target) {
+  const tier = getOwnedTier('lethal_instinct');
+  if (!tier || !target || !target.maxHp) return 1;
+  const power = getSkillDef('lethal_instinct').tiers[tier - 1].power;
+  return (target.hp / target.maxHp) <= power.execThreshold ? (1 + power.dmgBonus) : 1;
+}
+
+// Forma Salvaje (Druida): multiplicador de daño mientras dura la
+// transformación (ver wildShapeTurnsLeft/wildShapePower, gestionados en
+// useActiveSkill/startHeroTurn).
+function wildShapeMult() {
+  return 1 + (wildShapeTurnsLeft > 0 && wildShapePower ? wildShapePower.dmgBonusPct : 0);
+}
+
 // Golpe del HÉROE contra un enemigo: aplica primero los bonus de combate
-// (Grito de guerra, Sed de sangre) y solo entonces decide si critea (x2).
-function resolveHeroHit(baseDamage) {
-  const buffed = Math.round(baseDamage * warCryMult() * bloodlustMult());
-  const crit = Math.random() < (state.hero.critChance || 0);
-  return { damage: crit ? Math.round(buffed * CRIT_MULT) : buffed, crit };
+// (Grito de guerra, Sed de sangre, Cosecha de Almas, Forma Salvaje, Instinto
+// Letal) y solo entonces decide si critea (x2). `opts.critBonus` y
+// `opts.guaranteedCrit` los usa Golpe desde las Sombras para forzar más
+// probabilidad de crítico en ese golpe concreto, sin tocar la esquiva normal.
+function resolveHeroHit(baseDamage, target, opts = {}) {
+  const buffed = Math.max(1, Math.round(
+    baseDamage * warCryMult() * bloodlustMult() * soulHarvestMult() * wildShapeMult() * lethalInstinctMult(target)
+  ));
+  const critChance = (state.hero.critChance || 0) + (opts.critBonus || 0);
+  const crit = opts.guaranteedCrit || Math.random() < critChance;
+  const damage = crit ? Math.round(buffed * CRIT_MULT) : buffed;
+  // Forma Salvaje (tier 3): cura al héroe un % del daño hecho mientras dura.
+  if (wildShapeTurnsLeft > 0 && wildShapePower && wildShapePower.healOnHitPct > 0) {
+    const heal = Math.max(1, Math.round(damage * wildShapePower.healOnHitPct));
+    const hero = state.hero;
+    hero.hp = Math.min(hero.maxHp, hero.hp + heal);
+    anim.floatAt(hero.x, hero.y, `+${heal}`, '#7fc06a');
+  }
+  return { damage, crit };
+}
+
+// Bonus de armadura TEMPORALES por habilidad, aparte de la armadura de base
+// (hero.armor, que ya incluye Piel de hierro vía applySkillBonuses):
+// - Forma Salvaje (Druida): mientras dura la transformación.
+// - Simbiosis Natural (Druida, tier 3): solo con la vida al completo.
+function temporaryArmorBonus() {
+  const hero = state.hero;
+  let bonus = wildShapeTurnsLeft > 0 && wildShapePower ? wildShapePower.armorBonusPct : 0;
+  const nsTier = getOwnedTier('natural_symbiosis');
+  if (nsTier) {
+    const power = getSkillDef('natural_symbiosis').tiers[nsTier - 1].power;
+    if (power.armorBonusAtFullHpPct && hero.hp >= hero.maxHp) bonus += power.armorBonusAtFullHpPct;
+  }
+  return bonus;
 }
 
 // Golpe de un ENEMIGO contra el héroe: esquivar → bloquear → armadura/resistencia.
@@ -61,22 +163,61 @@ function resolveIncomingHit(baseDamage, damageType = 'physical') {
   const hero = state.hero;
   if (Math.random() < (hero.dodgeChance || 0)) return { damage: 0, evaded: true, blocked: false };
   if (hero.hasShield && Math.random() < (hero.blockChance || 0)) return { damage: 0, evaded: false, blocked: true };
-  const mitig = damageType === 'physical' ? (hero.armor || 0) : ((hero.resist && hero.resist[damageType]) || 0);
+  const mitig = damageType === 'physical' ? (hero.armor || 0) + temporaryArmorBonus() : ((hero.resist && hero.resist[damageType]) || 0);
   const damage = Math.max(0, Math.round(baseDamage * (1 - mitig)));
   return { damage, evaded: false, blocked: false };
 }
 
+// Gracia Vigilante (Clérigo): escudo que se renueva entero cada turno del
+// héroe (ver startHeroTurn) y absorbe daño ANTES de tocar la vida. Vive en
+// hero.wardShield (número de puntos que le quedan este turno).
+function absorbWithWardShield(damage) {
+  const hero = state.hero;
+  if (!hero.wardShield || damage <= 0) return { remaining: damage, absorbed: 0 };
+  const absorbed = Math.min(hero.wardShield, damage);
+  hero.wardShield -= absorbed;
+  return { remaining: damage - absorbed, absorbed };
+}
+
+// Círculo de Renacer (Clérigo, tier 3): si el héroe está dentro de una zona
+// con `preventLethalOnce` sin gastar todavía, un golpe que lo dejaría a 0 o
+// menos lo deja en 1 en su lugar (una vez por zona lanzada).
+function tryLethalWard() {
+  for (const z of holyZones) {
+    if (z.wardConsumed || !z.preventLethalOnce) continue;
+    if (distTo(state.hero, z.x, z.y) > z.radius) continue;
+    z.wardConsumed = true;
+    return true;
+  }
+  return false;
+}
+
 // Aplica un golpe ya resuelto al héroe: pone el número flotante correcto
 // (Esquivado / Bloqueado / daño normal) y resta la vida. Devuelve el daño
-// final aplicado (0 si se ha esquivado o bloqueado).
+// final aplicado (0 si se ha esquivado o bloqueado). También alimenta el
+// escudo de Gracia Vigilante, el contador de Simbiosis Natural y la
+// salvaguarda del Círculo de Renacer.
 function applyIncomingHit(baseDamage, damageType, color) {
   const hero = state.hero;
   const r = resolveIncomingHit(baseDamage, damageType);
   if (r.evaded) { anim.floatAt(hero.x, hero.y, 'Esquivado', EVADE_COLOR); return 0; }
   if (r.blocked) { anim.floatAt(hero.x, hero.y, 'Bloqueado', EVADE_COLOR); return 0; }
-  anim.floatAt(hero.x, hero.y, `−${r.damage}`, color);
-  hero.hp -= r.damage;
-  return r.damage;
+  const { remaining, absorbed } = absorbWithWardShield(r.damage);
+  if (absorbed > 0) {
+    anim.floatAt(hero.x, hero.y, `−${absorbed} 🛡`, '#8fc9e8');
+    log(t('log.shieldAbsorb', { n: absorbed }), 'combat');
+  }
+  if (remaining <= 0) return 0;
+  damageTakenLastTurn += remaining;
+  if (hero.hp - remaining <= 0 && tryLethalWard()) {
+    anim.floatAt(hero.x, hero.y, t('log.circleWard'), '#e8d27a', { static: true });
+    log(t('log.circleWard'), 'combat');
+    hero.hp = 1;
+    return remaining;
+  }
+  anim.floatAt(hero.x, hero.y, `−${remaining}`, color);
+  hero.hp -= remaining;
+  return remaining;
 }
 
 let onDescend = () => {};
@@ -148,6 +289,9 @@ function checkCombatEnd() {
     state.combat.order = [];
     state.combat.idx = 0;
     bloodlustStacks = 0;
+    soulHarvestStacks = 0;
+    shadowStrikeUsedThisCombat = false;
+    arcaneOverloadStreak = 0;
     for (const id in skillCooldowns) if (skillCooldowns[id] > 0) skillCooldowns[id]--;
     syncInitiativeUI();
     log(tRandom('log.combatEnd', 4), 'combat');
@@ -176,6 +320,7 @@ function killFoe(target, foeName) {
   target.loot = generateLoot(target);
   state.hero.totalKills = (state.hero.totalKills || 0) + 1;
   registerBloodlustKill();
+  registerSoulHarvestKill(target);
   log(tRandom('log.killFoe', 5, { name: foeName }), 'combat');
   checkCombatEnd();
 }
@@ -202,10 +347,63 @@ function maybeFaithStrikesHeal(dmgDealt) {
   log(t('log.faithHeal', { n: heal }), 'combat');
 }
 
+// Gracia Vigilante (Clérigo): al empezar el turno, el escudo se PONE a su
+// valor máximo de nuevo (no se acumula con lo que quedara) — "se reconstruye
+// solo cada turno". El bonus del tier 3 se paga por el escudo del turno
+// ANTERIOR, comprobado justo antes de refrescarlo.
+function refreshWardShield() {
+  const hero = state.hero;
+  const tier = getOwnedTier('watchful_grace');
+  if (!tier) { hero.wardShield = 0; return; }
+  const power = getSkillDef('watchful_grace').tiers[tier - 1].power;
+  if (power.bonusHealIfShieldHeld && hero.wardShield > 0) {
+    hero.hp = Math.min(hero.maxHp, hero.hp + power.bonusHealIfShieldHeld);
+    anim.floatAt(hero.x, hero.y, t('log.wardHeal', { n: power.bonusHealIfShieldHeld }), '#e8d27a');
+  }
+  hero.wardShield = Math.round(hero.maxHp * power.shieldPct);
+}
+
+// Simbiosis Natural (Druida): revisa cuánto daño se recibió en el turno que
+// acaba de pasar (damageTakenLastTurn) y cura si toca, según el tier.
+function tickNaturalSymbiosis() {
+  const hero = state.hero;
+  const tier = getOwnedTier('natural_symbiosis');
+  if (!tier) { damageTakenLastTurn = 0; return; }
+  const power = getSkillDef('natural_symbiosis').tiers[tier - 1].power;
+  const lowThreshold = power.healIfLowDamagePct ? hero.maxHp * power.healIfLowDamagePct : 0;
+  const qualifies = damageTakenLastTurn === 0 || (lowThreshold > 0 && damageTakenLastTurn <= lowThreshold);
+  damageTakenLastTurn = 0;
+  if (!qualifies || hero.hp >= hero.maxHp) return;
+  hero.hp = Math.min(hero.maxHp, hero.hp + power.healIfNoDamage);
+  anim.floatAt(hero.x, hero.y, t('log.symbiosisHeal', { n: power.healIfNoDamage }), '#7fc06a');
+}
+
+// Círculo de Renacer (Clérigo): cura a quien esté dentro del radio y
+// descuenta un turno de vida a la zona; la retira cuando se agota.
+function tickHolyZones() {
+  const hero = state.hero;
+  for (let i = holyZones.length - 1; i >= 0; i--) {
+    const z = holyZones[i];
+    if (z.healPerTurn > 0 && distTo(hero, z.x, z.y) <= z.radius) {
+      hero.hp = Math.min(hero.maxHp, hero.hp + z.healPerTurn);
+      anim.floatAt(hero.x, hero.y, t('log.circleHeal', { n: z.healPerTurn }), '#e8d27a');
+    }
+    z.turnsLeft--;
+    if (z.turnsLeft <= 0) holyZones.splice(i, 1);
+  }
+}
+
 // Empieza el turno del héroe: PA a tope y recalcula su alcance.
 export function startHeroTurn() {
   state.hero.ap = state.hero.apMax;
   if (warCryTurnsLeft > 0) warCryTurnsLeft--;
+  if (wildShapeTurnsLeft > 0) {
+    wildShapeTurnsLeft--;
+    if (wildShapeTurnsLeft === 0) { log(t('log.wildShapeEnd'), 'combat'); wildShapePower = null; }
+  }
+  refreshWardShield();
+  tickNaturalSymbiosis();
+  tickHolyZones();
   computeReach();
   syncHUD();
 }
@@ -300,6 +498,72 @@ let lastHeroAttackAt = 0;
 // Usa de verdad una habilidad ACTIVA. `gx,gy` es la casilla tocada (null si
 // es de auto-lanzamiento, como Grito de guerra). Devuelve true si se ha
 // usado de verdad (para que quien llama sepa si debe desarmarla).
+// Cola/remate compartido por CUALQUIER uso de habilidad activa: gasta el PA,
+// fija el enfriamiento (salvo que un "vale" de Sobrecarga Arcana/Cosecha de
+// Almas lo perdone), sincroniza HUD/iniciativa y decide si el turno se acaba.
+// `power` es el tier ya resuelto de la habilidad que se acaba de usar (para
+// poder tirar la probabilidad de Sobrecarga Arcana sobre CUALQUIER activa).
+function finishActiveSkillUse(id, def) {
+  const hero = state.hero;
+  hero.ap -= ATTACK_COST;
+
+  let freeCast = false;
+  if (freeNextCastSkip) { freeCast = true; freeNextCastSkip = false; }
+  const aoTier = getOwnedTier('arcane_overload');
+  if (!freeCast && aoTier) {
+    const power = getSkillDef('arcane_overload').tiers[aoTier - 1].power;
+    if (Math.random() < power.freeCastChance) {
+      freeCast = true;
+      arcaneOverloadStreak++;
+      if (power.healOnDoubleProc && arcaneOverloadStreak >= 2) {
+        hero.hp = Math.min(hero.maxHp, hero.hp + power.healOnDoubleProc);
+        anim.floatAt(hero.x, hero.y, `+${power.healOnDoubleProc}`, '#6a8fe8');
+        arcaneOverloadStreak = 0;
+      }
+    } else arcaneOverloadStreak = 0;
+  }
+  skillCooldowns[id] = freeCast ? 0 : (def.cooldown || 0);
+
+  syncHUD();
+  syncInitiativeUI();
+  computeReach();
+  if (checkFullVictory()) { gameOver('win'); return; }
+  const justEnteredCombat = scanForNewCombatants();
+  if (justEnteredCombat || (hero.ap <= 0 && !state.combat.active)) endHeroTurn(justEnteredCombat);
+}
+
+// Busca una casilla libre adyacente a (tx,ty) lo más cercana posible al héroe
+// — la usan Golpe desde las Sombras (teletransporte junto al objetivo).
+function freeTileAdjacentTo(tx, ty) {
+  const { hero } = state;
+  let best = null, bd = Infinity;
+  for (const [nx, ny] of stepNeighbors(tx, ty)) {
+    if (!walkable(nx, ny)) continue;
+    if (foeAt(nx, ny)) continue;
+    if (nx === hero.x && ny === hero.y) continue;
+    const d = distTo(hero, nx, ny);
+    if (d < bd) { bd = d; best = { x: nx, y: ny }; }
+  }
+  return best;
+}
+
+// Traza una línea recta (8 direcciones) desde el héroe hacia (tx,ty) y
+// devuelve los enemigos que encuentra por el camino, hasta `range` casillas
+// o hasta topar con un muro — la usa Disparo Múltiple.
+function foesInLine(tx, ty, range) {
+  const { hero } = state;
+  const dx = sign(tx - hero.x), dy = sign(ty - hero.y);
+  const out = [];
+  let x = hero.x, y = hero.y;
+  for (let i = 0; i < range; i++) {
+    x += dx; y += dy;
+    if (isWall(x, y)) break;
+    const f = foeAt(x, y);
+    if (f) out.push(f);
+  }
+  return out;
+}
+
 export function useActiveSkill(id, gx, gy) {
   const hero = state.hero;
   if (state.busy || isAITurnActive()) return false;
@@ -312,48 +576,180 @@ export function useActiveSkill(id, gx, gy) {
   const power = def.tiers[tier - 1].power;
   if (!power) return false;
 
+  // --- Círculo de Renacer (Clérigo): auto-lanzamiento, crea una zona en la
+  // casilla actual del héroe (no hace falta objetivo). ---
+  if (id === 'circle_of_rebirth') {
+    hero.hp = Math.min(hero.maxHp, hero.hp + power.healOnCast);
+    anim.floatAt(hero.x, hero.y, `+${power.healOnCast}`, '#e8d27a');
+    log(t('log.circleHeal', { n: power.healOnCast }), 'combat');
+    if (power.durationTurns > 0) {
+      holyZones.push({
+        x: hero.x, y: hero.y, radius: def.area, turnsLeft: power.durationTurns,
+        healPerTurn: power.healPerTurn, preventLethalOnce: !!power.preventLethalOnce, wardConsumed: false,
+      });
+    }
+    audio.fx('ui');
+    finishActiveSkillUse(id, def);
+    return true;
+  }
+
+  // --- Forma Salvaje (Druida): auto-lanzamiento, activa el buff temporal. ---
+  if (id === 'wild_shape') {
+    wildShapeTurnsLeft = power.durationTurns;
+    wildShapePower = { dmgBonusPct: power.dmgBonusPct, armorBonusPct: power.armorBonusPct, healOnHitPct: power.healOnHitPct };
+    anim.floatAt(hero.x, hero.y, skillName, '#7fc06a', { static: true });
+    log(t('log.wildShapeStart', { name: skillName }), 'combat');
+    audio.fx('ui');
+    finishActiveSkillUse(id, def);
+    return true;
+  }
+
   if (def.range === 0) {
-    // Auto-lanzamiento (Grito de guerra): se aplica sobre el propio héroe, sin objetivo.
+    // Auto-lanzamiento genérico (Grito de guerra): se aplica sobre el propio héroe, sin objetivo.
     warCryTurnsLeft = power.turns;
     warCryPct = power.atkBuffPct;
     anim.floatAt(hero.x, hero.y, skillName, '#f0c94a', { static: true });
     log(t('log.skillCastSelf', { name: skillName }), 'combat');
     audio.fx('ui');
-  } else {
-    if (gx == null || gy == null) return false;
-    const target = foeAt(gx, gy);
-    if (!target || !target.alive) return false;
-    if (!isVisible(gx, gy)) return false;
-    const dist = distTo(hero, gx, gy);
-    if (dist > def.range || (def.range === 1 && !adjacent(hero, gx, gy))) { log(t('log.skillOutOfRange')); return false; }
+    finishActiveSkillUse(id, def);
+    return true;
+  }
 
-    const targets = [target];
-    if (def.area) {
-      for (const f of state.foes) {
-        if (f.alive && f !== target && distTo(f, gx, gy) <= def.area) targets.push(f);
-      }
-    }
+  if (gx == null || gy == null) return false;
+  if (!isVisible(gx, gy)) return false;
+  const dist = distTo(hero, gx, gy);
+  if (dist > def.range) { log(t('log.skillOutOfRange')); return false; }
+
+  // --- Disparo Múltiple (Cazador): línea recta, varios objetivos. ---
+  if (id === 'multi_shot') {
+    const targets = foesInLine(gx, gy, def.range).slice(0, power.maxTargets);
+    if (!targets.length) return false;
     for (const foe of targets) {
-      const dmg = Math.max(1, Math.round(hero.atk * power.dmgMult * warCryMult() * bloodlustMult()));
+      const { damage } = resolveHeroHit(hero.atk * power.dmgMult, foe);
       anim.hurt(foe.anim, foe.sprite);
-      anim.floatAt(foe.x, foe.y, `−${dmg}`, dmgColor(def.damageType));
-      foe.hp -= dmg;
+      anim.floatAt(foe.x, foe.y, `−${damage}`, dmgColor(def.damageType));
+      foe.hp -= damage;
       foe.dormant = false;
+      if (power.slowTurns > 0) foe.slowedTurns = power.slowTurns;
       const foeName = t('enemy.' + foe.sprite);
       if (foe.hp <= 0 && foe.alive) killFoe(foe, foeName);
     }
     log(t('log.skillHit', { name: skillName }), 'combat');
     audio.fx('attack');
+    finishActiveSkillUse(id, def);
+    return true;
   }
 
-  hero.ap -= ATTACK_COST;
-  skillCooldowns[id] = def.cooldown || 0;
-  syncHUD();
-  syncInitiativeUI();
-  computeReach();
-  if (checkFullVictory()) { gameOver('win'); return true; }
-  const justEnteredCombat = scanForNewCombatants();
-  if (justEnteredCombat || (hero.ap <= 0 && !state.combat.active)) endHeroTurn(justEnteredCombat);
+  const target = foeAt(gx, gy);
+  if (!target || !target.alive) return false;
+  if (def.range === 1 && !adjacent(hero, gx, gy)) { log(t('log.skillOutOfRange')); return false; }
+
+  // --- Golpe desde las Sombras (Asesino): teletransporte junto al objetivo + golpe crítico. ---
+  if (id === 'shadow_strike') {
+    const spot = freeTileAdjacentTo(target.x, target.y);
+    if (!spot) { log(t('log.skillOutOfRange')); return false; }
+    hero.x = spot.x; hero.y = spot.y;
+    recomputeFog();
+    const guaranteedCrit = !!power.guaranteedCritOncePerCombat && !shadowStrikeUsedThisCombat;
+    if (guaranteedCrit) shadowStrikeUsedThisCombat = true;
+    const { damage, crit } = resolveHeroHit(hero.atk * (power.dmgMult || 1), target, { critBonus: power.critBonus || 0, guaranteedCrit });
+    anim.hurt(target.anim, target.sprite);
+    anim.floatAt(target.x, target.y, crit ? `¡CRÍTICO! −${damage}` : `−${damage}`, crit ? CRIT_COLOR : dmgColor(def.damageType), crit ? { static: true } : undefined);
+    target.hp -= damage;
+    target.dormant = false;
+    const foeName = t('enemy.' + target.sprite);
+    if (target.hp <= 0) killFoe(target, foeName);
+    log(t('log.skillHit', { name: skillName }), 'combat');
+    audio.fx('attack');
+    finishActiveSkillUse(id, def);
+    return true;
+  }
+
+  // --- Pacto de Sangre (Brujo): coste de vida propia + golpe grande. ---
+  if (id === 'blood_pact') {
+    const cost = Math.min(hero.hp - 1, Math.max(1, Math.round(hero.hp * power.selfHpCostPct)));
+    hero.hp -= cost;
+    anim.floatAt(hero.x, hero.y, `−${cost}`, '#8a5fc9');
+    log(t('log.bloodPactCost', { n: cost }), 'combat');
+    const { damage } = resolveHeroHit(hero.atk * power.dmgMult, target);
+    anim.hurt(target.anim, target.sprite);
+    anim.floatAt(target.x, target.y, `−${damage}`, dmgColor(def.damageType));
+    target.hp -= damage;
+    target.dormant = false;
+    const foeName = t('enemy.' + target.sprite);
+    const wasAlive = target.alive;
+    if (target.hp <= 0 && wasAlive) {
+      killFoe(target, foeName);
+      if (power.lifestealOnKillPct) {
+        const healed = Math.max(1, Math.round(damage * power.lifestealOnKillPct));
+        hero.hp = Math.min(hero.maxHp, hero.hp + healed);
+        anim.floatAt(hero.x, hero.y, `+${healed}`, '#7fc06a');
+        log(t('log.bloodPactLifesteal', { n: healed }), 'combat');
+      }
+    }
+    log(t('log.skillHit', { name: skillName }), 'combat');
+    audio.fx('attack');
+    syncHUD();
+    finishActiveSkillUse(id, def);
+    if (hero.hp <= 0) { gameOver('lose'); return true; }
+    return true;
+  }
+
+  // --- Cadena Arcana (Mago): golpea y salta a enemigos cercanos con caída de daño. ---
+  if (id === 'arcane_chain') {
+    let dmgMult = power.dmgMult;
+    let from = target;
+    const hit = (foe, mult) => {
+      const { damage } = resolveHeroHit(hero.atk * mult, foe);
+      anim.hurt(foe.anim, foe.sprite);
+      anim.floatAt(foe.x, foe.y, `−${damage}`, dmgColor(def.damageType));
+      foe.hp -= damage;
+      foe.dormant = false;
+      const foeName = t('enemy.' + foe.sprite);
+      if (foe.hp <= 0 && foe.alive) killFoe(foe, foeName);
+    };
+    hit(target, dmgMult);
+    const hitAlready = new Set([target]);
+    for (let j = 0; j < power.jumps; j++) {
+      let next = null, bd = Infinity;
+      for (const f of state.foes) {
+        if (!f.alive || hitAlready.has(f)) continue;
+        const d = distTo(from, f.x, f.y);
+        if (d <= power.jumpRange && d < bd) { bd = d; next = f; }
+      }
+      if (!next) break;
+      dmgMult *= (1 - power.falloffPct);
+      hit(next, dmgMult);
+      hitAlready.add(next);
+      from = next;
+    }
+    log(t('log.skillHit', { name: skillName }), 'combat');
+    audio.fx('attack');
+    finishActiveSkillUse(id, def);
+    return true;
+  }
+
+  // --- Resto de activas (Tajo llameante, Flecha de escarcha, Nube de veneno,
+  // Golpe sagrado): mismo camino genérico de siempre (objetivo + área). ---
+  if (def.range === 1 && !adjacent(hero, gx, gy)) { log(t('log.skillOutOfRange')); return false; }
+  const targets = [target];
+  if (def.area) {
+    for (const f of state.foes) {
+      if (f.alive && f !== target && distTo(f, gx, gy) <= def.area) targets.push(f);
+    }
+  }
+  for (const foe of targets) {
+    const { damage } = resolveHeroHit(hero.atk * power.dmgMult, foe);
+    anim.hurt(foe.anim, foe.sprite);
+    anim.floatAt(foe.x, foe.y, `−${damage}`, dmgColor(def.damageType));
+    foe.hp -= damage;
+    foe.dormant = false;
+    const foeName = t('enemy.' + foe.sprite);
+    if (foe.hp <= 0 && foe.alive) killFoe(foe, foeName);
+  }
+  log(t('log.skillHit', { name: skillName }), 'combat');
+  audio.fx('attack');
+  finishActiveSkillUse(id, def);
   return true;
 }
 
@@ -371,7 +767,7 @@ export async function onTapTile(gx, gy) {
     lastHeroAttackAt = now;
     hero.ap -= ATTACK_COST;
     anim.attack('hero', sign(gx - hero.x), sign(gy - hero.y), 'hero');
-    const hit = resolveHeroHit(hero.atk);
+    const hit = resolveHeroHit(hero.atk, target);
     anim.hurt(target.anim, target.sprite);
     if (hit.crit) anim.floatAt(target.x, target.y, `¡CRÍTICO! −${hit.damage}`, CRIT_COLOR, { static: true });
     else anim.floatAt(target.x, target.y, `−${hit.damage}`, '#e86a5c');
@@ -682,12 +1078,23 @@ async function runFoeQueue() {
 
 // El arquero, el espectro y el mago tienen su propia lógica; el resto pelea
 // cuerpo a cuerpo (comportamiento de siempre). Devuelve true si el héroe muere.
+// Disparo Múltiple (Cazador, tier 3): un enemigo golpeado con `slowedTurns`
+// pendiente actúa con 1 PA menos en su PRÓXIMO turno (y solo en ese), sea
+// cual sea su tipo de IA — se resta aquí, en el único punto por el que pasan
+// las 4 variantes de turno enemigo, en vez de tocar cada una por separado.
 function runSingleFoeTurn(foe) {
   const cfg = RANGED_CFG[foe.sprite];
-  if (foe.sprite === 'enemy5') return spectreTurn(foe);
-  if (foe.sprite === 'enemy6') return mageTurn(foe);
-  if (cfg) return archerTurn(foe, cfg);
-  return meleeTurn(foe);
+  let restoreApMax = null;
+  if (foe.slowedTurns > 0) {
+    foe.slowedTurns--;
+    restoreApMax = foe.apMax;
+    foe.apMax = Math.max(1, foe.apMax - 1);
+  }
+  const finish = (result) => { if (restoreApMax != null) foe.apMax = restoreApMax; return result; };
+  if (foe.sprite === 'enemy5') return Promise.resolve(spectreTurn(foe)).then(finish);
+  if (foe.sprite === 'enemy6') return Promise.resolve(mageTurn(foe)).then(finish);
+  if (cfg) return Promise.resolve(archerTurn(foe, cfg)).then(finish);
+  return Promise.resolve(meleeTurn(foe)).then(finish);
 }
 
 // --- Espectro (enemy5): cuerpo a cuerpo con robo de vida en grupo -----------

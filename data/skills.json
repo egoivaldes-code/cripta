@@ -137,6 +137,167 @@
         { "price": 900, "power": { "dmgPerKillPct": 0.10 } },
         { "price": 1300, "power": { "dmgPerKillPct": 0.15 } }
       ]
+    },
+    {
+      "id": "shadow_strike",
+      "icon": "./assets/ui/skills/assassin_shadowstrike.png",
+      "class": "assassin",
+      "kind": "active",
+      "damageType": "physical",
+      "range": 3,
+      "area": null,
+      "cooldown": 3,
+      "duration": null,
+      "tiers": [
+        { "price": 600, "power": { "critBonus": 0.30 } },
+        { "price": 1000, "power": { "critBonus": 0.50, "dmgMult": 1.15 } },
+        { "price": 1500, "power": { "guaranteedCritOncePerCombat": true, "dmgMult": 1.15 } }
+      ]
+    },
+    {
+      "id": "lethal_instinct",
+      "icon": "./assets/ui/skills/assassin_lethalinstinct.png",
+      "class": "assassin",
+      "kind": "passive",
+      "damageType": "physical",
+      "durationLabel": "skillshop.duration.permanent",
+      "tiers": [
+        { "price": 500, "power": { "execThreshold": 0.30, "dmgBonus": 0.15 } },
+        { "price": 800, "power": { "execThreshold": 0.40, "dmgBonus": 0.25 } },
+        { "price": 1200, "power": { "execThreshold": 0.50, "dmgBonus": 0.35 } }
+      ]
+    },
+    {
+      "id": "arcane_chain",
+      "icon": "./assets/ui/skills/mage_arcanechain.png",
+      "class": "mage",
+      "kind": "active",
+      "damageType": "arcane",
+      "range": 4,
+      "area": null,
+      "cooldown": 2,
+      "duration": null,
+      "tiers": [
+        { "price": 600, "power": { "dmgMult": 1.0, "jumps": 1, "falloffPct": 0.40, "jumpRange": 2 } },
+        { "price": 1000, "power": { "dmgMult": 1.0, "jumps": 2, "falloffPct": 0.25, "jumpRange": 2 } },
+        { "price": 1500, "power": { "dmgMult": 1.0, "jumps": 3, "falloffPct": 0.10, "jumpRange": 2 } }
+      ]
+    },
+    {
+      "id": "arcane_overload",
+      "icon": "./assets/ui/skills/mage_arcaneoverload.png",
+      "class": "mage",
+      "kind": "passive",
+      "damageType": "arcane",
+      "durationLabel": "skillshop.duration.permanent",
+      "tiers": [
+        { "price": 500, "power": { "freeCastChance": 0.10 } },
+        { "price": 800, "power": { "freeCastChance": 0.18 } },
+        { "price": 1200, "power": { "freeCastChance": 0.28, "healOnDoubleProc": 3 } }
+      ]
+    },
+    {
+      "id": "blood_pact",
+      "icon": "./assets/ui/skills/warlock_bloodpact.png",
+      "class": "warlock",
+      "kind": "active",
+      "damageType": "shadow",
+      "range": 3,
+      "area": null,
+      "cooldown": 3,
+      "duration": null,
+      "tiers": [
+        { "price": 600, "power": { "selfHpCostPct": 0.10, "dmgMult": 1.6 } },
+        { "price": 1000, "power": { "selfHpCostPct": 0.08, "dmgMult": 2.0 } },
+        { "price": 1500, "power": { "selfHpCostPct": 0.06, "dmgMult": 2.4, "lifestealOnKillPct": 0.5 } }
+      ]
+    },
+    {
+      "id": "circle_of_rebirth",
+      "icon": "./assets/ui/skills/cleric_circleofrebirth.png",
+      "class": "cleric",
+      "kind": "active",
+      "damageType": "holy",
+      "range": 0,
+      "area": 2,
+      "cooldown": 4,
+      "duration": null,
+      "tiers": [
+        { "price": 700, "power": { "healOnCast": 8, "durationTurns": 0, "healPerTurn": 0, "preventLethalOnce": false } },
+        { "price": 1200, "power": { "healOnCast": 14, "durationTurns": 1, "healPerTurn": 4, "preventLethalOnce": false } },
+        { "price": 1800, "power": { "healOnCast": 20, "durationTurns": 2, "healPerTurn": 8, "preventLethalOnce": true } }
+      ]
+    },
+    {
+      "id": "watchful_grace",
+      "icon": "./assets/ui/skills/cleric_watchfulgrace.png",
+      "class": "cleric",
+      "kind": "passive",
+      "damageType": "holy",
+      "durationLabel": "skillshop.duration.permanent",
+      "tiers": [
+        { "price": 500, "power": { "shieldPct": 0.05 } },
+        { "price": 800, "power": { "shieldPct": 0.10 } },
+        { "price": 1200, "power": { "shieldPct": 0.15, "bonusHealIfShieldHeld": 3 } }
+      ]
+    },
+    {
+      "id": "wild_shape",
+      "icon": "./assets/ui/skills/druid_wildshape.png",
+      "class": "druid",
+      "kind": "active",
+      "damageType": "nature",
+      "range": 0,
+      "area": null,
+      "cooldown": 4,
+      "duration": null,
+      "tiers": [
+        { "price": 700, "power": { "durationTurns": 2, "dmgBonusPct": 0.30, "armorBonusPct": 0, "healOnHitPct": 0 } },
+        { "price": 1200, "power": { "durationTurns": 3, "dmgBonusPct": 0.45, "armorBonusPct": 0.10, "healOnHitPct": 0 } },
+        { "price": 1800, "power": { "durationTurns": 4, "dmgBonusPct": 0.60, "armorBonusPct": 0.15, "healOnHitPct": 0.10 } }
+      ]
+    },
+    {
+      "id": "natural_symbiosis",
+      "icon": "./assets/ui/skills/druid_naturalsymbiosis.png",
+      "class": "druid",
+      "kind": "passive",
+      "damageType": "nature",
+      "durationLabel": "skillshop.duration.permanent",
+      "tiers": [
+        { "price": 500, "power": { "healIfNoDamage": 3, "healIfLowDamagePct": 0, "armorBonusAtFullHpPct": 0 } },
+        { "price": 800, "power": { "healIfNoDamage": 6, "healIfLowDamagePct": 0.15, "armorBonusAtFullHpPct": 0 } },
+        { "price": 1200, "power": { "healIfNoDamage": 10, "healIfLowDamagePct": 0.15, "armorBonusAtFullHpPct": 0.05 } }
+      ]
+    },
+    {
+      "id": "soul_harvest",
+      "icon": "./assets/ui/skills/necromancer_soulharvest.png",
+      "class": "necromancer",
+      "kind": "passive",
+      "damageType": "shadow",
+      "durationLabel": "skillshop.duration.percombat",
+      "tiers": [
+        { "price": 500, "power": { "dmgPerNearbyDeathPct": 0.04, "nearbyRange": 4 } },
+        { "price": 800, "power": { "dmgPerNearbyDeathPct": 0.07, "nearbyRange": 4 } },
+        { "price": 1200, "power": { "dmgPerNearbyDeathPct": 0.10, "nearbyRange": 4, "freeCastAtStacks": 5 } }
+      ]
+    },
+    {
+      "id": "multi_shot",
+      "icon": "./assets/ui/skills/hunter_multishot.png",
+      "class": "hunter",
+      "kind": "active",
+      "damageType": "physical",
+      "range": 4,
+      "area": null,
+      "cooldown": 2,
+      "duration": null,
+      "tiers": [
+        { "price": 600, "power": { "dmgMult": 1.0, "maxTargets": 2, "slowTurns": 0 } },
+        { "price": 1000, "power": { "dmgMult": 1.1, "maxTargets": 3, "slowTurns": 0 } },
+        { "price": 1500, "power": { "dmgMult": 1.2, "maxTargets": 4, "slowTurns": 1 } }
+      ]
     }
   ]
 }

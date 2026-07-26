@@ -1,6 +1,45 @@
 {
   "versions": [
     {
+      "v": "0.23",
+      "es": {
+        "title": "11 habilidades nuevas de 7 clases",
+        "notes": [
+          "Nuevas clases con habilidades propias: Asesino, Mago, Brujo, Clérigo, Druida, Nigromante y Cazador.",
+          "Golpe desde las Sombras (Asesino): se teletransporta junto al enemigo y golpea con más probabilidad de crítico.",
+          "Instinto Letal (Asesino): más daño contra enemigos ya débiles.",
+          "Cadena Arcana (Mago): un rayo que salta de enemigo en enemigo.",
+          "Sobrecarga Arcana (Mago): probabilidad de que un hechizo no gaste su enfriamiento.",
+          "Pacto de Sangre (Brujo): sacrifica algo de tu propia vida por un golpe mucho más fuerte.",
+          "Círculo de Renacer (Clérigo): cura al instante y deja una zona en el suelo que sigue curando.",
+          "Gracia Vigilante (Clérigo): un escudo que se renueva cada turno.",
+          "Forma Salvaje (Druida): transformación temporal con más daño y armadura.",
+          "Simbiosis Natural (Druida): te curas solo si el turno anterior no recibiste daño.",
+          "Cosecha de Almas (Nigromante): cada muerte cercana aumenta tu daño durante el combate.",
+          "Disparo Múltiple (Cazador): una andanada de flechas en línea recta.",
+          "De momento sin implementar (llegarán más adelante): Levantar Muertos, Vínculo con la Fiera y Maldición Persistente."
+        ]
+      },
+      "en": {
+        "title": "11 new skills across 7 classes",
+        "notes": [
+          "New classes with their own skills: Rogue, Mage, Warlock, Cleric, Druid, Necromancer and Hunter.",
+          "Shadow Strike (Rogue): blinks next to the enemy and strikes with a higher critical chance.",
+          "Lethal Instinct (Rogue): more damage against already weakened enemies.",
+          "Arcane Chain (Mage): a bolt that jumps from enemy to enemy.",
+          "Arcane Overload (Mage): a chance for a spell to not spend its cooldown.",
+          "Blood Pact (Warlock): sacrifice some of your own health for a much stronger hit.",
+          "Circle of Rebirth (Cleric): heals instantly and leaves a zone on the ground that keeps healing.",
+          "Watchful Grace (Cleric): a shield that renews itself every turn.",
+          "Wild Shape (Druid): temporary transformation with more damage and armor.",
+          "Natural Symbiosis (Druid): heals you if you took no damage the previous turn.",
+          "Soul Harvest (Necromancer): every nearby kill increases your damage for the fight.",
+          "Multi Shot (Hunter): a volley of arrows in a straight line.",
+          "Not implemented yet (coming later): Raise Dead, Beast Bond and Lingering Curse."
+        ]
+      }
+    },
+    {
       "v": "0.22",
       "es": {
         "title": "Palanca con imagen, velocidad real y editor afinado",

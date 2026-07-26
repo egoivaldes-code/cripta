@@ -2,6 +2,13 @@
 
 Esquema: `0.X` = cambio grande · `0.X.Y` = cambio pequeño / fix.
 
+## 0.23 — 11 habilidades nuevas de 7 clases, todas con efecto real
+- **11 habilidades nuevas con efecto real en combate desde el minuto uno** (ver sección propia en AGENTS.md): Golpe desde las Sombras + Instinto Letal (Asesino), Cadena Arcana + Sobrecarga Arcana (Mago), Pacto de Sangre (Brujo), Círculo de Renacer + Gracia Vigilante (Clérigo), Forma Salvaje + Simbiosis Natural (Druida), Cosecha de Almas (Nigromante), Disparo Múltiple (Cazador).
+- **Mecánicas de motor nuevas para poder implementarlas de verdad**: teletransporte junto a un objetivo (Golpe desde las Sombras), salto en cadena entre enemigos con caída de daño (Cadena Arcana), coste de vida propia en una activa (Pacto de Sangre), zonas de curación persistentes en el suelo con curación por turno y "ward" anti-muerte-instantánea (Círculo de Renacer), escudo que se renueva entero cada turno (Gracia Vigilante), buff temporal por turnos igual que Grito de guerra pero con más de un número asociado (Forma Salvaje), traza en línea recta de 8 direcciones para golpear a varios enemigos alineados (Disparo Múltiple), y ralentizado real (-1 PA en su próximo turno) aplicable a cualquier tipo de IA enemiga.
+- **7 clases nuevas dadas de alta** (antes solo existían Guerrero y Paladín): Asesino, Mago, Brujo, Clérigo, Druida, Nigromante, Cazador — con sus iconos reales (arte del usuario, fondo magenta quitado con transparencia gradual en el borde para no dejar orla de color).
+- **Aparcadas a propósito** (mismo calibre de trabajo, pendiente agrupado): Levantar Muertos y Vínculo con la Fiera (necesitan invocación/mascota con IA propia) y Maldición Persistente (necesitaría un motor de estados-por-turno real que hoy no existe — los efectos de daño siguen siendo instantáneos, ver limitación ya advertida en la V0.21).
+- Nuevo tipo de daño `arcane` (Arcano) en el desplegable de escuelas y en las etiquetas de tarjeta de la tienda.
+
 ## 0.22 — malla del editor 1:1 con el juego, palanca con imagen, tooltips de habilidad y velocidad de verdad
 - **Recorte de fondo alineado con el editor**: el motor ahora lee el metadato `_editorMap` del nivel (imagen, tamaño de celda, desfase X/Y) cuando existe, y recorta exactamente esa región de la imagen en vez de estirarla entera. Antes el motor siempre estiraba la imagen completa sobre la rejilla, así que cualquier margen o desfase que el editor permitía ajustar no se veía reflejado en el juego.
 - **Mausoleo 2 recalibrado**: `mausoleo2.json` pasa de 17 a 16 columnas (la 17ª era pared de borde sin nada útil) y trae ya su `_editorMap` real (celda 77px, desfase -48/-52).
