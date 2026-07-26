@@ -1,15 +1,15 @@
 // Reglas del juego: economía de Puntos de Acción (PA), interacción a distancia
 // y adyacente, trampas, niebla y salida de nivel. Agnóstico del dibujo.
 
-import { state, walkable, isWall, adjacent, distTo, isVisible, recomputeFog, computeReach, pathTo, findPath, findApproachPath, reachCost, blockingTriggerAt, trapAt, walkTriggerAt, exitAt, stepNeighbors, foeAt, corpseAt, livingFoes, losClear } from './state.js?v=0.23';
-import { openEvent, openLeverCard, openTrapCard, openStoryCard, syncHUD, syncInitiativeUI, showCombatBadge, showLootWindow, showConfirm, log, gameOver } from './ui.js?v=0.23';
-import { t, tRandom } from './i18n.js?v=0.23';
-import { MOVE_COST, ATTACK_COST, INITIATIVE_BASE, INITIATIVE_DIE, TURN_DELAY, COMBAT_ENTER_DELAY, getGameSpeed, setGameSpeed, speedMult, moveDurationMs } from './config.js?v=0.23';
-import * as anim from './anim.js?v=0.23';
-import { ANIM_CLIPS } from './anim.js?v=0.23';
-import * as audio from './audio.js?v=0.23';
-import { centerOnTile } from './render.js?v=0.23';
-import { getOwnedTier, getSkillDef } from './skills.js?v=0.23';
+import { state, walkable, isWall, adjacent, distTo, isVisible, recomputeFog, computeReach, pathTo, findPath, findApproachPath, reachCost, blockingTriggerAt, trapAt, walkTriggerAt, exitAt, stepNeighbors, foeAt, corpseAt, livingFoes, losClear, revealAllExplored } from './state.js?v=0.24';
+import { openEvent, openLeverCard, openAltarCard, openTrapCard, openStoryCard, syncHUD, syncInitiativeUI, showCombatBadge, showLootWindow, showConfirm, log, gameOver } from './ui.js?v=0.24';
+import { t, tRandom } from './i18n.js?v=0.24';
+import { MOVE_COST, ATTACK_COST, INITIATIVE_BASE, INITIATIVE_DIE, TURN_DELAY, COMBAT_ENTER_DELAY, getGameSpeed, setGameSpeed, speedMult, moveDurationMs } from './config.js?v=0.24';
+import * as anim from './anim.js?v=0.24';
+import { ANIM_CLIPS } from './anim.js?v=0.24';
+import * as audio from './audio.js?v=0.24';
+import { centerOnTile } from './render.js?v=0.24';
+import { getOwnedTier, getSkillDef } from './skills.js?v=0.24';
 
 const sign = (n) => Math.sign(n);
 
@@ -86,6 +86,25 @@ const holyZones = [];   // { x, y, radius, turnsLeft, healPerTurn, preventLethal
 // turno que acaba de pasar, para decidir si cura al empezar el siguiente.
 let damageTakenLastTurn = 0;
 
+// --- Altares (ver ALTAR_EVENTS más abajo): las bendiciones/maldiciones de
+// tipo buff duran un número de COMBATES (no de turnos) — se cuentan igual
+// que los enfriamientos de habilidad (skillCooldowns), decrementando en
+// checkCombatEnd(), no en startHeroTurn(). ---
+let altarStrengthCombats = 0;   // Bendición de fuerza: +daño hecho
+let altarStonehideCombats = 0;  // Bendición de piel de piedra: −daño recibido
+let altarWeaknessCombats = 0;   // Maldición de debilidad: −daño hecho
+let altarFragileCombats = 0;    // Maldición de fragilidad: +daño recibido
+const ALTAR_STRENGTH_PCT = 0.15;
+const ALTAR_STONEHIDE_PCT = 0.15;
+const ALTAR_WEAKNESS_PCT = 0.10;
+const ALTAR_FRAGILE_PCT = 0.10;
+function altarOutgoingMult() {
+  return 1 + (altarStrengthCombats > 0 ? ALTAR_STRENGTH_PCT : 0) - (altarWeaknessCombats > 0 ? ALTAR_WEAKNESS_PCT : 0);
+}
+function altarIncomingMult() {
+  return 1 - (altarStonehideCombats > 0 ? ALTAR_STONEHIDE_PCT : 0) + (altarFragileCombats > 0 ? ALTAR_FRAGILE_PCT : 0);
+}
+
 const DMG_COLORS = { fire: '#e08a3c', ice: '#6ec3d8', poison: '#8a5fc9', holy: '#e8d27a', physical: '#e86a5c', none: '#e0b34a', shadow: '#8a5fc9', nature: '#7fc06a', arcane: '#6a8fe8' };
 function dmgColor(type) { return DMG_COLORS[type] || '#e86a5c'; }
 
@@ -127,7 +146,7 @@ function wildShapeMult() {
 // probabilidad de crítico en ese golpe concreto, sin tocar la esquiva normal.
 function resolveHeroHit(baseDamage, target, opts = {}) {
   const buffed = Math.max(1, Math.round(
-    baseDamage * warCryMult() * bloodlustMult() * soulHarvestMult() * wildShapeMult() * lethalInstinctMult(target)
+    baseDamage * warCryMult() * bloodlustMult() * soulHarvestMult() * wildShapeMult() * lethalInstinctMult(target) * altarOutgoingMult()
   ));
   const critChance = (state.hero.critChance || 0) + (opts.critBonus || 0);
   const crit = opts.guaranteedCrit || Math.random() < critChance;
@@ -202,7 +221,8 @@ function applyIncomingHit(baseDamage, damageType, color) {
   const r = resolveIncomingHit(baseDamage, damageType);
   if (r.evaded) { anim.floatAt(hero.x, hero.y, 'Esquivado', EVADE_COLOR); return 0; }
   if (r.blocked) { anim.floatAt(hero.x, hero.y, 'Bloqueado', EVADE_COLOR); return 0; }
-  const { remaining, absorbed } = absorbWithWardShield(r.damage);
+  const altarAdjusted = Math.max(0, Math.round(r.damage * altarIncomingMult()));
+  const { remaining, absorbed } = absorbWithWardShield(altarAdjusted);
   if (absorbed > 0) {
     anim.floatAt(hero.x, hero.y, `−${absorbed} 🛡`, '#8fc9e8');
     log(t('log.shieldAbsorb', { n: absorbed }), 'combat');
@@ -292,6 +312,10 @@ function checkCombatEnd() {
     soulHarvestStacks = 0;
     shadowStrikeUsedThisCombat = false;
     arcaneOverloadStreak = 0;
+    if (altarStrengthCombats > 0) altarStrengthCombats--;
+    if (altarStonehideCombats > 0) altarStonehideCombats--;
+    if (altarWeaknessCombats > 0) altarWeaknessCombats--;
+    if (altarFragileCombats > 0) altarFragileCombats--;
     for (const id in skillCooldowns) if (skillCooldowns[id] > 0) skillCooldowns[id]--;
     syncInitiativeUI();
     log(tRandom('log.combatEnd', 4), 'combat');
@@ -545,6 +569,103 @@ function freeTileAdjacentTo(tx, ty) {
     if (d < bd) { bd = d; best = { x: nx, y: ny }; }
   }
   return best;
+}
+
+// --- Altares: un solo marcador genérico (todos los altares son iguales),
+// pool de 10 eventos aleatorios (5 buenos / 5 malos), un solo uso por altar.
+// Ver AGENTS.md ("Altares") y ui.js (openAltarCard/renderAltarCard) para la
+// parte visual — aquí solo vive el sorteo y el efecto de cada uno. ---
+const ALTAR_GOOD_PCT = [0.15, 0.40];   // curación de oro/vida de los eventos buenos
+const ALTAR_BAD_PCT = [0.05, 0.15];    // robo de oro/vida de los eventos malos (suavizado)
+const ALTAR_BUFF_COMBATS = 3;          // duración de las bendiciones (en combates)
+const ALTAR_DEBUFF_COMBATS = 2;        // duración de las maldiciones (en combates)
+
+function altarPct(range) { return range[0] + Math.random() * (range[1] - range[0]); }
+
+// Enemigos que puede sacar "Invocación", ponderados a la INVERSA de su vida
+// máxima (cuanto más poderoso, menos probable) — pero todos pueden salir,
+// según se pidió. Solo tipos ya probados/animados de verdad en el juego.
+const ALTAR_SUMMON_POOL = [
+  { sprite: 'enemy1', hp: 12, maxHp: 12, atk: 4 },   // esqueleto básico
+  { sprite: 'enemy4', hp: 9,  maxHp: 9,  atk: 3 },   // esqueleto arquero
+  { sprite: 'enemy5', hp: 16, maxHp: 16, atk: 4 },   // espectro
+];
+function pickWeightedSummon() {
+  const weights = ALTAR_SUMMON_POOL.map(f => 1 / f.maxHp);
+  const total = weights.reduce((a, b) => a + b, 0);
+  let r = Math.random() * total;
+  for (let i = 0; i < ALTAR_SUMMON_POOL.length; i++) {
+    r -= weights[i];
+    if (r <= 0) return ALTAR_SUMMON_POOL[i];
+  }
+  return ALTAR_SUMMON_POOL[ALTAR_SUMMON_POOL.length - 1];
+}
+
+// Cada entrada: nº (1-10, coincide con el clip 'activateN' y la imagen
+// 'altar_evN'), tipo (bueno/malo, decide qué sonido suena) y `apply(tr)`,
+// que aplica el efecto de verdad y devuelve un pequeño resumen (no se usa
+// para nada crítico, solo por si hiciera falta depurar).
+const ALTAR_EVENTS = [
+  { n: 1, kind: 'good', apply: () => {
+      const hero = state.hero;
+      const healed = hero.maxHp - hero.hp;
+      hero.hp = hero.maxHp;
+      if (healed > 0) anim.floatAt(hero.x, hero.y, `+${healed}`, '#7fc06a');
+      return { healed };
+  } },
+  { n: 2, kind: 'good', apply: () => {
+      const hero = state.hero;
+      const gained = hero.gold > 0 ? Math.max(1, Math.round(hero.gold * altarPct(ALTAR_GOOD_PCT))) : 0;
+      hero.gold += gained;
+      if (gained > 0) anim.floatAt(hero.x, hero.y, `+${gained}`, '#e0b34a');
+      return { gained };
+  } },
+  { n: 3, kind: 'good', apply: () => { altarStrengthCombats = ALTAR_BUFF_COMBATS; return {}; } },
+  { n: 4, kind: 'good', apply: () => { altarStonehideCombats = ALTAR_BUFF_COMBATS; return {}; } },
+  { n: 5, kind: 'good', apply: () => { revealAllExplored(); return {}; } },
+  { n: 6, kind: 'bad', apply: () => {
+      const hero = state.hero;
+      const dmg = Math.max(1, Math.round(hero.hp * altarPct(ALTAR_BAD_PCT)));
+      hero.hp = Math.max(1, hero.hp - dmg);
+      anim.floatAt(hero.x, hero.y, `−${dmg}`, '#e86a5c');
+      return { dmg };
+  } },
+  { n: 7, kind: 'bad', apply: () => { altarWeaknessCombats = ALTAR_DEBUFF_COMBATS; return {}; } },
+  { n: 8, kind: 'bad', apply: () => {
+      const hero = state.hero;
+      const stolen = Math.round(hero.gold * altarPct(ALTAR_BAD_PCT));
+      hero.gold = Math.max(0, hero.gold - stolen);
+      if (stolen > 0) anim.floatAt(hero.x, hero.y, `−${stolen}`, '#e86a5c');
+      return { stolen };
+  } },
+  { n: 9, kind: 'bad', apply: (tr) => {
+      const summon = pickWeightedSummon();
+      const spot = freeTileAdjacentTo(tr.x, tr.y);
+      let spawned = false;
+      if (spot) {
+        state.foes.push({
+          x: spot.x, y: spot.y, alive: true, hp: summon.hp, maxHp: summon.maxHp,
+          atk: summon.atk, sprite: summon.sprite, apMax: 4,
+          anim: 'foe' + state.foes.length, dormant: false, wakeR: 0,
+        });
+        spawned = true;
+        syncHUD();
+      }
+      return { spawned, sprite: summon.sprite };
+  } },
+  { n: 10, kind: 'bad', apply: () => { altarFragileCombats = ALTAR_DEBUFF_COMBATS; return {}; } },
+];
+
+// Sortea un evento del pool, lo aplica de verdad y marca el altar como
+// gastado. Llamado desde ui.js (openAltarCard) cuando el jugador acepta
+// inclinarse. Devuelve la entrada del pool para que ui.js sepa qué imagen,
+// clip de animación y sonido usar en la carta de resultado.
+export function rollAltar(tr) {
+  const chosen = ALTAR_EVENTS[Math.floor(Math.random() * ALTAR_EVENTS.length)];
+  tr.used = true;
+  chosen.apply(tr);
+  syncHUD();
+  return chosen;
 }
 
 // Traza una línea recta (8 direcciones) desde el héroe hacia (tx,ty) y
@@ -820,6 +941,28 @@ export async function onTapTile(gx, gy) {
     return;
   }
 
+  // --- ¿Altar? Un solo marcador genérico (todos son iguales): adyacente y
+  // sin gastar todavía = pregunta si quieres inclinarte (openAltarCard, que
+  // sortea uno de los 10 eventos del pool solo si dices que sí); ya gastado
+  // = mensaje neutro, se queda ahí en reposo para siempre (no desaparece
+  // como un contenedor). No pasa por events.json: el contenido es el mismo
+  // pool para cualquier altar, en cualquier nivel. ---
+  if (tr && tr.type === 'altar') {
+    const d = distTo(hero, gx, gy);
+    if (d <= 1) {
+      if (tr.used) { log(t('log.altarSpent')); return; }
+      const cost = 1;
+      if (hero.ap < cost) { log(t('log.noAP')); return; }
+      hero.ap -= cost; syncHUD();
+      anim.activateAnim('hero', 'hero');
+      openAltarCard(tr);
+    } else if (isVisible(gx, gy) && !tr.used) {
+      log(`<b>${t('altar.kicker')}</b> — ${t('altar.hint')}`);
+      audio.fx('ui');
+    }
+    return;
+  }
+
   // --- ¿Objeto (cofre, altar, palanca, orbe, mesa, evento...)? Adyacente =
   // interactuar; a distancia = pista. Si todavía no tiene un evento conectado
   // en events.json (p.ej. un "Evento" recién colocado en el editor, sin
@@ -947,6 +1090,11 @@ export function afterInteract(trig) {
     anim.loot('hero', 'hero');
     anim.openProp(`prop:${trig.x}:${trig.y}`, 'chest');
     audio.fx('chestOpen');
+  } else if (trig && trig.type === 'altar') {
+    // Se enciende (fotogramas 1→4) y se apaga solo (4→1); nunca se congela:
+    // el altar vuelve a su reposo de siempre, solo queda "gastado" en el
+    // estado del nivel (tr.used, ya puesto por rollAltar).
+    anim.pulseProp(`prop:${trig.x}:${trig.y}`, 'altar', trig._altarClip || 'activate1');
   } else if (trig && trig.type === 'ambush') {
     triggerAmbush(trig);
     return;   // la propia emboscada decide cómo termina el turno (ver más abajo)

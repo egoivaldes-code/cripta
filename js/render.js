@@ -7,11 +7,11 @@
 // La altura de cada casilla se pinta con un tinte y, en los escalones, un
 // borde de color: VERDE en el lado alto, ROJO en el lado bajo (estilo Descent).
 
-import { state, elevAt, pathTo, foeAt, blockingTriggerAt, exitAt, adjacent } from './state.js?v=0.23';
-import { isAITurnActive } from './rules.js?v=0.23';
-import { TILE, CAMERA_MARGIN, ZOOM_MIN, ZOOM_MAX, ZOOM_DEFAULT, TOKEN_TALL, HERO_TALL, PROP_TALL } from './config.js?v=0.23';
-import { images, ATLAS_TILE, SPRITE_TILE } from './assets.js?v=0.23';
-import * as anim from './anim.js?v=0.23';
+import { state, elevAt, pathTo, foeAt, blockingTriggerAt, exitAt, adjacent } from './state.js?v=0.24';
+import { isAITurnActive } from './rules.js?v=0.24';
+import { TILE, CAMERA_MARGIN, ZOOM_MIN, ZOOM_MAX, ZOOM_DEFAULT, TOKEN_TALL, HERO_TALL, PROP_TALL } from './config.js?v=0.24';
+import { images, ATLAS_TILE, SPRITE_TILE } from './assets.js?v=0.24';
+import * as anim from './anim.js?v=0.24';
 
 // Algunos artes vienen dibujados mirando a la izquierda de serie (en vez de a
 // la derecha, que es lo que se asume en el resto del código al calcular hacia
@@ -456,8 +456,8 @@ function draw(ts) {
   const glow = reduceMotion ? 0.6 : 0.5 + 0.5 * Math.sin(pulse * 2.6);
   for (const tr of triggers) {
     if (tr.walkTrigger) continue;   // ambientación pura: invisible, salta solo al pisar/cruzar
-    const isChest = tr.type === 'chest';
-    if ((tr.used && !isChest) || !state.explored[tr.y][tr.x]) continue;
+    const staysVisibleUsed = tr.type === 'chest' || tr.type === 'altar';
+    if ((tr.used && !staysVisibleUsed) || !state.explored[tr.y][tr.x]) continue;
     if (tr.type === 'trap' && !tr.revealed) continue;   // invisible hasta que se descubre
     const s = worldToScreen(tr.x * TILE + TILE/2, tr.y * TILE + TILE/2);
     const on = state.visible[tr.y][tr.x];

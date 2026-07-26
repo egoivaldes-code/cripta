@@ -2,7 +2,7 @@
 // Incluye niebla de guerra (explored/visible) y el alcance de movimiento
 // ligado a los Puntos de Acción (PA) restantes del héroe.
 
-import { SIGHT, SIGHT_DIM, AP_MAX, CLIMB_COST, MAX_CLIMB, DIFFICULT_EXTRA } from './config.js?v=0.23';
+import { SIGHT, SIGHT_DIM, AP_MAX, CLIMB_COST, MAX_CLIMB, DIFFICULT_EXTRA } from './config.js?v=0.24';
 
 export const state = {
   cols: 0, rows: 0,
@@ -203,6 +203,15 @@ export function recomputeFog() {
     if (d2 <= R2) state.visible[y][x] = true;
     state.explored[y][x] = true;
   }
+}
+
+// Marca todo el nivel como "explorado" (penumbra/memoria de terreno) de
+// golpe, sin necesidad de que el héroe se acerque. Usado por el evento
+// "Ojo revelador" del altar (ver ALTAR_EVENTS en rules.js). No toca
+// `visible` (iluminado del todo): eso sigue dependiendo del alcance de
+// visión normal del héroe.
+export function revealAllExplored() {
+  for (let y = 0; y < state.rows; y++) for (let x = 0; x < state.cols; x++) state.explored[y][x] = true;
 }
 
 // --- alcance de movimiento (Dijkstra hasta los PA restantes: subir cuesta más,

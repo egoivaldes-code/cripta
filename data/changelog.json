@@ -1,6 +1,27 @@
 {
   "versions": [
     {
+      "v": "0.24",
+      "es": {
+        "title": "Altares: bendiciones y maldiciones",
+        "notes": [
+          "Los altares ya tienen efecto real: inclínate ante uno y se sorteará una de 10 posibilidades.",
+          "Bendiciones: curación completa, lluvia de oro, más daño durante varios combates, menos daño recibido durante varios combates, o revelar todo el mapa del nivel.",
+          "Maldiciones (más suaves): pierdes algo de vida u oro, menos daño durante un par de combates, más daño recibido durante un par de combates, o aparece un enemigo cerca.",
+          "Cada altar solo se puede usar una vez."
+        ]
+      },
+      "en": {
+        "title": "Altars: blessings and curses",
+        "notes": [
+          "Altars now have a real effect: bow before one and one of 10 outcomes will be drawn at random.",
+          "Blessings: full healing, a shower of gold, more damage for a few fights, less damage taken for a few fights, or revealing the whole level map.",
+          "Curses (gentler): you lose some health or gold, less damage for a couple of fights, more damage taken for a couple of fights, or an enemy appears nearby.",
+          "Each altar can only be used once."
+        ]
+      }
+    },
+    {
       "v": "0.23",
       "es": {
         "title": "11 habilidades nuevas de 7 clases",

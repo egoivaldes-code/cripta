@@ -2,7 +2,7 @@
 // usan un pitido suave sintetizado. De fondo: ambiente de bosque en bucle + ulular
 // de búho de vez en cuando. En móvil el sonido solo arranca tras tocar -> unlock().
 
-import { VERSION } from './config.js?v=0.23';
+import { VERSION } from './config.js?v=0.24';
 
 let ctx, master, fxGain, ambGain;
 let ambSource = null, owlTimer = null;
@@ -19,7 +19,7 @@ export function initialMusicVol() { return musicVol; }
 export function initialFxVol() { return fxVol; }
 
 // Muestras a decodificar. 'ambience' va en bucle; 'owl' se lanza suelto; el resto, efectos.
-const SAMPLE_FILES = ['footsteps', 'swing', 'hit', 'grunt1', 'grunt2', 'crit', 'coins', 'owl', 'ambience', 'combatstart', 'chestopen', 'containerbreak'];
+const SAMPLE_FILES = ['footsteps', 'swing', 'hit', 'grunt1', 'grunt2', 'crit', 'coins', 'owl', 'ambience', 'combatstart', 'chestopen', 'containerbreak', 'altaractivation', 'altaractivationgood', 'altaractivationbad'];
 const buffers = {};
 
 // Evento del juego -> cómo suena.
@@ -32,6 +32,9 @@ const CUES = {
   combatstart: { one: 'combatstart', gain: 0.85 },   // entrada en combate (antes era un pitido)
   chestOpen: { one: 'chestopen', gain: 0.85 },             // se abre el cofre narrativo (events.json)
   containerBreak: { one: 'containerbreak', gain: 0.85 },   // se rompe un contenedor genérico del mapa
+  altarOpen: { one: 'altaractivation', gain: 0.85 },        // aparece la pregunta del altar
+  altarGood: { one: 'altaractivationgood', gain: 0.9 },     // el evento sorteado es bueno
+  altarBad:  { one: 'altaractivationbad', gain: 0.9 },      // el evento sorteado es malo
 };
 
 export function unlock() {
