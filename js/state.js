@@ -2,7 +2,7 @@
 // Incluye niebla de guerra (explored/visible) y el alcance de movimiento
 // ligado a los Puntos de Acción (PA) restantes del héroe.
 
-import { SIGHT, SIGHT_DIM, AP_MAX, CLIMB_COST, MAX_CLIMB, DIFFICULT_EXTRA } from './config.js?v=0.21.2';
+import { SIGHT, SIGHT_DIM, AP_MAX, CLIMB_COST, MAX_CLIMB, DIFFICULT_EXTRA } from './config.js?v=0.22';
 
 export const state = {
   cols: 0, rows: 0,
@@ -10,6 +10,7 @@ export const state = {
   elev: [],                  // altura por casilla (0 = normal; +/- = escalones)
   difficult: [],             // terreno difícil (matorrales, escombros...): true = cuesta más cruzarlo
   background: null,          // { key } si el nivel usa una imagen de fondo pintada, en vez de losetas
+  editorMap: null,           // { width,height,cols,rows,cellSize,originX,originY } si el editor de niveles calibró la rejilla sobre la imagen; null = comportamiento antiguo (estirar la imagen entera)
   hero: null, foes: [],      // hero.ap = PA restantes este turno; .apMax = PA por turno
   triggers: [], exit: null, exits: [],
   events: {},
@@ -39,6 +40,7 @@ export function initGame(level, events) {
   state.elev = level.elev || grid(state.rows, state.cols, 0);
   state.difficult = level.difficult || grid(state.rows, state.cols, false);
   state.background = level.background || null;
+  state.editorMap = level._editorMap || null;
   state.biome = level.biome || 'underground';   // 'forest' | 'underground' -> qué fondo de vacío usar (ver render.js)
   state.hero = {
     critChance: 0.01, dodgeChance: 0.01, armor: 0.10,

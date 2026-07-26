@@ -38,5 +38,27 @@ export const INITIATIVE_BASE = {
 export const TURN_DELAY = 1000;  // ms de pausa entre el fin de un turno y el siguiente (héroe y NPCs)
 export const COMBAT_ENTER_DELAY = 1000;  // ms de respiro al entrar en combate, antes de congelar el juego
 
+// --- velocidad de juego (persistida) ---
+// Afecta a la vez a: 1) las pausas entre turnos/acciones (TURN_DELAY, COMBAT_ENTER_DELAY
+// y los ritmos de la IA enemiga), y 2) la propia animación de movimiento del héroe y los
+// enemigos (antes esto último quedaba fijo siempre, por eso el ajuste apenas se notaba).
+export const MOVE_STEP_BASE_MS = 170;   // duración por casilla a velocidad normal (héroe y enemigos)
+const SPEED_MULT = { slow: 1.5, normal: 1, fast: 0.2 };
+function loadGameSpeed() {
+  try { const v = localStorage.getItem('cripta.enemySpeed'); return SPEED_MULT[v] ? v : 'normal'; }
+  catch { return 'normal'; }
+}
+let gameSpeedKey = loadGameSpeed();
+export function getGameSpeed() { return gameSpeedKey; }
+export function setGameSpeed(v) {
+  if (!SPEED_MULT[v]) return;
+  gameSpeedKey = v;
+  try { localStorage.setItem('cripta.enemySpeed', v); } catch {}
+}
+export function speedMult() { return SPEED_MULT[gameSpeedKey] || 1; }
+// Duración real (ms) de un paso de movimiento a la velocidad actual. Con un
+// mínimo de 60ms para que a velocidad "rápida" se vea fluido en vez de un salto.
+export function moveDurationMs() { return Math.max(60, Math.round(MOVE_STEP_BASE_MS * speedMult())); }
+
 // --- versión (fuente única; también se usa para el cache-busting de assets) ---
-export const VERSION = '0.21.2';
+export const VERSION = '0.22';

@@ -184,7 +184,8 @@
     "unlocks": [
       "exit_3",
       "exit_4"
-    ]
+    ],
+    "image": "story_lever_arm"
   },
   "exit_1": {
     "i18n": "ev.exit1",

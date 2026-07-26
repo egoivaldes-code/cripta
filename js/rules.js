@@ -1,15 +1,15 @@
 // Reglas del juego: economía de Puntos de Acción (PA), interacción a distancia
 // y adyacente, trampas, niebla y salida de nivel. Agnóstico del dibujo.
 
-import { state, walkable, adjacent, distTo, isVisible, recomputeFog, computeReach, pathTo, findPath, findApproachPath, reachCost, blockingTriggerAt, trapAt, walkTriggerAt, exitAt, stepNeighbors, foeAt, corpseAt, livingFoes, losClear } from './state.js?v=0.21.2';
-import { openEvent, openLeverCard, openTrapCard, openStoryCard, syncHUD, syncInitiativeUI, showCombatBadge, showLootWindow, showConfirm, log, gameOver } from './ui.js?v=0.21.2';
-import { t, tRandom } from './i18n.js?v=0.21.2';
-import { MOVE_COST, ATTACK_COST, INITIATIVE_BASE, INITIATIVE_DIE, TURN_DELAY, COMBAT_ENTER_DELAY } from './config.js?v=0.21.2';
-import * as anim from './anim.js?v=0.21.2';
-import { ANIM_CLIPS } from './anim.js?v=0.21.2';
-import * as audio from './audio.js?v=0.21.2';
-import { centerOnTile } from './render.js?v=0.21.2';
-import { getOwnedTier, getSkillDef } from './skills.js?v=0.21.2';
+import { state, walkable, adjacent, distTo, isVisible, recomputeFog, computeReach, pathTo, findPath, findApproachPath, reachCost, blockingTriggerAt, trapAt, walkTriggerAt, exitAt, stepNeighbors, foeAt, corpseAt, livingFoes, losClear } from './state.js?v=0.22';
+import { openEvent, openLeverCard, openTrapCard, openStoryCard, syncHUD, syncInitiativeUI, showCombatBadge, showLootWindow, showConfirm, log, gameOver } from './ui.js?v=0.22';
+import { t, tRandom } from './i18n.js?v=0.22';
+import { MOVE_COST, ATTACK_COST, INITIATIVE_BASE, INITIATIVE_DIE, TURN_DELAY, COMBAT_ENTER_DELAY, getGameSpeed, setGameSpeed, speedMult, moveDurationMs } from './config.js?v=0.22';
+import * as anim from './anim.js?v=0.22';
+import { ANIM_CLIPS } from './anim.js?v=0.22';
+import * as audio from './audio.js?v=0.22';
+import { centerOnTile } from './render.js?v=0.22';
+import { getOwnedTier, getSkillDef } from './skills.js?v=0.22';
 
 const sign = (n) => Math.sign(n);
 
@@ -294,7 +294,6 @@ const HERO_ATTACK_COOLDOWN = 1000;
 // falta usarlo fuera de aquí).
 let heroMoving = false;
 export function isHeroMoving() { return heroMoving; }
-const D_MOVE_STEP = 170;   // ritmo entre casillas al andar, a juego con la animación (anim.js: D_MOVE)
 let lastHeroAttackAt = 0;
 
 // Acción del jugador al tocar una casilla (la llama render.js).
@@ -534,7 +533,7 @@ export async function onTapTile(gx, gy) {
       const justEnteredCombat = scanForNewCombatants();
       if (justEnteredCombat) { await endHeroTurn(true); return; }
 
-      if (i < path.length - 1) await sleep(D_MOVE_STEP);   // deja ver el paso antes de encadenar el siguiente
+      if (i < path.length - 1) await sleep(moveDurationMs());   // deja ver el paso antes de encadenar el siguiente
     }
   } finally {
     heroMoving = false;
@@ -648,23 +647,13 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 let aiTurnActive = false;
 export function isAITurnActive() { return aiTurnActive; }
 
-// --- Velocidad de turnos enemigos (ajustable desde el menú de Ajustes) ------
-// Multiplica todas las pausas de la IA (entre acciones y entre turnos). No
-// afecta a la duración de las propias animaciones, solo al tiempo de espera
-// entre pasos, para que el combate se sienta más lento o más rápido.
-const ENEMY_SPEED_MULT = { slow: 1.6, normal: 1, fast: 0.55 };
-function loadEnemySpeed() {
-  try { const v = localStorage.getItem('cripta.enemySpeed'); return ENEMY_SPEED_MULT[v] ? v : 'normal'; }
-  catch { return 'normal'; }
-}
-let enemySpeedKey = loadEnemySpeed();
-export function getEnemySpeed() { return enemySpeedKey; }
-export function setEnemySpeed(v) {
-  if (!ENEMY_SPEED_MULT[v]) return;
-  enemySpeedKey = v;
-  try { localStorage.setItem('cripta.enemySpeed', v); } catch {}
-}
-const enemySleep = (ms) => sleep(ms * (ENEMY_SPEED_MULT[enemySpeedKey] || 1));
+// --- Velocidad de juego (ajustable desde el menú de Ajustes) ---------------
+// Multiplica tanto las pausas de la IA (entre acciones y entre turnos) como
+// la propia animación de movimiento (ver config.js: moveDurationMs), para que
+// el cambio se note de verdad y no solo en las pausas.
+export function getEnemySpeed() { return getGameSpeed(); }
+export function setEnemySpeed(v) { setGameSpeed(v); }
+const enemySleep = (ms) => sleep(ms * speedMult());
 
 // Recorre la cola de iniciativa desde donde se quedó, actuando un enemigo
 // cada vez (con pausa antes y después de cada uno), hasta llegar de nuevo al

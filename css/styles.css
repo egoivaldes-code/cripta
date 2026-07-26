@@ -221,6 +221,23 @@ body.layout-edit .layoutApplyBtn{ display:block; }
   .card.story .storytext{ font-size:12.5px; top:10%; bottom:22%; }
   .card.story .storyhint{ font-size:7px; }
 }
+/* Variante con opciones (Sí/No) dentro del mismo hueco de pergamino, para la
+   palanca y cualquier mecanismo futuro con el mismo patrón (imagen propia +
+   pregunta + elección, en vez de solo texto de ambientación). */
+.card.story .storychoices{ position:absolute; left:52%; right:5%; top:10%; bottom:10%;
+  display:flex; flex-direction:column; justify-content:center; gap:8px;
+  font-family:Georgia,"Times New Roman",serif; text-align:center; }
+.card.story .storychoices .kicker{ font-size:9px; letter-spacing:.2em; text-transform:uppercase; color:#6a4a2a; margin-bottom:2px; }
+.card.story .storychoices h2{ margin:0 0 6px; font-size:15px; line-height:1.15; color:#2a2015; }
+.card.story .storychoices p{ margin:0 0 8px; font-size:12px; line-height:1.4; color:#2a2015; }
+.card.story .storychoices .choices{ gap:6px; }
+.card.story .storychoices .choice{ font-size:12px; padding:9px 10px; }
+@media (max-width:420px){
+  .card.story .storychoices{ left:50%; right:4%; }
+  .card.story .storychoices h2{ font-size:12.5px; }
+  .card.story .storychoices p{ font-size:10px; }
+  .card.story .storychoices .choice{ font-size:10.5px; padding:7px 8px; }
+}
 .choice{ text-align:left; width:100%; color:var(--bone);
   background:linear-gradient(rgba(9,10,14,.55),rgba(9,10,14,.55)), url(../assets/ui/choice_plaque.png);
   background-size:100% 100%; background-repeat:no-repeat;
@@ -271,6 +288,9 @@ body.layout-edit .layoutApplyBtn{ display:block; }
   .choice .tag { font-size: 12px; }
   .card.story .storytext { font-size: 16px; }
   .card.story .storyhint { font-size: 9px; letter-spacing: .08em; }
+  .card.story .storychoices h2 { font-size: 19px; }
+  .card.story .storychoices p { font-size: 14px; }
+  .card.story .storychoices .choice { font-size: 14px; padding: 11px 13px; }
   .panel label { font-size: 12px; }
   .banner .again, .primary { font-size: 14.5px; padding: 13px 24px; }
 }
@@ -355,6 +375,26 @@ body.layout-edit .layoutApplyBtn{ display:block; }
 .inv-stat-label{ color:var(--bone-dim); margin-right:6px; }
 .inv-stat-value{ color:var(--bone); font-weight:600; }
 .inv-stat-value.inv-stat-boosted{ color:var(--moss); }
+
+/* Tooltip de resumen de habilidad pasiva: hover en PC (:hover), toque en
+   móvil (clase .tt-show añadida por JS). Mismo cuadro en los dos casos. */
+.inv-stat-skill{ position:relative; cursor:help; }
+.inv-stat-skill::after{
+  content:attr(data-skill-desc);
+  position:absolute; left:0; top:100%; margin-top:6px;
+  background:rgba(10,8,6,.96); color:var(--bone); text-align:left;
+  padding:10px 12px; border-radius:8px; border:1px solid var(--steel);
+  font-family:Georgia,"Times New Roman",serif; font-size:14px; line-height:1.35;
+  white-space:normal; width:max-content; max-width:280px;
+  box-shadow:0 8px 20px rgba(0,0,0,.5);
+  opacity:0; pointer-events:none; transition:opacity .12s ease;
+  z-index:30;
+}
+.inv-stat-skill:hover::after,
+.inv-stat-skill.tt-show::after{ opacity:1; }
+@media (pointer: coarse) {
+  .inv-stat-skill::after{ font-size:26px; max-width:70vw; padding:14px 16px; }
+}
 
 /* En móvil, la pantalla completa del inventario (1920x2112) se escala mucho
    más pequeña que en PC para caber en la pantalla, así que un tamaño de

@@ -7,11 +7,11 @@
 // La altura de cada casilla se pinta con un tinte y, en los escalones, un
 // borde de color: VERDE en el lado alto, ROJO en el lado bajo (estilo Descent).
 
-import { state, elevAt, pathTo, foeAt, blockingTriggerAt, exitAt, adjacent } from './state.js?v=0.21.2';
-import { isAITurnActive } from './rules.js?v=0.21.2';
-import { TILE, CAMERA_MARGIN, ZOOM_MIN, ZOOM_MAX, ZOOM_DEFAULT, TOKEN_TALL, HERO_TALL, PROP_TALL } from './config.js?v=0.21.2';
-import { images, ATLAS_TILE, SPRITE_TILE } from './assets.js?v=0.21.2';
-import * as anim from './anim.js?v=0.21.2';
+import { state, elevAt, pathTo, foeAt, blockingTriggerAt, exitAt, adjacent } from './state.js?v=0.22';
+import { isAITurnActive } from './rules.js?v=0.22';
+import { TILE, CAMERA_MARGIN, ZOOM_MIN, ZOOM_MAX, ZOOM_DEFAULT, TOKEN_TALL, HERO_TALL, PROP_TALL } from './config.js?v=0.22';
+import { images, ATLAS_TILE, SPRITE_TILE } from './assets.js?v=0.22';
+import * as anim from './anim.js?v=0.22';
 
 // Algunos artes vienen dibujados mirando a la izquierda de serie (en vez de a
 // la derecha, que es lo que se asume en el resto del código al calcular hacia
@@ -344,7 +344,16 @@ function draw(ts) {
   // la rejilla; si no, se dibujan las losetas del atlas casilla a casilla.
   if (bgImg) {
     const s0 = worldToScreen(0, 0), s1 = worldToScreen(state.cols * TILE, state.rows * TILE);
-    ctx.drawImage(bgImg, s0.x, s0.y, s1.x - s0.x, s1.y - s0.y);
+    const em = state.editorMap;
+    if (em) {
+      // Recorte exacto: la misma región de la imagen que el editor alineó sobre
+      // su rejilla (originX/originY + cellSize por columnas/filas), estirada al
+      // tamaño de la rejilla del motor. Así no hay estiramiento extra ni desfase
+      // entre lo que se ve en el editor y lo que se ve en el juego.
+      ctx.drawImage(bgImg, em.originX, em.originY, em.cellSize * em.cols, em.cellSize * em.rows, s0.x, s0.y, s1.x - s0.x, s1.y - s0.y);
+    } else {
+      ctx.drawImage(bgImg, s0.x, s0.y, s1.x - s0.x, s1.y - s0.y);
+    }
   }
 
   // Pequeño solape entre casillas adyacentes: sin esto, el redondeo de la

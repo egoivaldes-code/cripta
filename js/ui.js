@@ -1,14 +1,14 @@
 // Capa DOM: HUD (con PA), cartas de evento, registro, fin de partida y ajustes.
 // Todo el texto visible pasa por t() (multiidioma). No dibuja en el canvas.
 
-import { state } from './state.js?v=0.21.2';
-import { t, tRandom } from './i18n.js?v=0.21.2';
-import * as anim from './anim.js?v=0.21.2';
-import { IDLE_NAME } from './anim.js?v=0.21.2';
-import * as audio from './audio.js?v=0.21.2';
-import { VERSION } from './config.js?v=0.21.2';
-import { images, SPRITE_TILE } from './assets.js?v=0.21.2';
-import { pushHistory, getHistory, clearHistory, CATEGORIES } from './eventlog.js?v=0.21.2';
+import { state } from './state.js?v=0.22';
+import { t, tRandom } from './i18n.js?v=0.22';
+import * as anim from './anim.js?v=0.22';
+import { IDLE_NAME } from './anim.js?v=0.22';
+import * as audio from './audio.js?v=0.22';
+import { VERSION } from './config.js?v=0.22';
+import { images, SPRITE_TILE } from './assets.js?v=0.22';
+import { pushHistory, getHistory, clearHistory, CATEGORIES } from './eventlog.js?v=0.22';
 
 let afterInteract = () => {};
 let restart = () => {};
@@ -395,6 +395,59 @@ function renderLeverCard(card, o) {
   const b = ev ? ev.i18n : null;
   if (!b) { card.innerHTML = `<p>${t('log.noEventYet')}</p>`; return; }
   card.onclick = null;
+  const img = ev.image ? images[ev.image] : null;
+
+  if (img) {
+    // Tarjeta cómic (misma plantilla visual que la carta de ambientación):
+    // la imagen ocupa toda la tarjeta, y kicker/título/pregunta/opciones (o
+    // el resultado) se colocan en su hueco de pergamino a la derecha.
+    card.classList.add('story');
+    const src = img.src;
+    if (o.stage === 'ask') {
+      card.innerHTML =
+        `<div class="storywrap">
+           <img src="${src}" alt="">
+           <div class="storychoices">
+             <div class="kicker">${t(b + '.kicker')}</div>
+             <h2>${t(b + '.title')}</h2>
+             <p>${t(b + '.question')}</p>
+             <div class="choices"></div>
+           </div>
+         </div>`;
+      const box = card.querySelector('.choices');
+      const yes = document.createElement('button');
+      yes.className = 'choice';
+      yes.innerHTML = `<span>${t('ui.yes')}</span>`;
+      yes.onclick = () => activateLever(o, ev, b);
+      const no = document.createElement('button');
+      no.className = 'choice';
+      no.innerHTML = `<span>${t('ui.no')}</span>`;
+      no.onclick = () => { card.classList.remove('story'); state.busy = false; hideVeil(); };
+      box.appendChild(yes);
+      box.appendChild(no);
+    } else {
+      card.innerHTML =
+        `<div class="storywrap">
+           <img src="${src}" alt="">
+           <div class="storychoices">
+             <div class="kicker">${t(b + '.kicker')}</div>
+             <h2>${t(b + '.title')}</h2>
+             <p>${t(b + '.result')}</p>
+           </div>
+           <div class="storyhint">${t('ui.clickContinue')}</div>
+         </div>`;
+      card.onclick = () => {
+        card.classList.remove('story');
+        card.onclick = null;
+        state.busy = false;
+        hideVeil();
+        afterInteract(o.trig);
+      };
+    }
+    return;
+  }
+
+  // Sin imagen todavía (compatibilidad): el menú normal de siempre.
   if (o.stage === 'ask') {
     card.innerHTML =
       `<div class="kicker">${t(b + '.kicker')}</div>

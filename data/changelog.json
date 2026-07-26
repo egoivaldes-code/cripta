@@ -1,6 +1,29 @@
 {
   "versions": [
     {
+      "v": "0.22",
+      "es": {
+        "title": "Palanca con imagen, velocidad real y editor afinado",
+        "notes": [
+          "Al activar la palanca del cementerio aparece ahora una ilustración propia, con la pregunta y las opciones en su hueco de pergamino.",
+          "El ajuste de velocidad (lenta/normal/rápida) ya afecta también a lo rápido que se mueven el héroe y los enemigos, no solo a las pausas entre turnos.",
+          "Las habilidades del inventario muestran su descripción al tocarlas o pasar el ratón por encima.",
+          "El deslizador de tamaño de la interfaz permite ahora encogerla, además de agrandarla.",
+          "El fondo pintado del Mausoleo 2 encaja mejor con su rejilla real."
+        ]
+      },
+      "en": {
+        "title": "Lever artwork, real speed setting and editor tuning",
+        "notes": [
+          "Pulling the cemetery lever now shows its own illustration, with the question and choices in its parchment space.",
+          "The speed setting (slow/normal/fast) now also affects how fast the hero and enemies move, not just the pauses between turns.",
+          "Inventory skills show their description on tap or mouse hover.",
+          "The UI scale slider can now shrink the interface, not just enlarge it.",
+          "Mausoleum 2 background now lines up better with its real grid."
+        ]
+      }
+    },
+    {
       "v": "0.21.2",
       "es": {
         "title": "Contenedores de botín",

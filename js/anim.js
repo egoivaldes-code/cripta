@@ -6,9 +6,8 @@
 //     (paz/combate) que cambian solas según haya un enemigo cerca, con una transición.
 // Además: sacudida al recibir daño y números flotantes (daño/curación).
 
-import { TILE } from './config.js?v=0.21.2';
+import { TILE, moveDurationMs } from './config.js?v=0.22';
 
-const D_MOVE = 170;
 const D_ATTACK_LEGACY = 220;
 const D_HURT = 300;   // duración de la sacudida (todos los personajes)
 
@@ -117,7 +116,7 @@ export function move(name, fromGX, fromGY, toGX, toGY) {
   a.px = center(fromGX); a.py = center(fromGY);
   if (toGX !== fromGX) a.facing = toGX > fromGX ? 1 : -1;
   setState(a, 'walk');
-  a.anim = { type: 'move', t0: performance.now(), dur: D_MOVE,
+  a.anim = { type: 'move', t0: performance.now(), dur: moveDurationMs(),
     from: { x: center(fromGX), y: center(fromGY) }, to: { x: center(toGX), y: center(toGY) } };
 }
 
@@ -130,7 +129,7 @@ export function movePath(name, cells) {
   if (dx !== 0) a.facing = dx > 0 ? 1 : -1;
   a.px = pts[0].x; a.py = pts[0].y;
   setState(a, 'walk');
-  a.anim = { type: 'path', t0: performance.now(), segDur: 320, pts };
+  a.anim = { type: 'path', t0: performance.now(), segDur: moveDurationMs(), pts };
 }
 
 // `kind` (opcional) identifica el tipo de sprite: si tiene animaciones de verdad,

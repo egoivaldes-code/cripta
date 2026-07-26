@@ -25,9 +25,9 @@
 // icono que ya se ve en el HUD). Los 9 tipos de objeto y sus iconos están
 // listos para cuando haya objetos de verdad que equipar.
 
-import { state } from './state.js?v=0.21.2';
-import { t } from './i18n.js?v=0.21.2';
-import { getPassiveOwnedSkills, getOwnedTier, getSkillBonuses } from './skills.js?v=0.21.2';
+import { state } from './state.js?v=0.22';
+import { t } from './i18n.js?v=0.22';
+import { getPassiveOwnedSkills, getOwnedTier, getSkillBonuses } from './skills.js?v=0.22';
 
 // --- 1. Config ---------------------------------------------------------
 
@@ -352,6 +352,16 @@ function statRow(label, value, boosted) {
   return `<div class="inv-stat-row"><span class="inv-stat-label">${label}</span> ` +
          `<span class="inv-stat-value${boosted ? ' inv-stat-boosted' : ''}">${value}</span></div>`;
 }
+function escAttr(s) { return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;'); }
+// Fila de habilidad pasiva: igual que statRow, pero con data-skill-id y su
+// descripción en data-skill-desc, para el tooltip (ver bindSkillTooltips) que
+// se muestra al pasar el ratón (PC, vía CSS :hover) o al tocarla (móvil, vía
+// la clase .tt-show que añade el JS).
+function skillStatRow(skillId, label, value) {
+  const desc = t(`skill.${skillId}.desc`);
+  return `<div class="inv-stat-row inv-stat-skill" data-skill-id="${skillId}" data-skill-desc="${escAttr(desc)}" tabindex="0">` +
+         `<span class="inv-stat-label">${label}</span> <span class="inv-stat-value">${value}</span></div>`;
+}
 function pct(v) { return Math.round((v || 0) * 100) + '%'; }
 
 function renderCharSheet() {
@@ -383,7 +393,7 @@ function renderCharSheet() {
   // sistema de habilidades definitivo).
   const passives = getPassiveOwnedSkills();
   const passiveRows = passives.length
-    ? passives.map(s => statRow(t(`skill.${s.id}.name`), '★'.repeat(getOwnedTier(s.id)))).join('')
+    ? passives.map(s => skillStatRow(s.id, t(`skill.${s.id}.name`), '★'.repeat(getOwnedTier(s.id)))).join('')
     : `<div class="inv-stat-row inv-stat-empty">${t('stat.group.skillsEmpty')}</div>`;
 
   charSheetEl.innerHTML =
@@ -493,6 +503,19 @@ export function initInventory() {
   document.getElementById('invCloseBtn').addEventListener('click', closeInventory);
   veilEl.addEventListener('click', e => { if (e.target === veilEl) closeInventory(); });
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && isInventoryOpen()) closeInventory(); });
+  bindSkillTooltips();
+}
+
+// Tooltip de habilidad pasiva (panel de estadísticas): en PC ya se ve solo
+// con el :hover del CSS; esto añade el toque en móvil, donde no hay ratón.
+// Un toque sobre una fila la abre (y cierra cualquier otra abierta); un
+// toque fuera de todas las filas de habilidad las cierra.
+function bindSkillTooltips() {
+  document.addEventListener('click', e => {
+    const row = e.target.closest && e.target.closest('.inv-stat-skill');
+    document.querySelectorAll('.inv-stat-skill.tt-show').forEach(el => { if (el !== row) el.classList.remove('tt-show'); });
+    if (row) row.classList.toggle('tt-show');
+  });
 }
 
 export function isInventoryOpen() {

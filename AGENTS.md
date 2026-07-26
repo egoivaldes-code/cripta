@@ -85,8 +85,11 @@ evento, tumba, entrada, salida...) se numera solo en el propio mapa y en el
 JSON exportado (`Cofre 1`, `Cofre 2`...), calculado por orden de colocación
 dentro de su mismo tipo (y subtipo, en el caso de los enemigos). El héroe no
 se numera (siempre hay uno). Entrada y Salida son herramientas separadas y
-ambas admiten varias unidades — de momento son solo referencia visual para
-el usuario, el motor real solo soporta UNA salida por nivel (`level.exit`).
+ambas admiten varias unidades — desde la V0.19 el motor real también soporta
+**varias salidas por nivel** (`state.exits[]`, formato "mueble": ocupa su
+casilla, se interactúa desde al lado, opcionalmente `blocked`), además del
+formato antiguo de una sola salida (`level.exit`, que Cripta/Mausoleo1/
+Mausoleo2/level2 siguen usando sin problema — el motor acepta los dos).
 
 **Objetos sin evento conectado**: el motor real (`rules.js`) comprueba si
 existe `state.events[tr.id]` antes de abrir la tarjeta; si un objeto (p.ej.
@@ -118,12 +121,95 @@ cualquier artifact HTML que se construya para este proyecto):
 - **Pintar/tocar vs arrastrar cámara**: si un `pointerdown` dispara la acción
   inmediatamente, el primer toque de cualquier intento de arrastre se
   interpreta como pintura. Solución: no actuar hasta `pointerup`, y solo si
-  el movimiento desde el `pointerdown` fue menor a un umbral (~10px); si
-  se superó, se entiende que el usuario quería mover la cámara, no pintar.
+  el movimiento desde el `pointerdown` fue menor a un umbral; si se superó,
+  se entiende que el usuario quería mover la cámara, no pintar. **Ojo con el
+  valor del umbral**: empezó en 10px, pero un toque real con el dedo casi
+  siempre tiembla más que eso — con 10px, el editor interpretaba tocar como
+  arrastrar y no colocaba nada, sin avisar (no es un error visible, así que
+  pasa desapercibido si no se prueba tocando de verdad en un móvil). Subido
+  a 20px en la v0.12.4.
 - **Layout en móvil**: mejor un `body` en columna flex a pantalla completa
   (`height:100dvh`) con las barras como `flex:none` y el área de mapa como
   `flex:1`, que calcular alturas fijas a mano — se adapta solo si cambia el
   contenido de las barras.
+
+## Novedades del editor (hasta v0.12.6) y del motor (V0.22)
+
+**Editor — mapas incluidos protegidos**: Cementerio, Mausoleo 1 y Mausoleo 2
+ahora viven "horneados" dentro del propio archivo HTML (`MAPS.cemetery`,
+`MAPS.mausoleo1`, `MAPS.mausoleo2`), no solo en el almacenamiento del
+artifact. Esto evita que desaparezcan si Android separa el guardado entre
+archivos HTML distintos (ya pasó una vez con Mausoleo 1 y 2). El botón de
+borrar mapa está bloqueado para cualquier mapa `builtin:true`, sin excepción,
+aunque también sea `custom:true` (necesario para poder calibrar su rejilla).
+
+**Editor — sincronizar desde el juego publicado**: botón "🔄 Actualizar" por
+mapa, que descarga `data/levels/<nombre>.json` en vivo y sustituye terreno/
+enemigos/objetos/salidas, conservando notas y eventos extra que solo existan
+en el editor. Comprueba que `cols`/`rows` coincidan antes de sobrescribir
+nada. Útil para refrescar un mapa builtin tras cambios hechos a mano en el
+repo (como el recorte de columnas de Mausoleo 2, ver más abajo).
+
+**Editor — `allowDuplicateId`**: el editor exige normalmente IDs únicos por
+marcador (`ensureEntityIds` renombra en solitario cualquier duplicado). La
+emboscada de Mausoleo 2 necesita justo lo contrario: sus dos puntos
+comparten literalmente el mismo id (`mausoleo2_ambush`) a propósito, para que
+activar cualquiera de los dos marque ambos como usados. Un trigger/entidad
+con `allowDuplicateId: true` queda exento de ese renombrado automático y de
+la validación de "ID duplicado" al exportar. Si se añade en el futuro otro
+mecanismo con el mismo patrón (un id compartido entre varios marcadores),
+usar este mismo campo en vez de inventar otro.
+
+**Editor — calibración de rejilla (`_editorMap`)**: en mapas propios
+(`custom:true`), el editor deja ajustar tamaño de celda y desfase X/Y de la
+rejilla sobre la imagen real (nudge + botones +/-). Al exportar, si el mapa
+tiene calibración, se incluye `_editorMap: {image, width, height, cols, rows,
+cellSize, originX, originY}` en el JSON. **Ojo**: los botones de tamaño de
+celda recalculan `cols`/`rows` a partir de `w/cellPx` y recortan/rellenan la
+rejilla — si se reduce una columna/fila que tenía marcadores, se pierden
+(avisa cuántos). Revisar siempre que las dimensiones resultantes sigan
+coincidiendo con lo que se quiere publicar antes de pegar el JSON en el
+juego.
+
+**Motor — el fondo pintado ya respeta `_editorMap`** (`state.js`/
+`render.js`): antes, el motor SIEMPRE estiraba la imagen de fondo completa
+para llenar exactamente `cols*TILE × rows*TILE`, dando por hecho que la
+imagen, de borde a borde, encajaba con la rejilla sin márgenes. Si el nivel
+trae `_editorMap`, ahora se recorta exactamente esa región de la imagen
+(`originX, originY, cellSize*cols, cellSize*rows`) antes de estirarla sobre
+la rejilla — el mismo recorte que ve el usuario en el editor. Si un nivel no
+trae `_editorMap` (los de siempre), se comporta exactamente igual que antes
+(compatible hacia atrás). Mausoleo 2 es el primer nivel con esta calibración
+real; si el desfase queda ligeramente fuera de los bordes de la imagen
+(`originX`/`originY` negativos, o `cellSize*rows` mayor que el alto real),
+el canvas simplemente recorta esa parte y se ve un hueco vacío ahí — no
+revienta, pero puede notarse visualmente y merece un repaso fino.
+
+**Motor — velocidad de juego centralizada en `config.js`**: `getGameSpeed`/
+`setGameSpeed`/`speedMult`/`moveDurationMs` viven en `config.js` (antes el
+multiplicador vivía solo dentro de `rules.js` y solo afectaba a las pausas
+de la IA, nunca a la animación de movimiento en sí). `anim.js` y `rules.js`
+importan estas funciones desde `config.js` para no crear un import
+circular entre ellos. `rules.js` sigue exportando `getEnemySpeed`/
+`setEnemySpeed` (usadas por `main.js`) como wrappers finos sobre las de
+`config.js`, para no tener que tocar `main.js`. Multiplicadores actuales:
+`slow: 1.5, normal: 1, fast: 0.2`, con `moveDurationMs()` puesto a un mínimo
+de 60ms para que la velocidad rápida no se vea como un salto roto.
+
+**Motor — patrón de "tarjeta cómic con opciones" para mecanismos** (`ui.js`:
+`renderLeverCard`, css: `.card.story .storychoices`): mismo molde visual que
+la tarjeta narrativa (`openStoryCard`/`.card.story`), pero con kicker/título/
+pregunta y botones Sí/No en el hueco de pergamino en vez de solo texto. Se
+activa automáticamente si el evento del mecanismo trae `image` (clave
+registrada en `assets.js`); si no la trae, sigue funcionando con el menú de
+texto plano de siempre — no hace falta tocar el motor para futuras palancas
+sin arte todavía, solo añadir `image` en `events.json` cuando la tengan. El
+recuadro de texto/opciones se posiciona a mano por porcentajes sobre la
+imagen (pensado para ilustraciones con la escena a la izquierda y hueco de
+pergamino en blanco a la derecha, como las de ambientación) — si la próxima
+imagen tiene el hueco en otro sitio, hay que reajustar esos porcentajes a
+ojo (o medir con Python/PIL dónde termina el dibujo, como se hizo para la
+palanca del cementerio).
 
 ## Protocolo de pruebas antes de empaquetar (obligatorio)
 

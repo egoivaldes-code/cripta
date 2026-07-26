@@ -6,7 +6,7 @@
 // Qué claves tienen animaciones de verdad se define en ANIM_CLIPS (anim.js);
 // aquí solo hace falta indicar dónde está cada hoja.
 
-import { VERSION } from './config.js?v=0.21.2';
+import { VERSION } from './config.js?v=0.22';
 
 export const ATLAS_TILE = 128;  // px por celda en el tileset fuente (dungeon.png)
 export const SPRITE_TILE = 128; // px por fotograma en las hojas de sprites
@@ -72,6 +72,7 @@ const sources = {
   void_forest: './assets/backgrounds/void_forest.jpg',           // fondo de "vacío" para biomas de exterior/bosque
   void_underground: './assets/backgrounds/void_underground.jpg', // fondo de "vacío" para biomas subterráneos
   story_cemetery_noises: './assets/ui/story_cemetery_noises.jpg',
+  story_lever_arm: './assets/ui/story_lever_arm.jpg',
 };
 
 export const images = {}; // se rellena tras loadAssets()
