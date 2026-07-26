@@ -735,6 +735,93 @@ itemización — rareza, afijos/sufijos, únicos, sets, palabras rúnicas, tabla
 de drop por nivel — se construirá por partes, con preguntas concretas en
 cada paso.
 
+## Altares (V0.24)
+
+Sistema nuevo, reemplaza al viejo evento genérico de 3 opciones que tenía el
+altar desde el principio. **Un solo marcador genérico**: todos los altares
+del juego son idénticos y comparten el mismo pool de 10 eventos aleatorios
+(5 buenos / 5 malos) — no pasan por `events.json` en absoluto, el contenido
+vive directamente en `ALTAR_EVENTS` (`rules.js`). Los 5 marcadores ya
+colocados en los niveles (cementerio, cripta, level2, mausoleo1 ×2) se
+reutilizaron tal cual, solo se les añadió `"sprite": "altar"` para que se
+vean con el arte real en vez del rombo ◆ genérico.
+
+**Flujo de interacción** (rama propia en `rules.js`, ANTES del bloque
+genérico de "objeto con carta"):
+1. Adyacente y sin gastar → `openAltarCard` (ui.js): tarjeta "story" con la
+   imagen `altar_decision` y pregunta Sí/No (mismo patrón visual que
+   `renderLeverCard`, pero con lógica propia — no es una palanca).
+2. **Sí** → `resolveAltar(trig)` (conectado desde `main.js` a `rollAltar` en
+   `rules.js`, vía `bindResolveAltar` — rules.js no se puede importar desde
+   ui.js, ya que rules.js ya importa de ui.js: import circular). `rollAltar`
+   sortea 1 de los 10, marca `tr.used = true`, aplica el efecto de verdad y
+   devuelve la entrada elegida.
+3. La MISMA tarjeta cambia a la imagen/texto de ESE evento concreto
+   (`altar_evN` + `altar.evN.title`/`.result`), con sonido `altarGood`/
+   `altarBad` según el tipo, y un botón **"Cerrar" explícito** (a diferencia
+   de la palanca/ambientación, que se cierran tocando en cualquier parte —
+   aquí se pidió expresamente un botón).
+4. Al cerrar: `afterInteract` (rules.js) dispara `anim.pulseProp(...,
+   'altar', 'activate'+N)` — enciende (fotogramas 1→4) y se apaga solo
+   (4→1) en el propio mapa, y el altar queda para siempre en su idle de
+   reposo (nunca se congela como el cofre, ni desaparece como un
+   contenedor — por eso `render.js` tiene que exceptuar también a
+   `type: 'altar'` de "se oculta en cuanto `tr.used`").
+5. **No**, o altar ya gastado (toque posterior) → mensaje neutro
+   (`log.altarSpent`), no pasa nada más.
+
+**Arte**: 2 hojas de sprites subidas por el usuario (magenta, rejilla
+4 columnas × 5 filas cada una) recortadas a fotogramas de 128×128 (mismo
+`SPRITE_TILE` que el resto del juego) con chroma-key + reescalado
+"contain" uniforme para las 40 celdas (evita que el altar cambie de
+tamaño/posición entre eventos). `assets/props/altar/idle.png` (reposo,
+compartido) + `activate1..10.png` (4 fotogramas cada uno). Las 11 imágenes
+de ambientación (`altar_decision` + `altar_ev1..10`) son ilustraciones
+completas del usuario, mismo molde que `story_lever_arm` (escena a la
+izquierda, hueco de pergamino en blanco a la derecha) — convertidas a
+`.jpg` (de ~29MB a ~4MB en total, sin transparencia real que perder).
+
+**Los 10 eventos** (`ALTAR_EVENTS` en `rules.js`; `n` = nº de evento = sufijo
+del clip `activateN` y de la imagen `altar_evN`):
+- **Buenos** (rango 15%–40% donde aplica; buffs duran **3 combates**):
+  1. Curación completa (a tope). 2. Lluvia de oro. 3. Bendición de fuerza
+  (+15% daño hecho). 4. Piel de piedra (−15% daño recibido). 5. Ojo
+  revelador (`revealAllExplored()` en state.js: marca todo el nivel como
+  explorado/penumbra de golpe, no toca `visible`/iluminado).
+- **Malos** (rango 5%–15%, suavizado a petición; debuffs duran
+  **2 combates**): 6. Golpe del altar (quita vida, nunca deja al héroe a
+  menos de 1). 7. Maldición de debilidad (−10% daño hecho). 8. Robo (quita
+  oro, nunca negativo). 9. Invocación (1 enemigo cerca del altar,
+  `freeTileAdjacentTo`, ponderado a la INVERSA de su vida máxima entre los
+  3 tipos ya animados de verdad — esqueleto/arquero/espectro — cuanto más
+  poderoso, menos probable, pero cualquiera puede salir). 10. Maldición de
+  fragilidad (+10% daño recibido).
+
+**Duración en combates, no en turnos**: los 4 buffs/debuffs
+(`altarStrengthCombats`/`altarStonehideCombats`/`altarWeaknessCombats`/
+`altarFragileCombats`) se decrementan en `checkCombatEnd()`, exactamente
+igual que ya hacían los enfriamientos de habilidad (`skillCooldowns`) — NO
+en `startHeroTurn()` como Grito de guerra/Forma Salvaje (esos sí son "por
+turnos"). Se multiplican dentro de `resolveHeroHit` (daño hecho) y
+`applyIncomingHit` (daño recibido, después de esquivar/bloquear, antes del
+escudo de Gracia Vigilante).
+
+**Pendiente/limitación conocida**: el pool de invocación solo incluye los
+3 tipos de enemigo ya animados de verdad (esqueleto, arquero, espectro) —
+el esqueleto mago (`enemy6`) se dejó fuera a propósito porque su lógica de
+invocación (`spawnSkeleton`) asume que lo lanza OTRO mago, no tiene sentido
+como aparición suelta. Cuando lleguen los otros 2 tipos de esqueleto
+animados (ver pendientes generales más abajo), añadirlos aquí también.
+
+**Pruebas hechas esta versión**: batería headless propia (`rollAltar`
+invocado miles de veces con `state` simulado) comprobando que los 10
+eventos salen con frecuencia pareja, que los rangos de daño/oro/curación
+respetan sus límites (incluida vida a 1 / oro a 0), que Invocación coloca
+al enemigo adyacente al altar ya despierto, y que llamar `rollAltar` dos
+veces sobre el mismo trigger no revienta. Los niveles tocados solo
+recibieron el campo `sprite` añadido (ninguna casilla/posición cambió), así
+que no hacía falta repetir el test de conectividad completo.
+
 ## Efectos reales de las 11 habilidades nuevas (V0.23)
 
 Se añaden 11 habilidades más de 7 clases nuevas (Asesino, Mago, Brujo,

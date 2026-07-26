@@ -6,7 +6,7 @@
 //     (paz/combate) que cambian solas según haya un enemigo cerca, con una transición.
 // Además: sacudida al recibir daño y números flotantes (daño/curación).
 
-import { TILE, moveDurationMs } from './config.js?v=0.23';
+import { TILE, moveDurationMs } from './config.js?v=0.24';
 
 const D_ATTACK_LEGACY = 220;
 const D_HURT = 300;   // duración de la sacudida (todos los personajes)
@@ -22,6 +22,23 @@ export const ANIM_CLIPS = {
   container: {
     idle: { frames: 1, fps: 1, loop: true  },
     open: { frames: 4, fps: 6, loop: false },
+  },
+  // Altar: reposo compartido por todos + un clip de 4 fotogramas por cada
+  // uno de los 10 eventos del pool (ver ALTAR_EVENTS en rules.js). Se
+  // reproducen con pulseProp() hacia delante y luego en reversa (ver abajo),
+  // nunca con playOnce/openProp normales.
+  altar: {
+    idle:       { frames: 1, fps: 1, loop: true  },
+    activate1:  { frames: 4, fps: 6, loop: false },
+    activate2:  { frames: 4, fps: 6, loop: false },
+    activate3:  { frames: 4, fps: 6, loop: false },
+    activate4:  { frames: 4, fps: 6, loop: false },
+    activate5:  { frames: 4, fps: 6, loop: false },
+    activate6:  { frames: 4, fps: 6, loop: false },
+    activate7:  { frames: 4, fps: 6, loop: false },
+    activate8:  { frames: 4, fps: 6, loop: false },
+    activate9:  { frames: 4, fps: 6, loop: false },
+    activate10: { frames: 4, fps: 6, loop: false },
   },
   enemy1: {
     idle:   { frames: 6, fps: 1.8,  loop: true  },
@@ -66,7 +83,7 @@ export const ANIM_CLIPS = {
 
 // Qué clip hace de idle normal / idle de combate / transición, por tipo (solo el
 // héroe tiene los dos idles; el esqueleto usa el mismo "idle" siempre).
-export const IDLE_NAME = { enemy1: 'idle', enemy4: 'idle', enemy5: 'idle', enemy6: 'idle', hero: 'idlepeace', chest: 'idle', container: 'idle' };
+export const IDLE_NAME = { enemy1: 'idle', enemy4: 'idle', enemy5: 'idle', enemy6: 'idle', hero: 'idlepeace', chest: 'idle', container: 'idle', altar: 'idle' };
 const IDLE_COMBAT_NAME = { hero: 'idlecombat' };
 const STANCECHANGE_NAME = { hero: 'stancechange' };
 // Variantes de ataque entre las que elegir al azar cada vez.
@@ -181,6 +198,19 @@ export function openProp(name, kind) {
   commit(a);
   a.opened = true;
   setState(a, 'open');
+}
+
+// Para OBJETOS que se "encienden y apagan" (el altar): reproduce el clip
+// indicado hacia delante y luego en reversa, y vuelve sola al idle de
+// siempre al terminar (a diferencia de openProp, NO se queda congelada:
+// el altar recupera su aspecto de reposo para siempre, solo queda marcado
+// como gastado en el estado del nivel — ver tr.used en rules.js/render.js).
+export function pulseProp(name, kind, clipName) {
+  const a = ensure(name, 0, 0);
+  if (!isAnimated(kind) || !ANIM_CLIPS[kind][clipName]) return;
+  commit(a);
+  a.actionClip = clipName;
+  a.state = 'pulse'; a.clipT0 = performance.now();
 }
 
 // Marca la sacudida de daño (todos los personajes) y, si el tipo tiene clip "hit",
@@ -311,6 +341,19 @@ function resolveAnimated(a, clips, kind, ts, sx, sy, hurt) {
     const frame = Math.max(0, Math.floor((ts - a.clipT0) * c.fps / 1000));
     if (frame >= c.frames) { a.stance = a.pendingStance || 'combat'; a.pendingStance = null; setState(a, 'idle'); }
     else return { cx: a.px + sx, cy: a.py + sy, clip: name, frame, hurt, facing: a.facing };
+  }
+
+  if (a.state === 'pulse') {
+    const name = a.actionClip, c = clips[name];
+    // Onda triangular: 0,1,2,3,2,1,0 (a la misma velocidad que fps) y
+    // entonces vuelve sola al idle de siempre — nunca se queda congelada.
+    const cycle = Math.max(1, (c.frames - 1) * 2);
+    const raw = Math.floor((ts - a.clipT0) * c.fps / 1000);
+    if (raw >= cycle) { setState(a, 'idle'); }
+    else {
+      const frame = raw <= (c.frames - 1) ? raw : cycle - raw;
+      return { cx: a.px + sx, cy: a.py + sy, clip: name, frame, hurt, facing: a.facing };
+    }
   }
 
   if (a.state === 'action') {

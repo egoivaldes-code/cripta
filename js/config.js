@@ -61,4 +61,4 @@ export function speedMult() { return SPEED_MULT[gameSpeedKey] || 1; }
 export function moveDurationMs() { return Math.max(60, Math.round(MOVE_STEP_BASE_MS * speedMult())); }
 
 // --- versión (fuente única; también se usa para el cache-busting de assets) ---
-export const VERSION = '0.22';
+export const VERSION = '0.24';

@@ -2145,7 +2145,8 @@
       "x": 3,
       "y": 10,
       "id": "altar_1",
-      "type": "altar"
+      "type": "altar",
+      "sprite": "altar"
     },
     {
       "x": 14,

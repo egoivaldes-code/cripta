@@ -392,7 +392,8 @@
       "x": 13,
       "y": 4,
       "id": "altar",
-      "type": "altar"
+      "type": "altar",
+      "sprite": "altar"
     }
   ],
   "exit": {

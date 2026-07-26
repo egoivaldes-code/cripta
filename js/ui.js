@@ -1,21 +1,26 @@
 // Capa DOM: HUD (con PA), cartas de evento, registro, fin de partida y ajustes.
 // Todo el texto visible pasa por t() (multiidioma). No dibuja en el canvas.
 
-import { state } from './state.js?v=0.23';
-import { t, tRandom } from './i18n.js?v=0.23';
-import * as anim from './anim.js?v=0.23';
-import { IDLE_NAME } from './anim.js?v=0.23';
-import * as audio from './audio.js?v=0.23';
-import { VERSION } from './config.js?v=0.23';
-import { images, SPRITE_TILE } from './assets.js?v=0.23';
-import { pushHistory, getHistory, clearHistory, CATEGORIES } from './eventlog.js?v=0.23';
+import { state } from './state.js?v=0.24';
+import { t, tRandom } from './i18n.js?v=0.24';
+import * as anim from './anim.js?v=0.24';
+import { IDLE_NAME } from './anim.js?v=0.24';
+import * as audio from './audio.js?v=0.24';
+import { VERSION } from './config.js?v=0.24';
+import { images, SPRITE_TILE } from './assets.js?v=0.24';
+import { pushHistory, getHistory, clearHistory, CATEGORIES } from './eventlog.js?v=0.24';
 
 let afterInteract = () => {};
 let restart = () => {};
 let onAttemptDisarm = () => {};
+let resolveAltar = () => null;
 export function bindAfterInteract(fn) { afterInteract = fn; }
 export function bindRestart(fn) { restart = fn; }
 export function bindAttemptDisarm(fn) { onAttemptDisarm = fn; }
+// rules.js no se puede importar aquí (import circular: rules.js ya importa
+// de ui.js) — el sorteo+efecto del altar se conecta desde main.js, igual
+// que afterInteract/restart/onAttemptDisarm.
+export function bindResolveAltar(fn) { resolveAltar = fn; }
 
 const $ = id => document.getElementById(id);
 let open = null; // { type:'event', trig } | { type:'over', kind } | null
@@ -319,6 +324,21 @@ export function openLeverCard(trig) {
   audio.fx('ui');
 }
 
+// Altar: un solo marcador genérico. Primero pregunta Sí/No (imagen
+// 'altar_decision'); si se acepta, sortea+aplica el efecto (resolveAltar,
+// conectado desde main.js a rollAltar en rules.js) y la MISMA tarjeta pasa
+// a mostrar la imagen/texto de ESE evento concreto, con botón "Cerrar"
+// (a diferencia de la palanca, aquí se pidió un botón explícito, no
+// "tocar en cualquier parte"). Al cerrar, se dispara la animación de
+// encendido/apagado del altar en el mapa (ver afterInteract en rules.js).
+export function openAltarCard(trig) {
+  state.busy = true;
+  open = { type: 'altar', trig, stage: 'ask', result: null };
+  renderCard();
+  $('veil').classList.add('show');
+  audio.fx('altarOpen');
+}
+
 function renderCard() {
   if (!open) return;
   const card = $('card');
@@ -326,6 +346,7 @@ function renderCard() {
   if (open.type === 'trap') { renderTrapCard(card, open.trap); return; }
   if (open.type === 'story') { renderStoryCard(card, open.ev); return; }
   if (open.type === 'lever') { renderLeverCard(card, open); return; }
+  if (open.type === 'altar') { renderAltarCard(card, open); return; }
 
   const ev = state.events[open.trig.id];
   const b = ev.i18n;
@@ -493,6 +514,75 @@ function activateLever(o, ev, b) {
   audio.fx('ui');
   o.stage = 'result';
   renderCard();
+}
+
+// Altar: misma plantilla visual "story" (imagen a toda tarjeta + hueco de
+// pergamino a la derecha) que la palanca, pero con un botón "Cerrar"
+// explícito en el resultado en vez de "toca en cualquier parte".
+function renderAltarCard(card, o) {
+  card.classList.add('story');
+  card.onclick = null;
+
+  if (o.stage === 'ask') {
+    const img = images.altar_decision;
+    card.innerHTML =
+      `<div class="storywrap">
+         <img src="${img ? img.src : ''}" alt="">
+         <div class="storychoices">
+           <div class="kicker">${t('altar.kicker')}</div>
+           <h2>${t('altar.title')}</h2>
+           <p>${t('altar.question')}</p>
+           <div class="choices"></div>
+         </div>
+       </div>`;
+    const box = card.querySelector('.choices');
+    const yes = document.createElement('button');
+    yes.className = 'choice';
+    yes.innerHTML = `<span>${t('ui.yes')}</span>`;
+    yes.onclick = () => {
+      const chosen = resolveAltar(o.trig);
+      if (!chosen) { card.classList.remove('story'); state.busy = false; hideVeil(); return; }
+      o.result = chosen;
+      o.trig._altarClip = 'activate' + chosen.n;
+      audio.fx(chosen.kind === 'good' ? 'altarGood' : 'altarBad');
+      o.stage = 'result';
+      renderCard();
+    };
+    const no = document.createElement('button');
+    no.className = 'choice';
+    no.innerHTML = `<span>${t('ui.no')}</span>`;
+    no.onclick = () => { card.classList.remove('story'); state.busy = false; hideVeil(); };
+    box.appendChild(yes);
+    box.appendChild(no);
+    return;
+  }
+
+  // stage 'result': imagen y texto propios del evento sorteado, con botón
+  // "Cerrar" explícito (a diferencia de la palanca/ambientación).
+  const n = o.result.n;
+  const img = images['altar_ev' + n];
+  card.innerHTML =
+    `<div class="storywrap">
+       <img src="${img ? img.src : ''}" alt="">
+       <div class="storychoices">
+         <div class="kicker">${t('altar.kicker')}</div>
+         <h2>${t('altar.ev' + n + '.title')}</h2>
+         <p>${t('altar.ev' + n + '.result')}</p>
+         <div class="choices"></div>
+       </div>
+     </div>`;
+  const box = card.querySelector('.choices');
+  const close = document.createElement('button');
+  close.className = 'choice';
+  close.innerHTML = `<span>${t('ui.close')}</span>`;
+  close.onclick = () => {
+    card.classList.remove('story');
+    state.busy = false;
+    hideVeil();
+    syncHUD();
+    afterInteract(o.trig);
+  };
+  box.appendChild(close);
 }
 
 function resolveChoice(trig, ch, i, b) {

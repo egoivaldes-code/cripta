@@ -716,13 +716,15 @@
       "x": 5,
       "y": 2,
       "id": "altar_1",
-      "type": "altar"
+      "type": "altar",
+      "sprite": "altar"
     },
     {
       "x": 6,
       "y": 2,
       "id": "altar_2",
-      "type": "altar"
+      "type": "altar",
+      "sprite": "altar"
     }
   ],
   "exit": {

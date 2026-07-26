@@ -30,27 +30,6 @@
       }
     ]
   },
-  "altar": {
-    "i18n": "ev.altar",
-    "type": "altar",
-    "actionCost": 1,
-    "choices": [
-      {
-        "effect": {
-          "hp": 10,
-          "gold": -4
-        }
-      },
-      {
-        "effect": {
-          "gold": 5
-        }
-      },
-      {
-        "effect": {}
-      }
-    ]
-  },
   "palanca": {
     "i18n": "ev.palanca",
     "type": "lever",
@@ -202,26 +181,5 @@
   "exit_4": {
     "i18n": "ev.exit4",
     "type": "exit"
-  },
-  "altar_1": {
-    "i18n": "ev.altar",
-    "type": "altar",
-    "actionCost": 1,
-    "choices": [
-      {
-        "effect": {
-          "hp": 10,
-          "gold": -4
-        }
-      },
-      {
-        "effect": {
-          "gold": 5
-        }
-      },
-      {
-        "effect": {}
-      }
-    ]
   }
 }
