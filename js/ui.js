@@ -1,14 +1,14 @@
 // Capa DOM: HUD (con PA), cartas de evento, registro, fin de partida y ajustes.
 // Todo el texto visible pasa por t() (multiidioma). No dibuja en el canvas.
 
-import { state } from './state.js?v=0.26.1';
-import { t, tRandom } from './i18n.js?v=0.26.1';
-import * as anim from './anim.js?v=0.26.1';
-import { IDLE_NAME } from './anim.js?v=0.26.1';
-import * as audio from './audio.js?v=0.26.1';
-import { VERSION } from './config.js?v=0.26.1';
-import { images, SPRITE_TILE } from './assets.js?v=0.26.1';
-import { pushHistory, getHistory, clearHistory, CATEGORIES } from './eventlog.js?v=0.26.1';
+import { state } from './state.js?v=0.27';
+import { t, tRandom } from './i18n.js?v=0.27';
+import * as anim from './anim.js?v=0.27';
+import { IDLE_NAME } from './anim.js?v=0.27';
+import * as audio from './audio.js?v=0.27';
+import { VERSION } from './config.js?v=0.27';
+import { images, SPRITE_TILE } from './assets.js?v=0.27';
+import { pushHistory, getHistory, clearHistory, CATEGORIES } from './eventlog.js?v=0.27';
 
 let afterInteract = () => {};
 let restart = () => {};
@@ -541,6 +541,14 @@ function renderLeverCard(card, o) {
 // ver render.js — coincida con el momento de cerrar la ventana, tal como se
 // pidió. Antes de esto se aplicaba ya al pulsar "Sí"; el único cambio es
 // CUÁNDO se aplica, no qué hace.
+let onLeverPulled = () => {};
+// Igual que resolveAltar/resolveChest: rules.js no se puede importar aquí
+// (import circular), así que el gancho se conecta desde main.js. Sirve para
+// mecánicas de nivel que dependen de una palanca concreta (p.ej. "cuando se
+// tiran DOS palancas a la vez, aparece un jefe" — ver checkLeverBossSpawn en
+// rules.js, cripta V0.27).
+export function bindOnLeverPulled(fn) { onLeverPulled = fn; }
+
 function activateLever(trig, ev) {
   trig.used = true;
   const ids = (ev && ev.unlocks) || [];
@@ -550,6 +558,7 @@ function activateLever(trig, ev) {
   }
   log(t('log.leverActivated'), 'event');
   audio.fx('ui');
+  onLeverPulled(trig);
 }
 
 // Altar: misma plantilla visual "story" (imagen a toda tarjeta + hueco de

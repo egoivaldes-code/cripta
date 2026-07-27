@@ -149,5 +149,8 @@
   "exit_4": {
     "i18n": "ev.exit4",
     "type": "exit"
+  },
+  "event_tchamber": {
+    "i18n": "ev.tchamber"
   }
 }

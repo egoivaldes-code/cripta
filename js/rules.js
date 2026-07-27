@@ -1,15 +1,15 @@
 // Reglas del juego: economía de Puntos de Acción (PA), interacción a distancia
 // y adyacente, trampas, niebla y salida de nivel. Agnóstico del dibujo.
 
-import { state, walkable, isWall, adjacent, distTo, isVisible, recomputeFog, computeReach, pathTo, findPath, findApproachPath, reachCost, blockingTriggerAt, trapAt, walkTriggerAt, exitAt, stepNeighbors, foeAt, corpseAt, livingFoes, losClear, revealAllExplored } from './state.js?v=0.26.1';
-import { openEvent, openLeverCard, openAltarCard, openChestCard, openTrapCard, openStoryCard, syncHUD, syncInitiativeUI, showCombatBadge, showLootWindow, showConfirm, log, gameOver } from './ui.js?v=0.26.1';
-import { t, tRandom } from './i18n.js?v=0.26.1';
-import { MOVE_COST, ATTACK_COST, INITIATIVE_BASE, INITIATIVE_DIE, TURN_DELAY, COMBAT_ENTER_DELAY, getGameSpeed, setGameSpeed, speedMult, moveDurationMs, ARMOR_CONSTANT } from './config.js?v=0.26.1';
-import * as anim from './anim.js?v=0.26.1';
-import { ANIM_CLIPS } from './anim.js?v=0.26.1';
-import * as audio from './audio.js?v=0.26.1';
-import { centerOnTile } from './render.js?v=0.26.1';
-import { getOwnedTier, getSkillDef } from './skills.js?v=0.26.1';
+import { state, walkable, isWall, adjacent, distTo, isVisible, recomputeFog, computeReach, pathTo, findPath, findApproachPath, reachCost, blockingTriggerAt, trapAt, walkTriggerAt, exitAt, stepNeighbors, foeAt, corpseAt, livingFoes, losClear, revealAllExplored } from './state.js?v=0.27';
+import { openEvent, openLeverCard, openAltarCard, openChestCard, openTrapCard, openStoryCard, syncHUD, syncInitiativeUI, showCombatBadge, showLootWindow, showConfirm, log, gameOver } from './ui.js?v=0.27';
+import { t, tRandom } from './i18n.js?v=0.27';
+import { MOVE_COST, ATTACK_COST, INITIATIVE_BASE, INITIATIVE_DIE, TURN_DELAY, COMBAT_ENTER_DELAY, getGameSpeed, setGameSpeed, speedMult, moveDurationMs, ARMOR_CONSTANT } from './config.js?v=0.27';
+import * as anim from './anim.js?v=0.27';
+import { ANIM_CLIPS } from './anim.js?v=0.27';
+import * as audio from './audio.js?v=0.27';
+import { centerOnTile } from './render.js?v=0.27';
+import { getOwnedTier, getSkillDef } from './skills.js?v=0.27';
 
 const sign = (n) => Math.sign(n);
 
@@ -365,11 +365,15 @@ function killFoe(target, foeName) {
   checkCombatEnd();
 }
 
-// Si con esta muerte se ha limpiado la mazmorra ENTERA (todas las zonas
-// conectadas: cementerio + cripta + mausoleos), ahora sí toca la pantalla de
-// victoria — limpiar solo esta zona (p.ej. los 2 esqueletos de un mausoleo)
-// ya no la dispara por sí solo.
+// Victoria: matar al Esqueleto Mago de la cripta (checkLeverBossSpawn, más
+// abajo) BASTA por sí solo — única y exclusivamente esa condición, sin
+// depender de limpiar nada más (ni el resto de enemigos de la cripta, ni los
+// mausoleos, ni el cementerio). Decisión explícita del usuario, revisando lo
+// que se había dicho antes (que también exigía limpiar los 2 mausoleos).
+// Aparte, se conserva el recuento de "mazmorra entera limpia" de siempre
+// (útil para quien prefiera explorarlo todo sin usar el jefe como atajo).
 function checkFullVictory() {
+  if (state.foes.some(f => f.id === CRYPT_BOSS_ID && !f.alive)) return true;
   return totalFoeCount != null && (state.hero.totalKills || 0) >= totalFoeCount;
 }
 
@@ -1229,6 +1233,47 @@ export async function onTapTile(gx, gy) {
   }
 
   if (hero.hp > 0 && hero.ap <= 0 && !state.combat.active) endHeroTurn();
+}
+
+// --- Cripta (V0.27): jefe de las dos palancas ------------------------------
+// Cuando lever_1 Y lever_4 (nivel "cripta") están ambas activadas, da igual
+// el orden, aparece un Esqueleto Mago (enemy6) justo donde está el marcador
+// invisible "event_boss". El propio enemy6 ya castea Llamada Sepulcral solo
+// en su primer turno (ver mageTurn más abajo) — no hace falta nada más para
+// ese efecto, ya estaba implementado desde antes, solo nunca se había usado
+// en ningún nivel. Se llama desde ui.js (activateLever) vía bindOnLeverPulled
+// (mismo patrón que resolveAltar/resolveChest: rules.js no se puede importar
+// desde ui.js, así que el enganche va por main.js).
+//
+// Cuenta para la victoria de la mazmorra entera (limpiar cementerio + cripta
+// + mausoleo1 + mausoleo2): como este enemigo no viene en el `start.foes` del
+// nivel (no existe hasta que se cumple la condición), se le suma +1 a mano
+// al total en main.js (ver setTotalFoeCount) — si no, matarlo no contaría
+// para la pantalla de victoria.
+const CRYPT_BOSS_LEVERS = ['lever_1', 'lever_4'];
+const CRYPT_BOSS_MARKER = 'event_boss';
+const CRYPT_BOSS_ID = 'enemy6_boss';
+
+export function checkLeverBossSpawn(trig) {
+  if (!CRYPT_BOSS_LEVERS.includes(trig.id)) return;
+  // Comprobar por el propio state.foes (no una variable aparte) para que
+  // funcione bien también tras cargar una partida guardada después de que
+  // el jefe ya hubiera aparecido — así nunca se duplica.
+  if (state.foes.some(f => f.id === CRYPT_BOSS_ID)) return;
+  const stillMissing = CRYPT_BOSS_LEVERS.some(id => {
+    const t = state.triggers.find(tr => tr.id === id);
+    return !t || !t.used;
+  });
+  if (stillMissing) return;
+  const marker = state.triggers.find(tr => tr.id === CRYPT_BOSS_MARKER);
+  if (!marker) return;
+  state.foes.push({
+    id: CRYPT_BOSS_ID, x: marker.x, y: marker.y, alive: true,
+    hp: 80, maxHp: 80, atk: 8, sprite: 'enemy6', apMax: 4,
+    anim: 'foe' + state.foes.length, dormant: false, wakeR: 0,
+  });
+  log(t('log.cryptBossWakes'), 'event');
+  syncHUD();
 }
 
 // Se llama tras resolver la carta de un objeto (ui.js). El coste ya se

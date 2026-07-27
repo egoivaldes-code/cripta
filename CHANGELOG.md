@@ -2,6 +2,24 @@
 
 Esquema: `0.X` = cambio grande · `0.X.Y` = cambio pequeño / fix.
 
+## 0.27 — Nivel Cripta de verdad + jefe de las dos palancas
+- **Sustituido el `cripta.json` placeholder** (18×18 de pruebas, sin
+  enemigos) por el nivel real diseñado en el editor: 78×52, 60 enemigos, 54
+  objetos (palancas, cofres, contenedores, altares), salida al cementerio.
+- **Jefe nuevo**: un Esqueleto Mago (80hp/8atk) aparece cuando se tiran las
+  2 palancas del nivel (`lever_1`/`lever_4`, en cualquier orden). Ya tenía
+  toda su IA hecha desde antes (invoca esqueletos, Llamada Sepulcral
+  automática al entrar en combate) — solo faltaba darlo de alta en un
+  nivel. **Matarlo termina el mapa por sí solo, única y exclusivamente**
+  (no hace falta limpiar nada más).
+- Cámara del tesoro secreta con su propio mensaje al entrar.
+- 2 golems de hueso colocados donde el editor aún no tiene ese enemigo
+  disponible como colocable (marcadores temporales convertidos a mano en
+  enemigos reales).
+- Pendiente a propósito para otra sesión: sistema de "nivel 2 de
+  dificultad" al derrotar al jefe — no existe todavía, se decidió no
+  improvisarlo.
+
 ## 0.26.1 — Arreglos de UI + bug real de pasivas al comprarlas
 - **Barra de acción**: el número de turnos de cooldown y el velo rojo de
   "bloqueada" nunca tenían CSS asignado, así que no se veían bien. Ya salen

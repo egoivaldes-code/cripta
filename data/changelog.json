@@ -1,6 +1,25 @@
 {
   "versions": [
     {
+      "v": "0.27",
+      "es": {
+        "title": "La Cripta cobra vida",
+        "notes": [
+          "La Cripta ya tiene su mapa completo, con muchos más enemigos y objetos que encontrar.",
+          "Hay un nuevo jefe: si tiras de las dos palancas del nivel, algo antiguo despierta.",
+          "Existe una cámara del tesoro secreta en algún rincón del mapa."
+        ]
+      },
+      "en": {
+        "title": "The Crypt comes alive",
+        "notes": [
+          "The Crypt now has its full map, with many more enemies and things to find.",
+          "There's a new boss: pull both levers in the level and something ancient wakes up.",
+          "A secret treasure chamber is hidden somewhere in the map."
+        ]
+      }
+    },
+    {
       "v": "0.26.1",
       "es": {
         "title": "Arreglos de interfaz",

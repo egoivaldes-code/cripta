@@ -916,6 +916,101 @@ hoy en día siempre el mismo número ya que mover 1 casilla cuesta 1 PA fijo
 — se calcula así, en vez de un número suelto, para que quede bien si algún
 día `MOVE_COST` cambia o aparece algún bonus de movimiento).
 
+## Nivel "Cripta" de verdad + jefe de dos palancas (V0.27)
+
+El `cripta.json` que había hasta ahora era un **placeholder de pruebas**
+(18×18, solo un cofre y un altar, sin enemigos, salida a `level1`). Se
+sustituyó entero por el nivel real diseñado en el editor (78×52, 60
+enemigos, 54 objetos, salida a `cemetery`), exportado como JSON desde
+**CRIPTA Editor v0.12.2/v0.12.5** y pegado tal cual, conservando todos los
+IDs de sus marcadores (protocolo del editor: "el editor define DÓNDE, Claude
+implementa QUÉ").
+
+**Conversión hecha al importar** (los `note` de los marcadores, que eran
+contexto para implementar la lógica, se quitaron del JSON final — no
+aportan nada al motor):
+- `lever_1`/`lever_4`: se les añadió `"sprite": "lever"` (el JSON del editor
+  no lo traía; sin esto se habrían dibujado con el glifo `/` genérico, como
+  antes de la V0.26.1).
+- `event_tchamber` (cámara del tesoro, marcador invisible): se marcó
+  `"walkTrigger": true` y se le dio una entrada sencilla en `events.json`
+  (`event_tchamber`, solo `i18n`, sin `type` → pasa por la rama de mensaje de
+  registro de `triggerWalkEvent`, no por una carta a toda pantalla — no había
+  imagen para ello). Texto: "Vaya, vaya… parece que hemos encontrado una
+  cámara secreta…".
+- `event_3_bonegolem`/`event_bonegolem2` (marcadores puestos porque el editor
+  aún no tiene el golem de hueso como colocable): **convertidos en enemigos
+  reales** en `start.foes` — mismas stats que ya usa `pickWeightedSummon`
+  para el golem de hueso (90hp/9atk/`tall:1.725`, dormant, wakeR 3). Se
+  conservó el ID original de cada marcador como `id` del enemigo
+  (`event_3_bonegolem`/`event_bonegolem2`) para no perder la trazabilidad con
+  el editor, aunque el nombre ya no describa bien qué es.
+- `event_boss`: marcador invisible, se deja tal cual en `triggers` (sin
+  entrada en `events.json` — no es interactivo, solo es la posición donde
+  aparece el jefe, ver más abajo). Si se toca sin querer, sale el mensaje
+  neutro de siempre ("no parece que haya nada aquí").
+
+**Jefe de las dos palancas** (`checkLeverBossSpawn`, `rules.js`): cuando
+`lever_1` Y `lever_4` están ambas activadas (da igual el orden), aparece un
+**Esqueleto Mago** (`enemy6`, 80hp/8atk — decisión tomada esta sesión;
+enemigos normales del nivel van de 9 a 16hp, el golem de hueso tiene 90/9)
+justo en las coordenadas de `event_boss`. Detalles:
+- `enemy6` **ya existía en el código con toda su IA** (invoca esqueletos
+  cercanos y castea Llamada Sepulcral solo en su primer turno, ver
+  `mageTurn`/`castSepulchralCall`) pero nunca se había colocado en ningún
+  nivel — no hizo falta tocar su comportamiento, solo darlo de alta aquí.
+- Se engancha con el mismo patrón que `resolveAltar`/`resolveChest`
+  (`rules.js` no se puede importar desde `ui.js`, import circular): nuevo
+  `bindOnLeverPulled(fn)` en `ui.js`, llamado al final de `activateLever()`
+  (justo cuando se cierra la carta de la palanca), conectado desde
+  `main.js` a `checkLeverBossSpawn`.
+- La comprobación de "¿ya apareció?" se hace mirando si `state.foes` ya
+  tiene un enemigo con `id: 'enemy6_boss'`, no con una variable aparte — así
+  funciona bien también si se recarga una partida guardada después de que
+  el jefe ya hubiera aparecido (no se duplica).
+- **Matar al jefe basta por sí solo para terminar el mapa — única y
+  exclusivamente esa condición** (decisión final del usuario, corrigiendo lo
+  que se había dicho antes de que también hacía falta limpiar los 2
+  mausoleos). Implementado en `checkFullVictory()` (`rules.js`): si hay un
+  enemigo con `id: 'enemy6_boss'` y `!alive`, victoria inmediata
+  (`gameOver('win')`), sin mirar el recuento total de la mazmorra para nada.
+  Se quitó el ajuste de "+1" en `main.js` que se había añadido para la
+  versión anterior de este mismo mecanismo (ya no hace falta: el jefe ya no
+  depende de sumar/contar nada). El recuento de "mazmorra entera limpia" de
+  siempre se conserva aparte, como camino alternativo para quien prefiera
+  explorarlo todo sin usar el jefe como atajo — ambos caminos llevan a la
+  misma pantalla de victoria.
+- Confirmado con el usuario: "se reinicia el mapa" = la pantalla de victoria
+  ya existente (`gameOver('win')` → botón de reiniciar). No hizo falta
+  construir nada nuevo para esto, ya se comportaba así.
+- **Pendiente para otra sesión** (decisión explícita): "se desbloquea el
+  nivel 2 de dificultad" — no existe ningún sistema de dificultad por
+  niveles todavía en el juego. Se deja sin implementar a propósito hasta
+  diseñarlo con calma.
+
+**Pruebas hechas**: batería headless de `checkLeverBossSpawn` (no aparece
+con solo 1 palanca, aparece con las 2 en cualquier orden, con las stats y
+coordenadas correctas, no se duplica si se vuelve a comprobar, ignora
+palancas de otros niveles). Validación de `cripta.json`: dimensiones
+78×52, héroe/enemigos/objetos todos en casillas caminables, sin IDs
+duplicados entre triggers y enemigos. Se comprobó también, a petición del
+usuario, que la malla del nivel encajaba con la imagen de referencia del
+editor: el bloque `_editorMap` del JSON venía calibrado para una imagen de
+1400×933, pero la imagen real subida medía 2160×1440 (factor ~1.543×) — con
+los números crudos, un 17.3% de las casillas de "suelo" caían sobre el
+fondo magenta (vacío) de la imagen; reescalando cellSize/origin al tamaño
+real, ese porcentaje bajó a 0.0%. **Esto no afecta al nivel importado**: el
+motor solo usa la matriz `tiles` (ya en coordenadas de rejilla), nunca ese
+metadato de calibración de píxeles — es puramente para la vista previa del
+propio editor.
+
+**Cambio de idea del usuario a mitad de sesión**: la condición de victoria
+de la cripta pasó de "matar al jefe Y limpiar los 2 mausoleos" a "matar al
+jefe, única y exclusivamente" (ver el punto de `checkFullVictory` más
+arriba) — el código se actualizó en el momento, no quedó ninguna referencia
+a la versión anterior (ambos mausoleos limpios) en `AGENTS.md` ni en el
+código.
+
 ## Ajuste de márgenes en las tarjetas "story" (cofre + altar + palanca) — V0.26
 
 `storychoices` es la columna de texto que se superpone a la ilustración en

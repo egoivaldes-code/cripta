@@ -18,11 +18,11 @@
 // estado + render + interacción para toda esta pantalla, ya que es un bloque
 // autocontenido de la interfaz.
 
-import { state } from './state.js?v=0.26.1';
-import { t } from './i18n.js?v=0.26.1';
-import { VERSION, ATTACK_COST } from './config.js?v=0.26.1';
-import { showConfirm } from './ui.js?v=0.26.1';
-import { getPersistedGold, persistGold } from './savegame.js?v=0.26.1';
+import { state } from './state.js?v=0.27';
+import { t } from './i18n.js?v=0.27';
+import { VERSION, ATTACK_COST } from './config.js?v=0.27';
+import { showConfirm } from './ui.js?v=0.27';
+import { getPersistedGold, persistGold } from './savegame.js?v=0.27';
 
 // rules.js no se puede importar aquí (import circular: rules.js ya importa
 // getOwnedTier/getSkillDef de aquí) — el enfriamiento restante se conecta
