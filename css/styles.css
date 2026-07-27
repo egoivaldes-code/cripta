@@ -413,7 +413,7 @@ body.layout-edit .layoutApplyBtn{ display:block; }
 .inv-slot .inv-icon{ max-width:74%; max-height:74%; pointer-events:none;
   font-size:34px; line-height:1; filter:drop-shadow(0 1px 3px rgba(0,0,0,.6)); }
 .inv-slot .inv-icon img{ max-width:100%; max-height:100%; display:block; }
-.inv-qty{ position:absolute; right:4px; bottom:2px; font-size:14px; color:#f2e2b8;
+.inv-qty{ position:absolute; right:3px; bottom:1px; font-size:20px; font-weight:700; color:#f2e2b8;
   text-shadow:0 1px 2px #000, 0 0 3px #000; font-family:Georgia,serif; pointer-events:none; }
 .inv-slot.inv-selected{ box-shadow:0 0 0 3px #ffd76b, 0 0 14px 4px rgba(255,215,107,.65); z-index:2; }
 .inv-slot.inv-valid-target{ background:rgba(60,220,90,.38); }

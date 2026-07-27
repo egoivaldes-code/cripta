@@ -96,6 +96,12 @@
   "ev.mausoleo2Ambush.c0": "Touch the sigil",
   "ev.mausoleo2Ambush.c0.tag": "danger",
   "ev.mausoleo2Ambush.c0.r": "The whole chamber comes alive! Spectres emerge from the shadows around you.",
+  "ev.mausoleo1GolemGuard.kicker": "Omen",
+  "ev.mausoleo1GolemGuard.title": "A pile of bones",
+  "ev.mausoleo1GolemGuard.text": "A heap of bones and skulls sits beside a ring of fallen skeletons. As you approach, everything starts to shake.",
+  "ev.mausoleo1GolemGuard.c0": "Approach",
+  "ev.mausoleo1GolemGuard.c0.tag": "danger",
+  "ev.mausoleo1GolemGuard.c0.r": "The bones rise all at once! A monstrosity looms among the skeletons surrounding it.",
   "ev.cofre.kicker": "Find",
   "ev.cofre.title": "Sealed chest",
   "ev.cofre.text": "An iron chest reeks of rust and something sweet. The latch gives if you insist… but the metal is warm, as if something breathes inside.",
@@ -212,6 +218,7 @@
   "enemy.enemy4": "Skeleton archer",
   "enemy.enemy5": "Spectre",
   "enemy.enemy6": "Skeleton mage",
+  "enemy.golembone": "Bone golem",
   "log.trapDisarm": "You disarm the trap.",
   "ev.tumba.kicker": "Grave",
   "ev.tumba.title": "Mossy headstone",
@@ -440,5 +447,7 @@
   "altar.ev10.title": "Curse of frailty",
   "altar.ev10.result": "A brittle aura clings to your skin. The next hits will sting more.",
 
-  "log.altarSpent": "The altar shows no power anymore."
+  "log.altarSpent": "The altar shows no power anymore.",
+  "log.golemExecute": "The {name} finishes off the badly wounded victim in one blow and grows stronger from it.",
+  "log.golemStun": "The {name} lands a heavy blow and leaves you stunned."
 }

@@ -2146,7 +2146,8 @@
       "y": 10,
       "id": "altar_1",
       "type": "altar",
-      "sprite": "altar"
+      "sprite": "altar",
+      "tall": 0.8625
     },
     {
       "x": 14,

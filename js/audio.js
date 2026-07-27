@@ -2,7 +2,7 @@
 // usan un pitido suave sintetizado. De fondo: ambiente de bosque en bucle + ulular
 // de búho de vez en cuando. En móvil el sonido solo arranca tras tocar -> unlock().
 
-import { VERSION } from './config.js?v=0.24';
+import { VERSION } from './config.js?v=0.25';
 
 let ctx, master, fxGain, ambGain;
 let ambSource = null, owlTimer = null;
@@ -19,7 +19,7 @@ export function initialMusicVol() { return musicVol; }
 export function initialFxVol() { return fxVol; }
 
 // Muestras a decodificar. 'ambience' va en bucle; 'owl' se lanza suelto; el resto, efectos.
-const SAMPLE_FILES = ['footsteps', 'swing', 'hit', 'grunt1', 'grunt2', 'crit', 'coins', 'owl', 'ambience', 'combatstart', 'chestopen', 'containerbreak', 'altaractivation', 'altaractivationgood', 'altaractivationbad'];
+const SAMPLE_FILES = ['footsteps', 'swing', 'hit', 'grunt1', 'grunt2', 'crit', 'coins', 'owl', 'ambience', 'combatstart', 'chestopen', 'containerbreak', 'altaractivation', 'altaractivationgood', 'altaractivationbad', 'golemboneidle', 'golembonewalk', 'golembonedeath', 'combatelite'];
 const buffers = {};
 
 // Evento del juego -> cómo suena.
@@ -35,6 +35,9 @@ const CUES = {
   altarOpen: { one: 'altaractivation', gain: 0.85 },        // aparece la pregunta del altar
   altarGood: { one: 'altaractivationgood', gain: 0.9 },     // el evento sorteado es bueno
   altarBad:  { one: 'altaractivationbad', gain: 0.9 },      // el evento sorteado es malo
+  golemboneIdle: { one: 'golemboneidle', gain: 0.85 },      // idle ambiental + habilidades sin sfx propio
+  golemboneWalk: { one: 'golembonewalk', gain: 0.7 },       // pasos del golem (en vez de 'footsteps' genérico)
+  golemboneDeath: { one: 'golembonedeath', gain: 0.9 },
 };
 
 export function unlock() {
@@ -83,9 +86,32 @@ function scheduleOwl() {
   }, wait);
 }
 
+// Música de "combate de élite": emboscadas grandes (espectros de Mausoleo 2)
+// y, más adelante, la invocación del Esqueleto Mago en la Cripta. Baja el
+// ambiente de bosque mientras suena (no lo para del todo, para que no se
+// note un corte seco) y lo recupera al terminar el combate.
+let eliteSource = null, eliteGain = null;
+export function startEliteMusic() {
+  if (eliteSource || !ctx || !buffers.combatelite) return;
+  if (ambGain) ambGain.gain.value = musicVol * AMB_MIX * 0.12;
+  eliteSource = ctx.createBufferSource();
+  eliteSource.buffer = buffers.combatelite;
+  eliteSource.loop = true;
+  eliteGain = ctx.createGain(); eliteGain.gain.value = musicVol;
+  eliteSource.connect(eliteGain); eliteGain.connect(master);
+  eliteSource.start();
+}
+export function stopEliteMusic() {
+  if (!eliteSource) return;
+  try { eliteSource.stop(); } catch { /* ya parada */ }
+  eliteSource.disconnect(); eliteSource = null; eliteGain = null;
+  if (ambGain) ambGain.gain.value = musicVol * AMB_MIX;
+}
+
 export function setMusicVol(v) {
   musicVol = v; save('cripta.vol.music', v);
   if (ambGain) ambGain.gain.value = v * AMB_MIX;
+  if (eliteGain) eliteGain.gain.value = v;
 }
 export function setFxVol(v) { fxVol = v; save('cripta.vol.fx', v); if (fxGain) fxGain.gain.value = v; }
 

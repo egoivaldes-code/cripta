@@ -2,6 +2,17 @@
 
 Esquema: `0.X` = cambio grande · `0.X.Y` = cambio pequeño / fix.
 
+## 0.25 — Golem de hueso, entrada/salida con arte real y varios arreglos
+- **Golem de hueso**: nuevo enemigo grande (escala 1.5×, mucha vida) con 2 habilidades propias comprobadas al empezar su turno: rematar de un golpe a cualquier adyacente (amigo o enemigo suyo) con menos del 5% de vida (se cura 25% y su daño sube 10% para siempre), y aturdir a la que menos vida tenga si tiene 2+ del bando del héroe adyacentes (construido para cuando existan mascotas). Aparece junto a 4 esqueletos en una emboscada al activar el "Evento" que llevaba sin enganchar en Mausoleo 1, con la misma música de combate de élite que la emboscada de espectros de Mausoleo 2.
+- **Aturdido**: primer estado real del juego (PA a 0, texto flotante, pasa turno solo), reutilizando el icono y el texto que ya estaban preparados.
+- **Entrada/salida con arte real**: sustituye al glifo ▮/▯ de siempre; detección automática de "entrada grande" (2 casillas juntas → un modelo centrado al doble de tamaño).
+- **Música de combate de élite**: arranca en la emboscada de Mausoleo 2, para al terminar el combate; reservada para el Esqueleto Mago más adelante.
+- **Habilidades bloqueadas**: velo rojo + número de turnos de CD en la barra de acciones cuando no se pueden usar.
+- **Arreglado**: Golpe desde las Sombras ya no deja atacar/interactuar "a distancia" (el sprite y la cámara ahora sí siguen al teletransporte).
+- **Reordenado**: el contenedor se rompe al cerrar la ventana de botín, no al abrirla.
+- **Tienda de habilidades**: ya no aparece al simplemente retomar una partida guardada — solo en partida nueva de verdad, al morir/reiniciar, o al bajar de nivel.
+- Escala del altar +50%; número de oro del inventario más grande en móvil.
+
 ## 0.24 — Altares: pool de 10 eventos aleatorios (5 buenos / 5 malos), un solo uso
 - **Sistema nuevo de altares**, reemplaza al viejo evento genérico de 3 opciones. Un solo marcador genérico: todos los altares son iguales y comparten el mismo pool de 10 eventos (ver sección propia en AGENTS.md) — no pasan por `events.json`, el contenido vive en `ALTAR_EVENTS` (`rules.js`). Los 5 marcadores ya colocados (cementerio, cripta, level2, mausoleo1 ×2) se reutilizaron tal cual, solo con `sprite: "altar"` añadido.
 - **Flujo**: pregunta Sí/No (imagen de ambientación) → si aceptas, se sortea 1 de los 10 y se aplica de verdad → la misma tarjeta muestra la imagen/texto de ESE evento con sonido bueno/malo y botón "Cerrar" explícito → al cerrar, el altar se enciende y se apaga solo en el mapa (nunca se congela) y queda gastado para siempre (pero visible, a diferencia de un contenedor).

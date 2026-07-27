@@ -96,6 +96,12 @@
   "ev.mausoleo2Ambush.c0": "Tocar el sigilo",
   "ev.mausoleo2Ambush.c0.tag": "peligro",
   "ev.mausoleo2Ambush.c0.r": "¡La cámara entera cobra vida! Espectros emergen de las sombras a tu alrededor.",
+  "ev.mausoleo1GolemGuard.kicker": "Presagio",
+  "ev.mausoleo1GolemGuard.title": "Un montón de huesos",
+  "ev.mausoleo1GolemGuard.text": "Un amasijo de huesos y cráneos se apila junto a un círculo de esqueletos caídos. Al acercarte, todo empieza a temblar.",
+  "ev.mausoleo1GolemGuard.c0": "Acercarse",
+  "ev.mausoleo1GolemGuard.c0.tag": "peligro",
+  "ev.mausoleo1GolemGuard.c0.r": "¡Los huesos se levantan de golpe! Una monstruosidad se alza entre los esqueletos que la rodean.",
   "ev.cofre.kicker": "Hallazgo",
   "ev.cofre.title": "Cofre lacrado",
   "ev.cofre.text": "Un cofre de hierro rezuma óxido y algo dulzón. El cierre cede si insistes… pero el metal está caliente, como si algo respirara dentro.",
@@ -212,6 +218,7 @@
   "enemy.enemy4": "Esqueleto arquero",
   "enemy.enemy5": "Espectro",
   "enemy.enemy6": "Esqueleto mago",
+  "enemy.golembone": "Golem de hueso",
   "log.trapDisarm": "Desarmas la trampa.",
   "ev.tumba.kicker": "Tumba",
   "ev.tumba.title": "Lápida musgosa",
@@ -440,5 +447,7 @@
   "altar.ev10.title": "Maldición de fragilidad",
   "altar.ev10.result": "Un aura quebradiza se pega a tu piel. Los próximos golpes te dolerán más.",
 
-  "log.altarSpent": "El altar ya no muestra ningún poder."
+  "log.altarSpent": "El altar ya no muestra ningún poder.",
+  "log.golemExecute": "El {name} remata a la víctima malherida de un solo golpe y se fortalece con ello.",
+  "log.golemStun": "El {name} golpea con fuerza y te deja aturdido."
 }

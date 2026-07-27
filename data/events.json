@@ -30,6 +30,16 @@
       }
     ]
   },
+  "mausoleo1_golem_guard": {
+    "i18n": "ev.mausoleo1GolemGuard",
+    "type": "ambush",
+    "actionCost": 1,
+    "choices": [
+      {
+        "effect": {}
+      }
+    ]
+  },
   "palanca": {
     "i18n": "ev.palanca",
     "type": "lever",

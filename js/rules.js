@@ -1,15 +1,15 @@
 // Reglas del juego: economía de Puntos de Acción (PA), interacción a distancia
 // y adyacente, trampas, niebla y salida de nivel. Agnóstico del dibujo.
 
-import { state, walkable, isWall, adjacent, distTo, isVisible, recomputeFog, computeReach, pathTo, findPath, findApproachPath, reachCost, blockingTriggerAt, trapAt, walkTriggerAt, exitAt, stepNeighbors, foeAt, corpseAt, livingFoes, losClear, revealAllExplored } from './state.js?v=0.24';
-import { openEvent, openLeverCard, openAltarCard, openTrapCard, openStoryCard, syncHUD, syncInitiativeUI, showCombatBadge, showLootWindow, showConfirm, log, gameOver } from './ui.js?v=0.24';
-import { t, tRandom } from './i18n.js?v=0.24';
-import { MOVE_COST, ATTACK_COST, INITIATIVE_BASE, INITIATIVE_DIE, TURN_DELAY, COMBAT_ENTER_DELAY, getGameSpeed, setGameSpeed, speedMult, moveDurationMs } from './config.js?v=0.24';
-import * as anim from './anim.js?v=0.24';
-import { ANIM_CLIPS } from './anim.js?v=0.24';
-import * as audio from './audio.js?v=0.24';
-import { centerOnTile } from './render.js?v=0.24';
-import { getOwnedTier, getSkillDef } from './skills.js?v=0.24';
+import { state, walkable, isWall, adjacent, distTo, isVisible, recomputeFog, computeReach, pathTo, findPath, findApproachPath, reachCost, blockingTriggerAt, trapAt, walkTriggerAt, exitAt, stepNeighbors, foeAt, corpseAt, livingFoes, losClear, revealAllExplored } from './state.js?v=0.25';
+import { openEvent, openLeverCard, openAltarCard, openTrapCard, openStoryCard, syncHUD, syncInitiativeUI, showCombatBadge, showLootWindow, showConfirm, log, gameOver } from './ui.js?v=0.25';
+import { t, tRandom } from './i18n.js?v=0.25';
+import { MOVE_COST, ATTACK_COST, INITIATIVE_BASE, INITIATIVE_DIE, TURN_DELAY, COMBAT_ENTER_DELAY, getGameSpeed, setGameSpeed, speedMult, moveDurationMs } from './config.js?v=0.25';
+import * as anim from './anim.js?v=0.25';
+import { ANIM_CLIPS } from './anim.js?v=0.25';
+import * as audio from './audio.js?v=0.25';
+import { centerOnTile } from './render.js?v=0.25';
+import { getOwnedTier, getSkillDef } from './skills.js?v=0.25';
 
 const sign = (n) => Math.sign(n);
 
@@ -21,6 +21,10 @@ let warCryTurnsLeft = 0, warCryPct = 0;
 let bloodlustStacks = 0;         // se reinicia cada vez que un combate termina
 
 function isSkillReady(id) { return !(skillCooldowns[id] > 0); }
+// Turnos (combates) que le quedan a una habilidad para salir de enfriamiento;
+// 0 si ya está lista. Lo usa skills.js para pintar el velo rojo + el número
+// en la barra de acciones (bindGetSkillCooldownLeft, ver main.js).
+export function getSkillCooldownLeft(id) { return skillCooldowns[id] || 0; }
 function warCryMult() { return 1 + (warCryTurnsLeft > 0 ? warCryPct : 0); }
 function bloodlustMult() {
   const tier = getOwnedTier('bloodlust');
@@ -317,6 +321,7 @@ function checkCombatEnd() {
     if (altarWeaknessCombats > 0) altarWeaknessCombats--;
     if (altarFragileCombats > 0) altarFragileCombats--;
     for (const id in skillCooldowns) if (skillCooldowns[id] > 0) skillCooldowns[id]--;
+    audio.stopEliteMusic();
     syncInitiativeUI();
     log(tRandom('log.combatEnd', 4), 'combat');
   }
@@ -339,6 +344,7 @@ function generateLoot(foe) {
 // normal (onTapTile) como las habilidades activas (useActiveSkill).
 function killFoe(target, foeName) {
   audio.fx('kill'); target.alive = false;
+  if (target.sprite === 'golembone') audio.fx('golemboneDeath');
   if (state.targetFoe === target) state.targetFoe = null;
   if (ANIM_CLIPS[target.sprite]) { anim.die(target.anim); target.deathPlaying = true; }
   target.loot = generateLoot(target);
@@ -420,6 +426,21 @@ function tickHolyZones() {
 // Empieza el turno del héroe: PA a tope y recalcula su alcance.
 export function startHeroTurn() {
   state.hero.ap = state.hero.apMax;
+  // Aturdido (Golem de hueso, ver stunTarget()): no puedes hacer nada este
+  // turno tuyo, se avisa con el texto flotante y el turno pasa solo. Se
+  // cuenta en turnos DEL AFECTADO (no del golem) — más simple y predecible
+  // con cualquier orden de iniciativa.
+  if (state.hero.stunnedTurnsLeft > 0) {
+    state.hero.ap = 0;
+    syncHUD();
+    centerOnTile(state.hero.x, state.hero.y);
+    anim.floatAt(state.hero.x, state.hero.y, `¡${t('status.aturdido')}!`, '#b98fe0', { static: true });
+    audio.fx('ui');
+    state.hero.stunnedTurnsLeft--;
+    refreshHeroStunStatus();
+    setTimeout(() => endHeroTurn(), 700);   // deja ver el aviso antes de pasar el turno solo
+    return;
+  }
   if (warCryTurnsLeft > 0) warCryTurnsLeft--;
   if (wildShapeTurnsLeft > 0) {
     wildShapeTurnsLeft--;
@@ -430,6 +451,21 @@ export function startHeroTurn() {
   tickHolyZones();
   computeReach();
   syncHUD();
+}
+
+// Aturde a `target` (por ahora, siempre el héroe: es el único con turnos
+// propios de verdad) durante `turns` de SUS PROPIOS turnos. Actualiza a la
+// vez `hero.statuses` para el icono con el numerito (ver renderStatusIcons
+// en ui.js — el icono `status_aturdido.png` y el texto ya existían,
+// preparados para cuando hiciera falta un sistema de estados real).
+function stunTarget(target, turns) {
+  target.stunnedTurnsLeft = Math.max(target.stunnedTurnsLeft || 0, turns);
+  if (target === state.hero) refreshHeroStunStatus();
+}
+function refreshHeroStunStatus() {
+  const hero = state.hero;
+  hero.statuses = (hero.statuses || []).filter(s => s.icon !== 'aturdido');
+  if (hero.stunnedTurnsLeft > 0) hero.statuses.push({ icon: 'aturdido', turns: hero.stunnedTurnsLeft });
 }
 
 // Muestra la pista ambigua de un objeto visto a distancia (gratis, sin PA).
@@ -770,6 +806,8 @@ export function useActiveSkill(id, gx, gy) {
     const spot = freeTileAdjacentTo(target.x, target.y);
     if (!spot) { log(t('log.skillOutOfRange')); return false; }
     hero.x = spot.x; hero.y = spot.y;
+    anim.snapTo('hero', spot.x, spot.y);   // si no, el sprite se queda atrás y parece que atacas/interactúas "a distancia"
+    centerOnTile(spot.x, spot.y, true);
     recomputeFog();
     const guaranteedCrit = !!power.guaranteedCritOncePerCombat && !shadowStrikeUsedThisCombat;
     if (guaranteedCrit) shadowStrikeUsedThisCombat = true;
@@ -932,8 +970,7 @@ export async function onTapTile(gx, gy) {
     const d = distTo(hero, gx, gy);
     if (d <= 1) {
       anim.loot('hero', 'hero');
-      anim.openProp(`prop:${tr.x}:${tr.y}`, 'container');
-      if (!tr.loot) { tr.loot = generateLoot(); audio.fx('containerBreak'); }
+      if (!tr.loot) tr.loot = generateLoot();
       showLootWindow(tr);
     } else if (isVisible(gx, gy)) {
       showHint(tr);
@@ -1103,6 +1140,30 @@ export function afterInteract(trig) {
   if (state.hero.hp > 0 && state.hero.ap <= 0 && !state.combat.active) endHeroTurn();
 }
 
+// Sonido ambiental de monstruos grandes: por ahora solo el Golem de hueso
+// tiene uno registrado (golemboneIdle) — si más adelante otro monstruo trae
+// el suyo, basta con añadirlo aquí. Suena si el jugador tiene alguno
+// despierto a menos de 4 casillas, como mucho una vez cada 10s POR
+// monstruo (cada uno con su propio cronómetro, para que no se amontonen
+// si hay varios a la vez).
+const MONSTER_IDLE_SOUND = { golembone: 'golemboneIdle' };
+const monsterAmbienceTimer = setInterval(() => {
+  if (!state.hero || !state.foes || !state.foes.length) return;
+  const now = performance.now();
+  for (const foe of state.foes) {
+    if (!foe.alive || foe.dormant) continue;
+    const cue = MONSTER_IDLE_SOUND[foe.sprite];
+    if (!cue) continue;
+    if (distTo(foe, state.hero.x, state.hero.y) >= 4) continue;
+    if (foe._idleSoundAt && now - foe._idleSoundAt < 10000) continue;
+    foe._idleSoundAt = now;
+    audio.fx(cue);
+  }
+}, 1000);
+// En Node (pruebas headless) un intervalo activo deja el proceso colgado para
+// siempre; en el navegador esto no existe y no pasa nada. No afecta al juego.
+if (typeof monsterAmbienceTimer.unref === 'function') monsterAmbienceTimer.unref();
+
 // --- Emboscada sincronizada (p.ej. los 2 sigilos gemelos de Mausoleo 2) -----
 // Varios triggers `type: "ambush"` pueden compartir el mismo `id` (por tanto
 // la misma carta de events.json): al activar CUALQUIERA de ellos, todos los
@@ -1111,10 +1172,40 @@ export function afterInteract(trig) {
 function triggerAmbush(trig) {
   const group = state.triggers.filter(t => t.type === 'ambush' && t.id === trig.id);
   for (const t of group) t.used = true;
-  spawnAmbushSpectres(group);
+  audio.startEliteMusic();
+  if (trig.id === 'mausoleo1_golem_guard') spawnGolemGuard(group);
+  else spawnAmbushSpectres(group);
   const justEntered = scanForNewCombatants();
   if (justEntered) endHeroTurn(true);   // igual que despertar a un enemigo dormido a mitad de camino
   else { computeReach(); if (state.hero.ap <= 0 && !state.combat.active) endHeroTurn(); }
+}
+
+// Guardia del Golem de hueso (Mausoleo 1): al activar el marcador aparecen el
+// golem y 4 esqueletos normales a su alrededor, todos ya despiertos. Mismo
+// reparto de casillas libres que spawnAmbushSpectres, pero con esta
+// composición fija en vez de solo espectros.
+function spawnGolemGuard(origins) {
+  const spots = freeTilesNear(origins[0].x, origins[0].y, 3)
+    .sort((a, b) => a.d - b.d);
+  for (let i = spots.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [spots[i], spots[j]] = [spots[j], spots[i]];
+  }
+  const composition = [
+    { sprite: 'golembone', hp: 90, maxHp: 90, atk: 9, apMax: 4, tall: 1.725 },
+    { sprite: 'enemy1', hp: 12, maxHp: 12, atk: 4, apMax: 4 },
+    { sprite: 'enemy1', hp: 12, maxHp: 12, atk: 4, apMax: 4 },
+    { sprite: 'enemy1', hp: 12, maxHp: 12, atk: 4, apMax: 4 },
+    { sprite: 'enemy1', hp: 12, maxHp: 12, atk: 4, apMax: 4 },
+  ];
+  composition.forEach((def, i) => {
+    const spot = spots[i] || origins[0];
+    state.foes.push({
+      x: spot.x, y: spot.y, alive: true, ...def,
+      anim: 'foe' + state.foes.length, dormant: false, wakeR: 0,
+    });
+  });
+  syncHUD();
 }
 
 // Reparte `count` espectros en casillas libres alrededor de los orígenes dados
@@ -1241,6 +1332,7 @@ function runSingleFoeTurn(foe) {
   const finish = (result) => { if (restoreApMax != null) foe.apMax = restoreApMax; return result; };
   if (foe.sprite === 'enemy5') return Promise.resolve(spectreTurn(foe)).then(finish);
   if (foe.sprite === 'enemy6') return Promise.resolve(mageTurn(foe)).then(finish);
+  if (foe.sprite === 'golembone') return Promise.resolve(golemTurn(foe)).then(finish);
   if (cfg) return Promise.resolve(archerTurn(foe, cfg)).then(finish);
   return Promise.resolve(meleeTurn(foe)).then(finish);
 }
@@ -1524,6 +1616,7 @@ function doMove(foe, step) {
   const fromX = foe.x, fromY = foe.y;
   foe.x = step.x; foe.y = step.y;
   anim.move(foe.anim, fromX, fromY, step.x, step.y);
+  if (foe.sprite === 'golembone') audio.fx('golemboneWalk');
   centerOnTile(foe.x, foe.y);   // la cámara sigue al NPC paso a paso durante todo su turno
 }
 
@@ -1579,6 +1672,116 @@ async function archerTurn(foe, cfg) {
 
 // Turno de un enemigo cuerpo a cuerpo (comportamiento de siempre). Devuelve true
 // si el héroe muere.
+// --- Golem de hueso: monstruosidad grande y lenta, con 2 habilidades ------
+// propias que se comprueban al EMPEZAR su turno, antes de la pelea normal:
+//
+// 1) Rematar débiles: si algo adyacente (amigo o enemigo suyo — el héroe o
+//    uno de sus propios compañeros) tiene menos del 5% de su vida máxima, lo
+//    mata de un golpe, se cura 25% de su propia vida máxima y su daño sube
+//    un 10% PARA SIEMPRE (no caduca, es un monstruo que crece con cada
+//    víctima). Cuesta lo mismo que un ataque normal.
+// 2) Aturdir: si tiene 2 o más unidades "del bando del héroe" (el propio
+//    héroe y, el día de mañana, mascotas) adyacentes A LA VEZ, gasta 2 PA en
+//    aturdir de un golpe a la que menos vida tenga, durante 2 turnos DE ELLA
+//    (no del golem) — ver stunTarget()/refreshHeroStunStatus() más arriba.
+//    Con solo 1 héroe y sin mascotas todavía esto casi nunca se cumple; se
+//    deja construido para cuando existan mascotas de verdad.
+//
+// Si se cumplen las dos a la vez, primero remata (a petición expresa).
+const GOLEM_EXECUTE_HP_PCT = 0.05;
+const GOLEM_EXECUTE_HEAL_PCT = 0.25;
+const GOLEM_EXECUTE_DMG_BUFF = 0.10;
+const GOLEM_STUN_COST = 2;
+const GOLEM_STUN_TURNS = 2;
+
+// Unidades "del bando del héroe" adyacentes al golem (por ahora solo puede
+// haber 1: el propio héroe; el día de mañana se le sumarían las mascotas).
+function heroSideAdjacentTo(foe) {
+  const list = [];
+  if (state.hero.hp > 0 && distTo(foe, state.hero.x, state.hero.y) <= 1) list.push(state.hero);
+  return list;
+}
+
+// Mata sin pasar por killFoe() (que registra Sed de Sangre/Cosecha de Almas
+// como si el HÉROE hubiera hecho la muerte — aquí es el golem rematando a
+// uno de sus propios aliados, no debe darle ningún buff al jugador).
+function executeAllyFoe(target) {
+  audio.fx('golemboneIdle');
+  target.alive = false;
+  if (ANIM_CLIPS[target.sprite]) { anim.die(target.anim); target.deathPlaying = true; }
+  target.loot = generateLoot(target);
+  checkCombatEnd();
+}
+
+async function golemTurn(foe) {
+  const { hero } = state;
+  let ap = foe.apMax;
+
+  // --- 1) Rematar débiles (prioridad si se cumplen las dos condiciones) ---
+  const adjAllies = heroSideAdjacentTo(foe).filter(u => u.hp / u.maxHp <= GOLEM_EXECUTE_HP_PCT);
+  const adjOwnWeak = state.foes.filter(f => f !== foe && f.alive && distTo(foe, f.x, f.y) <= 1 && f.hp / f.maxHp <= GOLEM_EXECUTE_HP_PCT);
+  const executeTarget = adjAllies[0] || adjOwnWeak[0];
+  if (executeTarget && ap >= ATTACK_COST) {
+    ap -= ATTACK_COST;
+    anim.attack(foe.anim, sign(executeTarget.x - foe.x), sign(executeTarget.y - foe.y), foe.sprite);
+    const heal = Math.round(foe.maxHp * GOLEM_EXECUTE_HEAL_PCT);
+    foe.hp = Math.min(foe.maxHp, foe.hp + heal);
+    foe.atk = Math.round(foe.atk * (1 + GOLEM_EXECUTE_DMG_BUFF));
+    if (executeTarget === hero) {
+      audio.fx('golemboneIdle');
+      anim.hurt('hero', 'hero');
+      hero.hp = 0;
+      log(t('log.golemExecute', { name: t('enemy.golembone') }), 'combat');
+      syncHUD();
+      gameOver('lose');
+      return true;
+    } else {
+      executeAllyFoe(executeTarget);
+      log(t('log.golemExecute', { name: t('enemy.golembone') }), 'combat');
+    }
+    syncHUD();
+    await enemySleep(320);
+  }
+
+  // --- 2) Aturdir (solo si de verdad hay 2+ del bando del héroe adyacentes) ---
+  const adjHeroSide = heroSideAdjacentTo(foe);
+  if (adjHeroSide.length >= 2 && ap >= GOLEM_STUN_COST) {
+    ap -= GOLEM_STUN_COST;
+    const weakest = adjHeroSide.reduce((a, b) => (b.hp < a.hp ? b : a));
+    stunTarget(weakest, GOLEM_STUN_TURNS);
+    audio.fx('golemboneIdle');
+    anim.attack(foe.anim, sign(weakest.x - foe.x), sign(weakest.y - foe.y), foe.sprite);
+    log(t('log.golemStun', { name: t('enemy.golembone') }), 'combat');
+    syncHUD();
+    await enemySleep(320);
+  }
+
+  // --- Resto del turno: pelea cuerpo a cuerpo normal, con el PA que quede ---
+  while (ap > 0) {
+    if (hero.hp <= 0 || !state.combat.active) break;
+    if (adjacent(foe, hero.x, hero.y)) {
+      if (ap < ATTACK_COST) break;
+      ap -= ATTACK_COST;
+      anim.attack(foe.anim, sign(hero.x - foe.x), sign(hero.y - foe.y), foe.sprite);
+      audio.fx('hurt');
+      const dmg = applyIncomingHit(foe.atk, 'physical', '#e86a5c');
+      if (dmg > 0) anim.hurt('hero', 'hero');
+      log(tRandom('log.hitHero', 5, { name: t('enemy.golembone'), dmg }), 'combat');
+      syncHUD();
+      if (hero.hp <= 0) { gameOver('lose'); return true; }
+      await enemySleep(320);
+      continue;
+    }
+    if (ap < MOVE_COST) break;
+    const step = approachStep(foe, ap);
+    if (!step) break;
+    doMove(foe, step);
+    ap -= step.cost;
+    await enemySleep(190);
+  }
+  return false;
+}
+
 async function meleeTurn(foe) {
   const { hero } = state;
   let ap = foe.apMax;

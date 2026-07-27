@@ -709,22 +709,24 @@
     {
       "x": 5,
       "y": 4,
-      "id": "event_1",
-      "type": "event"
+      "id": "mausoleo1_golem_guard",
+      "type": "ambush"
     },
     {
       "x": 5,
       "y": 2,
       "id": "altar_1",
       "type": "altar",
-      "sprite": "altar"
+      "sprite": "altar",
+      "tall": 0.8625
     },
     {
       "x": 6,
       "y": 2,
       "id": "altar_2",
       "type": "altar",
-      "sprite": "altar"
+      "sprite": "altar",
+      "tall": 0.8625
     }
   ],
   "exit": {
