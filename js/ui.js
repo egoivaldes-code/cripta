@@ -1,14 +1,15 @@
 // Capa DOM: HUD (con PA), cartas de evento, registro, fin de partida y ajustes.
 // Todo el texto visible pasa por t() (multiidioma). No dibuja en el canvas.
 
-import { state } from './state.js?v=0.27';
-import { t, tRandom } from './i18n.js?v=0.27';
-import * as anim from './anim.js?v=0.27';
-import { IDLE_NAME } from './anim.js?v=0.27';
-import * as audio from './audio.js?v=0.27';
-import { VERSION } from './config.js?v=0.27';
-import { images, SPRITE_TILE } from './assets.js?v=0.27';
-import { pushHistory, getHistory, clearHistory, CATEGORIES } from './eventlog.js?v=0.27';
+import { state } from './state.js?v=0.28';
+import { t, tRandom } from './i18n.js?v=0.28';
+import * as anim from './anim.js?v=0.28';
+import { IDLE_NAME } from './anim.js?v=0.28';
+import * as audio from './audio.js?v=0.28';
+import { VERSION } from './config.js?v=0.28';
+import { images, SPRITE_TILE } from './assets.js?v=0.28';
+import { pushHistory, getHistory, clearHistory, CATEGORIES } from './eventlog.js?v=0.28';
+import { submitScore, rankWithinTop10, fetchTop10, formatTime } from './leaderboard.js?v=0.28';
 
 let afterInteract = () => {};
 let restart = () => {};
@@ -103,10 +104,18 @@ function renderLootList() {
   });
 }
 
+let onCorpseLooted = () => {};
+// rules.js no se puede importar aquí (import circular) — mismo patrón que
+// resolveAltar/resolveChest. Se usa para saber si el cadáver/contenedor que
+// se acaba de cerrar era el del Esqueleto Mago (ver checkBossLooted, rules.js).
+export function bindOnCorpseLooted(fn) { onCorpseLooted = fn; }
+
 function closeLootVeil() {
+  const source = lootCorpse;
   lootCorpse = null;
   $('lootList').innerHTML = '';
   $('lootVeil').classList.remove('show');
+  if (source) onCorpseLooted(source);
 }
 
 // Cuando el botín se vacía del todo, cada tipo de "fuente" desaparece a su
@@ -372,7 +381,7 @@ export function openChestCard(trig) {
 function renderCard() {
   if (!open) return;
   const card = $('card');
-  if (open.type === 'over') { renderOver(card, open.kind); return; }
+  if (open.type === 'over') { renderOver(card, open.kind, open.extra); return; }
   if (open.type === 'trap') { renderTrapCard(card, open.trap); return; }
   if (open.type === 'story') { renderStoryCard(card, open.ev); return; }
   if (open.type === 'lever') { renderLeverCard(card, open); return; }
@@ -712,24 +721,56 @@ function resolveChoice(trig, ch, i, b) {
   afterInteract(trig);
 }
 
-export function gameOver(kind) {
+export function gameOver(kind, extra) {
   state.busy = true;
   if (kind === 'lose') log(tRandom('log.heroDeath', 3), 'combat');
-  open = { type: 'over', kind };
+  open = { type: 'over', kind, extra: extra || {} };
   renderCard();
   $('veil').classList.add('show');
 }
 
-function renderOver(card, kind) {
+// Si la victoria trae un tiempo (matar al jefe, ver checkBossLooted en
+// rules.js), se ofrece mandarlo al leaderboard global (Supabase) con un
+// nombre a elegir. `submitted` evita que se pueda enviar dos veces la misma
+// pantalla (el botón desaparece en cuanto se manda, con éxito o sin él).
+function renderOver(card, kind, extra) {
   const win = kind === 'win';
+  const timeMs = win ? extra.timeMs : null;
   card.innerHTML =
     `<div class="banner">
        <div class="kicker">${t(win ? 'over.winKicker' : 'over.loseKicker')}</div>
        <h2>${t(win ? 'over.winTitle' : 'over.loseTitle')}</h2>
        <p>${win ? t('over.winText', { gold: state.hero.gold }) : t('over.loseText')}</p>
+       ${timeMs != null ? `<p class="over-time">${t('over.yourTime', { time: formatTime(timeMs) })}</p>` : ''}
+       <div id="overScoreForm"></div>
        <button class="again" id="again">${t('over.again')}</button>
      </div>`;
   $('again').onclick = restart;
+  if (timeMs != null) renderScoreForm(document.getElementById('overScoreForm'), timeMs);
+}
+
+function renderScoreForm(box, timeMs) {
+  box.innerHTML =
+    `<div class="over-score">
+       <input type="text" id="overScoreName" maxlength="20" placeholder="${t('over.namePlaceholder')}">
+       <button class="choice" id="overScoreSend">${t('over.sendScore')}</button>
+     </div>`;
+  const input = document.getElementById('overScoreName');
+  const btn = document.getElementById('overScoreSend');
+  btn.onclick = async () => {
+    const name = input.value.trim();
+    if (name.length < 2) { input.focus(); return; }
+    btn.disabled = true;
+    btn.textContent = t('over.sending');
+    const ok = await submitScore(name, Math.round(timeMs), VERSION);
+    if (!ok) {
+      box.innerHTML = `<p class="over-score-fail">${t('over.sendFail')}</p>`;
+      return;
+    }
+    const top10 = await fetchTop10();
+    const rank = rankWithinTop10(top10.filter(r => r.player_name !== name || r.time_ms !== Math.round(timeMs)), timeMs);
+    box.innerHTML = `<p class="over-score-ok">${rank ? t('over.rankMade', { rank }) : t('over.sent')}</p>`;
+  };
 }
 
 // Aplica los textos estáticos (y re-renderiza lo abierto). Se llama al cambiar idioma.
@@ -760,6 +801,8 @@ export function applyStaticText() {
   $('verTagPanel').textContent = 'cripta v' + VERSION;
   $('splashTitle').textContent = t('splash.title');
   $('splashContinue').textContent = t('btn.continue');
+  $('leaderboardTitle').textContent = t('leaderboard.title');
+  $('leaderboardContinue').textContent = t('btn.continue');
   $('skillShopTitle').textContent = t('skillshop.title');
   $('skillShopSubtitle').textContent = t('skillshop.subtitle');
   $('shopResetBtn').textContent = t('skillshop.reset');

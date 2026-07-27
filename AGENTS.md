@@ -916,6 +916,76 @@ hoy en día siempre el mismo número ya que mover 1 casilla cuesta 1 PA fijo
 — se calcula así, en vez de un número suelto, para que quede bien si algún
 día `MOVE_COST` cambia o aparece algún bonus de movimiento).
 
+## Leaderboard global del Esqueleto Mago (V0.28)
+
+Primer sistema con backend de verdad en Cripta. Cripta es una web estática
+(GitHub Pages, sin servidor propio), así que el leaderboard vive en
+**Supabase**, en el proyecto compartido **`cripta-habilidades`** (mismo
+proyecto que usan otras apps del usuario — Sprite Forge, y hasta un juego
+sin relación ninguna; se decidió reutilizarlo a propósito en vez de crear
+uno nuevo). Tabla propia con prefijo `cripta_` para no mezclarse:
+**`cripta_boss_leaderboard`** (`player_name`, `time_ms`, `client_version`,
+`created_at`).
+
+**Seguridad — limitación conocida y aceptada**: al no haber servidor propio
+ni login de jugadores, no hay forma de verificar de verdad que un tiempo
+enviado es legítimo — cualquiera podría mandar uno falso a mano desde las
+herramientas de desarrollador del navegador. RLS permite lectura Y
+escritura públicas sin autenticarse; los únicos límites son los `CHECK` de
+la tabla (nombre 2-20 caracteres, tiempo entre 0 y 24h) — una red de
+seguridad mínima, no un sistema antitrampas. Sin `UPDATE`/`DELETE` para
+nadie salvo la service role (una puntuación, una vez mandada, no se puede
+tocar desde el cliente).
+
+**Cliente**: `js/leaderboard.js`, nuevo módulo. Habla directo con la API
+REST de Supabase (PostgREST) vía `fetch()` — **no** se añadió el SDK
+`supabase-js` a propósito, para no meter una dependencia externa en un
+proyecto vanilla JS sin build step. Expone `fetchTop10()` (nunca revienta,
+devuelve `[]` si falla la red — el leaderboard es un extra, no debe
+bloquear el juego), `submitScore(nombre, ms, versión)`, `formatTime(ms)`
+(`mm:ss.d`) y `rankWithinTop10(top10, ms)` (puesto 1-10, o `null` si no
+entra).
+
+**Cuándo empieza el cronómetro**: `state.hero.runStartedAt = Date.now()` en
+`loadLevel()` (`main.js`), SOLO en partida nueva de verdad (rama `else`,
+donde también se resetea `totalKills`) — nunca al retomar una partida
+guardada. Al bajar de nivel (`descend()`) se arrastra en el objeto `carry`
+junto con vida/oro/`totalKills`, para que el cronómetro no se reinicie al
+cambiar de zona. Se guarda solo porque `savegame.saveGame()` ya copia TODO
+`state.hero` tal cual (`{ ...state.hero }`) — no hizo falta tocar
+`savegame.js` para nada.
+
+**Cuándo termina el nivel de verdad (ojo, cambiado a mitad de sesión)**:
+NO al morir el jefe — al **cerrar la ventana de botín de su cadáver**. El
+enganche generalizado: nuevo `bindOnCorpseLooted(fn)` en `ui.js`, llamado
+desde `closeLootVeil()` (cubre las 3 formas de cerrar el botín: botón
+"coger todo", cerrar sin más, o coger el último objeto suelto uno a uno)
+con la fuente que se acaba de cerrar. Conectado en `main.js` a
+`checkBossLooted(source)` (`rules.js`): si `source.id === 'enemy6_boss'`,
+calcula `Date.now() - state.hero.runStartedAt` y llama a
+`gameOver('win', { timeMs })`. `checkFullVictory()` pasó de mirar
+`foe.alive` a mirar un flag `cryptBossLooted` que solo se pone a `true`
+aquí — así la victoria no salta en el instante de la muerte.
+
+**Pantallas nuevas/ampliadas**:
+- `#leaderboard` (`index.html`, mismo molde `.splash` que las novedades):
+  se ve **siempre** al arrancar (decisión del usuario, no solo en partida
+  nueva), justo después de cerrar `#splash` y antes de la tienda de
+  habilidades — `showLeaderboard()` en `main.js` pinta el TOP10 (rango,
+  nombre escapado con `escapeHtml()`, tiempo formateado).
+- Pantalla de victoria (`renderOver`, `ui.js`): si `gameOver('win', {timeMs})`
+  trae un tiempo, añade una línea con el tiempo + un formulario mínimo
+  (nombre + botón "Enviar al leaderboard"). Al enviar: `submitScore()`, y si
+  sale bien, un segundo `fetchTop10()` para calcular en qué puesto quedaría
+  (`rankWithinTop10`) y mostrarlo. Si falla el envío (sin conexión...), aviso
+  y se puede seguir jugando igual — nunca bloquea el botón "Otra incursión".
+
+**Pruebas hechas**: funciones puras de `leaderboard.js` (`formatTime`,
+`rankWithinTop10`, varios casos con el top a medias/lleno). `checkBossLooted`
+con un cadáver de verdad del jefe (no revienta, dispara `gameOver`) y con un
+contenedor cualquiera (no hace nada). Inserción/lectura reales contra la
+tabla de Supabase (y borrado del registro de prueba después).
+
 ## Nivel "Cripta" de verdad + jefe de dos palancas (V0.27)
 
 El `cripta.json` que había hasta ahora era un **placeholder de pruebas**

@@ -2,6 +2,21 @@
 
 Esquema: `0.X` = cambio grande · `0.X.Y` = cambio pequeño / fix.
 
+## 0.28 — Leaderboard global del Esqueleto Mago
+- **Primer backend real de Cripta**: Supabase (proyecto compartido
+  `cripta-habilidades`), tabla `cripta_boss_leaderboard`. Lectura y
+  escritura públicas (sin login) — limitación conocida de una web estática:
+  no hay forma de verificar tiempos legítimos, solo límites de sanidad
+  razonables.
+- Nueva pantalla de leaderboard (TOP10), visible siempre al arrancar, entre
+  las novedades y la tienda de habilidades.
+- **Corregido cuándo termina el nivel del jefe**: no al matarlo, sino al
+  cerrar la ventana de botín de su cadáver (looteas y cierras → termina).
+- Cronómetro de la partida: arranca al pulsar "Nueva Partida", se arrastra
+  entre niveles.
+- La pantalla de victoria, cuando viene de matar al jefe, muestra el tiempo
+  y deja enviarlo al leaderboard con un nombre.
+
 ## 0.27 — Nivel Cripta de verdad + jefe de las dos palancas
 - **Sustituido el `cripta.json` placeholder** (18×18 de pruebas, sin
   enemigos) por el nivel real diseñado en el editor: 78×52, 60 enemigos, 54

@@ -14,7 +14,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Cripta</title>
-<link rel="stylesheet" href="./css/styles.css?v=0.27">
+<link rel="stylesheet" href="./css/styles.css?v=0.28">
 </head>
 <body>
 <div id="game">
@@ -166,6 +166,17 @@
     <div class="splash-body" id="splashBody"></div>
   </div>
 
+  <!-- Leaderboard global (Supabase): TOP10 de tiempos más rápidos en matar al
+       Esqueleto Mago de la cripta. Se ve siempre al arrancar, justo después
+       de cerrar las novedades y antes de la tienda de habilidades. -->
+  <div class="splash" id="leaderboard">
+    <div class="splash-head">
+      <button class="primary" id="leaderboardContinue"></button>
+      <div class="splash-title" id="leaderboardTitle"></div>
+    </div>
+    <div class="splash-body" id="leaderboardBody"></div>
+  </div>
+
   <!-- Tienda de habilidades — SISTEMA TEMPORAL DE PRUEBAS (ver js/skills.js).
        Se muestra justo después de pulsar "Continuar" en las novedades, antes
        de entrar en la partida de verdad. -->
@@ -184,6 +195,6 @@
   </div>
 </div>
 
-<script type="module" src="./js/main.js?v=0.27"></script>
+<script type="module" src="./js/main.js?v=0.28"></script>
 </body>
 </html>

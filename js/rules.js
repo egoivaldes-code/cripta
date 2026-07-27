@@ -1,15 +1,15 @@
 // Reglas del juego: economía de Puntos de Acción (PA), interacción a distancia
 // y adyacente, trampas, niebla y salida de nivel. Agnóstico del dibujo.
 
-import { state, walkable, isWall, adjacent, distTo, isVisible, recomputeFog, computeReach, pathTo, findPath, findApproachPath, reachCost, blockingTriggerAt, trapAt, walkTriggerAt, exitAt, stepNeighbors, foeAt, corpseAt, livingFoes, losClear, revealAllExplored } from './state.js?v=0.27';
-import { openEvent, openLeverCard, openAltarCard, openChestCard, openTrapCard, openStoryCard, syncHUD, syncInitiativeUI, showCombatBadge, showLootWindow, showConfirm, log, gameOver } from './ui.js?v=0.27';
-import { t, tRandom } from './i18n.js?v=0.27';
-import { MOVE_COST, ATTACK_COST, INITIATIVE_BASE, INITIATIVE_DIE, TURN_DELAY, COMBAT_ENTER_DELAY, getGameSpeed, setGameSpeed, speedMult, moveDurationMs, ARMOR_CONSTANT } from './config.js?v=0.27';
-import * as anim from './anim.js?v=0.27';
-import { ANIM_CLIPS } from './anim.js?v=0.27';
-import * as audio from './audio.js?v=0.27';
-import { centerOnTile } from './render.js?v=0.27';
-import { getOwnedTier, getSkillDef } from './skills.js?v=0.27';
+import { state, walkable, isWall, adjacent, distTo, isVisible, recomputeFog, computeReach, pathTo, findPath, findApproachPath, reachCost, blockingTriggerAt, trapAt, walkTriggerAt, exitAt, stepNeighbors, foeAt, corpseAt, livingFoes, losClear, revealAllExplored } from './state.js?v=0.28';
+import { openEvent, openLeverCard, openAltarCard, openChestCard, openTrapCard, openStoryCard, syncHUD, syncInitiativeUI, showCombatBadge, showLootWindow, showConfirm, log, gameOver } from './ui.js?v=0.28';
+import { t, tRandom } from './i18n.js?v=0.28';
+import { MOVE_COST, ATTACK_COST, INITIATIVE_BASE, INITIATIVE_DIE, TURN_DELAY, COMBAT_ENTER_DELAY, getGameSpeed, setGameSpeed, speedMult, moveDurationMs, ARMOR_CONSTANT } from './config.js?v=0.28';
+import * as anim from './anim.js?v=0.28';
+import { ANIM_CLIPS } from './anim.js?v=0.28';
+import * as audio from './audio.js?v=0.28';
+import { centerOnTile } from './render.js?v=0.28';
+import { getOwnedTier, getSkillDef } from './skills.js?v=0.28';
 
 const sign = (n) => Math.sign(n);
 
@@ -372,8 +372,15 @@ function killFoe(target, foeName) {
 // que se había dicho antes (que también exigía limpiar los 2 mausoleos).
 // Aparte, se conserva el recuento de "mazmorra entera limpia" de siempre
 // (útil para quien prefiera explorarlo todo sin usar el jefe como atajo).
+//
+// OJO: la victoria por el jefe no se dispara al morir, sino al CERRAR la
+// ventana de botín de su cadáver (looteas y cierras → termina el nivel, tal
+// como se pidió) — por eso se mira `cryptBossLooted`, no `foe.alive`. Lo
+// pone a `true` `checkBossLooted()`, más abajo, enganchado al cerrar el
+// botín (ver bindOnCorpseLooted en ui.js/main.js).
+let cryptBossLooted = false;
 function checkFullVictory() {
-  if (state.foes.some(f => f.id === CRYPT_BOSS_ID && !f.alive)) return true;
+  if (cryptBossLooted) return true;
   return totalFoeCount != null && (state.hero.totalKills || 0) >= totalFoeCount;
 }
 
@@ -1274,6 +1281,21 @@ export function checkLeverBossSpawn(trig) {
   });
   log(t('log.cryptBossWakes'), 'event');
   syncHUD();
+}
+
+// Se llama al CERRAR la ventana de botín de un cadáver/contenedor cualquiera
+// (bindOnCorpseLooted, ui.js → main.js) — aquí solo nos importa si era el
+// cadáver del jefe. Si es así, calcula cuánto ha tardado la partida desde que
+// empezó (state.hero.runStartedAt, puesto en main.js/loadLevel) y dispara la
+// victoria con ese tiempo — gameOver('win', {...}) se encarga de mostrar la
+// pantalla y, si toca, ofrecer mandar el tiempo al leaderboard.
+export function checkBossLooted(source) {
+  if (!source || source.id !== CRYPT_BOSS_ID) return;
+  cryptBossLooted = true;
+  if (!checkFullVictory()) return;   // por si acaso; en la práctica siempre es true aquí
+  const startedAt = state.hero.runStartedAt;
+  const timeMs = startedAt ? Date.now() - startedAt : null;
+  gameOver('win', { timeMs });
 }
 
 // Se llama tras resolver la carta de un objeto (ui.js). El coste ya se

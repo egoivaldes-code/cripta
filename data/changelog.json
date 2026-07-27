@@ -1,6 +1,23 @@
 {
   "versions": [
     {
+      "v": "0.28",
+      "es": {
+        "title": "Leaderboard global",
+        "notes": [
+          "Nueva pantalla de clasificación (TOP10) con los tiempos más rápidos en derrotar al Esqueleto Mago, visible siempre al arrancar el juego.",
+          "Al matar al jefe y cerrar su botín, se ve tu tiempo y puedes mandarlo al leaderboard con tu nombre."
+        ]
+      },
+      "en": {
+        "title": "Global leaderboard",
+        "notes": [
+          "New leaderboard screen (TOP10) with the fastest times defeating the Skeleton Mage, always visible on startup.",
+          "After defeating the boss and closing its loot, you'll see your time and can submit it to the leaderboard with your name."
+        ]
+      }
+    },
+    {
       "v": "0.27",
       "es": {
         "title": "La Cripta cobra vida",

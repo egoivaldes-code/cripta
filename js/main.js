@@ -1,18 +1,19 @@
 // Punto de entrada. Carga idioma y datos, cablea módulos y arranca el bucle.
 
-import { state, initGame, recomputeFog, computeReach } from './state.js?v=0.27';
-import { initRenderer, startLoop, centerOnHero, toggleGrid, isGridOn } from './render.js?v=0.27';
-import { onTapTile, bindDescend, startHeroTurn, endHeroTurn, afterInteract, attemptDisarm, isAITurnActive, getEnemySpeed, setEnemySpeed, setTotalFoeCount, useActiveSkill, rollAltar, pickChestEvent, applyChestEvent, checkLeverBossSpawn, getSkillCooldownLeft } from './rules.js?v=0.27';
-import { syncHUD, log, hideVeil, bindAfterInteract, bindRestart, bindAttemptDisarm, bindResolveAltar, bindResolveChest, bindApplyChest, bindOnLeverPulled, applyStaticText, syncInitiativeUI, showConfirm, showLogHistory, hideLogHistory, logHistoryOpen, bindRefreshActionBar } from './ui.js?v=0.27';
-import { loadAssets } from './assets.js?v=0.27';
-import { initialLang, loadLang, onLangChange, getLang, t } from './i18n.js?v=0.27';
-import * as anim from './anim.js?v=0.27';
-import * as audio from './audio.js?v=0.27';
-import { VERSION } from './config.js?v=0.27';
-import { assemble } from './mapgen.js?v=0.27';
-import { initInventory, openInventory, closeInventory, isInventoryOpen, resetInventory, refreshInventoryTexts } from './inventory.js?v=0.27';
-import { loadSkillsData, initSkillShop, openSkillShop, closeSkillShop, refreshSkillTexts, bindFullReset, applySkillBonuses, bindUseActiveSkill, tryUseArmedOnTile, bindGetSkillCooldownLeft, renderActionBar } from './skills.js?v=0.27';
-import * as savegame from './savegame.js?v=0.27';
+import { state, initGame, recomputeFog, computeReach } from './state.js?v=0.28';
+import { initRenderer, startLoop, centerOnHero, toggleGrid, isGridOn } from './render.js?v=0.28';
+import { onTapTile, bindDescend, startHeroTurn, endHeroTurn, afterInteract, attemptDisarm, isAITurnActive, getEnemySpeed, setEnemySpeed, setTotalFoeCount, useActiveSkill, rollAltar, pickChestEvent, applyChestEvent, checkLeverBossSpawn, checkBossLooted, getSkillCooldownLeft } from './rules.js?v=0.28';
+import { syncHUD, log, hideVeil, bindAfterInteract, bindRestart, bindAttemptDisarm, bindResolveAltar, bindResolveChest, bindApplyChest, bindOnLeverPulled, bindOnCorpseLooted, applyStaticText, syncInitiativeUI, showConfirm, showLogHistory, hideLogHistory, logHistoryOpen, bindRefreshActionBar } from './ui.js?v=0.28';
+import { loadAssets } from './assets.js?v=0.28';
+import { initialLang, loadLang, onLangChange, getLang, t } from './i18n.js?v=0.28';
+import * as anim from './anim.js?v=0.28';
+import * as audio from './audio.js?v=0.28';
+import { VERSION } from './config.js?v=0.28';
+import { assemble } from './mapgen.js?v=0.28';
+import { initInventory, openInventory, closeInventory, isInventoryOpen, resetInventory, refreshInventoryTexts } from './inventory.js?v=0.28';
+import { loadSkillsData, initSkillShop, openSkillShop, closeSkillShop, refreshSkillTexts, bindFullReset, applySkillBonuses, bindUseActiveSkill, tryUseArmedOnTile, bindGetSkillCooldownLeft, renderActionBar } from './skills.js?v=0.28';
+import * as savegame from './savegame.js?v=0.28';
+import { fetchTop10, formatTime } from './leaderboard.js?v=0.28';
 
 // El ensamblador de losetas (mapgen.js) sigue disponible para niveles ALEATORIOS
 // futuros; esta función queda de reserva pero no se usa por ahora, ya que el
@@ -48,6 +49,34 @@ function renderSplash() {
   }).join('');
 }
 
+// Pantalla de leaderboard (TOP10 global, Supabase): se ve siempre al
+// arrancar, justo después de cerrar las novedades. `fetchTop10()` nunca
+// revienta (devuelve [] si falla la red) — el leaderboard es un extra, no
+// debe bloquear el arranque del juego si Supabase no responde.
+async function showLeaderboard() {
+  const el = document.getElementById('leaderboard');
+  const body = document.getElementById('leaderboardBody');
+  el.classList.add('show');
+  body.innerHTML = `<p class="lb-loading">${t('leaderboard.loading')}</p>`;
+  const rows = await fetchTop10();
+  if (!rows.length) {
+    body.innerHTML = `<p class="lb-empty">${t('leaderboard.empty')}</p>`;
+    return;
+  }
+  body.innerHTML = rows.map((r, i) => `
+    <div class="lb-row">
+      <span class="lb-rank">${i + 1}</span>
+      <span class="lb-name">${escapeHtml(r.player_name)}</span>
+      <span class="lb-time">${formatTime(r.time_ms)}</span>
+    </div>`).join('');
+}
+
+// Escapado mínimo: los nombres los escribe cualquiera, nunca se insertan
+// tal cual en innerHTML.
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
 async function boot() {
   // Idioma primero (los textos) y assets/datos en paralelo.
   onLangChange(() => { applyStaticText(); markLang(); markEnemySpeed(); renderSplash(); refreshInventoryTexts(); refreshSkillTexts(); });
@@ -79,7 +108,14 @@ async function boot() {
     const level = await getLevel(name);
     initGame(level, events);
     if (carry) Object.assign(state.hero, carry);        // arrastra vida/oro entre niveles (bajar de nivel)
-    else { resetInventory(); state.hero.gold = savegame.getPersistedGold(); state.hero.totalKills = 0; }   // partida nueva de verdad: inventario limpio, oro = el que traías guardado (1000 la primera vez)
+    else {
+      resetInventory(); state.hero.gold = savegame.getPersistedGold(); state.hero.totalKills = 0;
+      // Cronómetro del leaderboard (tiempo en matar al Esqueleto Mago de la
+      // cripta): arranca aquí, en partida nueva de verdad — NO al retomar
+      // una guardada ni al bajar de nivel (eso ya lleva el runStartedAt
+      // arrastrado, ver descend() más abajo).
+      state.hero.runStartedAt = Date.now();
+    }   // partida nueva de verdad: inventario limpio, oro = el que traías guardado (1000 la primera vez)
     applySkillBonuses(state.hero);
     currentLevelName = name;
     anim.reset();
@@ -129,7 +165,7 @@ async function boot() {
 
   function newGame() { loadLevel('level1').then(openSkillShop); }
   async function descend(to) {
-    const c = { hp: state.hero.hp, maxHp: state.hero.maxHp, atk: state.hero.atk, gold: state.hero.gold, totalKills: state.hero.totalKills || 0 };
+    const c = { hp: state.hero.hp, maxHp: state.hero.maxHp, atk: state.hero.atk, gold: state.hero.gold, totalKills: state.hero.totalKills || 0, runStartedAt: state.hero.runStartedAt };
     try {
       audio.fx('descend');
       await loadLevel(to, c);
@@ -149,6 +185,7 @@ async function boot() {
   bindResolveChest(pickChestEvent);
   bindApplyChest(applyChestEvent);
   bindOnLeverPulled(checkLeverBossSpawn);
+  bindOnCorpseLooted(checkBossLooted);
   bindFullReset(newGame);   // "reiniciar progreso" en la tienda de habilidades también reinicia la mazmorra
   bindUseActiveSkill(useActiveSkill);
   bindGetSkillCooldownLeft(getSkillCooldownLeft);
@@ -243,13 +280,21 @@ async function boot() {
     }
   });
 
-  // Pantalla de novedades: el botón Continuar la cierra y abre la tienda de
-  // habilidades (sistema temporal de pruebas, ver js/skills.js). De paso hace
-  // de primer toque para desbloquear el audio (importante en móvil).
+  // Pantalla de novedades: el botón Continuar la cierra y muestra el
+  // leaderboard (siempre, en cualquier arranque). De paso hace de primer
+  // toque para desbloquear el audio (importante en móvil).
   document.getElementById('splashContinue').addEventListener('click', () => {
     document.getElementById('splash').classList.remove('show');
     audio.unlock();
-    if (isFreshBoot) openSkillShop();   // retomar una partida en curso no debe abrir la tienda
+    showLeaderboard();
+  });
+
+  // Leaderboard: "Continuar" lo cierra y, si es partida nueva de verdad,
+  // abre la tienda de habilidades (retomar una partida en curso no debe
+  // abrir la tienda — mismo criterio que ya había en las novedades).
+  document.getElementById('leaderboardContinue').addEventListener('click', () => {
+    document.getElementById('leaderboard').classList.remove('show');
+    if (isFreshBoot) openSkillShop();
   });
 
   // Tienda de habilidades: "Terminar" pide confirmación y entra en el juego
