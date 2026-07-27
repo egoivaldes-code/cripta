@@ -735,6 +735,132 @@ itemización — rareza, afijos/sufijos, únicos, sets, palabras rúnicas, tabla
 de drop por nivel — se construirá por partes, con preguntas concretas en
 cada paso.
 
+## Golem de hueso + arreglos varios + entrada/salida con arte real (V0.25)
+
+**Golem de hueso** (nuevo enemigo, `sprite: 'golembone'`): monstruosidad
+grande y lenta. Escala 1.5× la de un esqueleto normal — para esto hizo falta
+un campo nuevo `tall` por ENEMIGO (antes solo el héroe tenía su propio
+`HERO_TALL`; el resto de enemigos usaban siempre `TOKEN_TALL` fijo en
+`render.js`). 90 hp / 9 atk / 4 PA.
+
+**No aparece colocado en el mapa**: sale de una emboscada disparada al
+activar el "Evento" que llevaba desde siempre sin enganchar en Mausoleo 1
+(`event_1`, x:5 y:4 — ahora renombrado `mausoleo1_golem_guard`, tipo
+`ambush`, con su propia carta en `events.json`/i18n). Al tocarlo aparecen
+DE GOLPE el golem + 4 esqueletos normales (`enemy1`) alrededor, todos ya
+despiertos, con la MISMA música de combate de élite que la emboscada de
+espectros de Mausoleo 2 (`spawnGolemGuard()` en `rules.js`, generalizando
+`triggerAmbush()` para poder elegir la composición según el `id` del
+marcador — antes solo sabía invocar espectros). Como el resto de emboscadas
+dinámicas (spectros de Mausoleo 2 incluidos), estos 5 enemigos NO cuentan
+para el total de la mazmorra (`setTotalFoeCount`, que solo suma
+`start.foes` de cada nivel) — es coherente con cómo ya se comportaba la
+emboscada de Mausoleo 2, no es un bug nuevo.
+
+Sus 2 habilidades se comprueban al EMPEZAR su turno (`golemTurn` en
+`rules.js`), antes de la pelea cuerpo a cuerpo normal con el PA que quede:
+1. **Rematar débiles** (prioridad si las dos se cumplen a la vez): si algo
+   adyacente —el héroe o uno de sus propios compañeros esqueleto— tiene
+   menos del 5% de su vida máxima, lo mata de un golpe (cuesta lo mismo que
+   un ataque normal), se cura 25% de su propia vida máxima y su daño sube
+   10% **para siempre** (no caduca — un monstruo que crece con cada
+   víctima). Si remata a un aliado suyo, NO pasa por `killFoe()` (que
+   registraría Sed de Sangre/Cosecha de Almas como si el HÉROE hubiera
+   hecho la muerte) — usa `executeAllyFoe()`, una versión más ligera sin
+   esos ganchos.
+2. **Aturdir**: si tiene 2 o más unidades "del bando del héroe" adyacentes A
+   LA VEZ, gasta 2 PA en aturdir a la que menos vida tenga durante 2 turnos
+   DE ELLA (no del golem). Con solo 1 héroe y sin mascotas todavía esto casi
+   nunca se cumple — se dejó construido a propósito para cuando existan
+   mascotas de verdad (decisión tomada con el usuario).
+
+**Aturdido, primer estado real del juego**: `hero.stunnedTurnsLeft`,
+comprobado en `startHeroTurn()` — PA a 0, texto flotante "¡Aturdido!",
+decrementa y pasa turno solo. El icono (`status_aturdido.png`) y el texto
+i18n (`status.aturdido`) ya existían de antes, preparados para cuando
+hiciera falta un sistema de estados real (ver limitación conocida en la
+sección de habilidades V0.23) — esto es el primer estado que de verdad los
+usa. Genérico por diseño (`stunTarget(target, turns)` acepta cualquier
+combatiente), aunque hoy solo el héroe puede sufrirlo.
+
+**Arte**: 4 hojas de sprite (idle 10 fotogramas, andar 7, ataque 8, muerte
+8) recortadas a rejilla fija (sin huecos entre celdas, a diferencia de las
+hojas del altar) y escaladas cada una a SU PROPIA referencia interna (el
+fotograma más alto de ESE clip, nunca una escala compartida entre clips —
+ver la lección ya anotada más abajo, en "Técnicas de arte y animación").
+Nota conocida: 2 fotogramas del idle (7.º y 8.º) salieron con menos
+contenido de lo esperado al recortar la rejilla — imperceptible en un bucle
+de respiración tan sutil, pero retocable si se nota en el juego.
+
+**Audio del golem**: 3 pistas propias (`golemboneidle/walk/death`), más un
+sistema nuevo y genérico de "sonido ambiental de monstruo grande"
+(`MONSTER_IDLE_SOUND` en `rules.js`, por sprite): si hay uno despierto a
+menos de 4 casillas, suena su idle como mucho 1 vez cada 10s (cada uno con
+su propio cronómetro). Ojo si se prueba en Node: el `setInterval` de este
+sistema lleva `.unref()` condicional (`if (typeof t.unref === 'function')`)
+para no dejar colgado un proceso de pruebas headless — no afecta al
+navegador, donde ese método no existe.
+
+**Música de combate de élite** (`ost_combatelite.mp3` → `combatelite.mp3`):
+nueva pareja `audio.startEliteMusic()/stopEliteMusic()`, en bucle, baja (no
+para del todo) el ambiente de bosque mientras suena. Arranca en la
+emboscada sincronizada de espectros de Mausoleo 2 (`triggerAmbush`), para
+sola al terminar el combate (`checkCombatEnd`). Reservada para cuando se
+invoque al Esqueleto Mago en la Cripta (pendiente, no implementado aún).
+
+**Entrada/salida con arte real**: el glifo ▮/▯ de siempre se sustituye por
+una imagen de usuario (`assets/props/exit/model.png`, escaleras hacia la
+oscuridad) en el bucle de `state.exits` de `render.js`. Detección
+automática de "entrada grande": dos marcadores de salida en casillas
+adyacentes (Chebyshev = 1) se dibujan como UN solo modelo centrado entre
+las dos, al DOBLE de tamaño normal (decisión tomada con el usuario: doble
+tamaño fijo, no ajustado al ancho de las 2 casillas). El aro/resplandor de
+color de siempre (abierta/bloqueada, con niebla o sin ella) se queda
+detrás del modelo, sin cambios.
+
+**Habilidades bloqueadas en la barra de acciones**: velo rojo + número de
+combates de enfriamiento restantes cuando una habilidad no se puede usar
+(en CD o sin PA suficientes) — ya no se pueden pulsar. Nuevo getter
+`getSkillCooldownLeft(id)` en `rules.js`, conectado a `skills.js` con el
+mismo patrón bind-callback que ya usa `useActiveSkill` (`skills.js` no
+puede importar `rules.js`: import circular). `renderActionBar()` ahora se
+exporta y se refresca sola cada vez que se llama a `syncHUD()` (otro
+bind-callback, `bindRefreshActionBar`, para que ui.js tampoco tenga que
+importar skills.js).
+
+**Arreglado — Golpe desde las Sombras atacaba/interactuaba "a distancia"**:
+el teletransporte actualizaba `hero.x/hero.y` (posición lógica) pero nunca
+el sprite en pantalla ni la cámara — el héroe ya estaba ahí de verdad, solo
+que su dibujo se quedaba atrás. Nueva función `anim.snapTo(name, gx, gy)`
+(reposiciona un actor de golpe, sin animación, incluso si ya existía —
+a diferencia de `ensure()`, que no toca nada si el actor ya está creado).
+
+**Reordenado — el contenedor se rompe al CERRAR el loot, no al abrirlo**:
+`anim.openProp`/`audio.fx('containerBreak')` se movieron de la interacción
+inicial (`rules.js`) a `markLootSourceEmptied()` (`ui.js`), que ya es el
+único punto por el que pasa "este contenedor se ha vaciado del todo".
+
+**Tienda de habilidades — ya no aparece al simple retomar una partida**:
+antes se abría SIEMPRE al pulsar "Continuar" en la pantalla de novedades,
+también al reanudar una partida guardada a medias. Ahora: `isFreshBoot`
+(`!savegame.hasSave()` calculado ANTES de que `bootLevel()` decida nada) es
+lo único que decide si "Continuar" abre la tienda; además `newGame()` (que
+sirve tanto para morir-y-reintentar como para el botón manual de reiniciar)
+y `descend()` (bajar de nivel) la abren siempre, sin depender de la
+pantalla de novedades.
+
+**Ajustes menores**: escala del altar +50% (`tall` propio, igual mecanismo
+que el del golem); número de cantidad de oro en el inventario más grande en
+móvil (14px→20px, negrita).
+
+**Revisado y NO era un bug** — "abrir un cofre reinicia la partida": el
+flujo completo (tarjeta → efecto → animación) no tiene ninguna ruta que
+reinicie por error; si el cofre lleva el efecto negativo (`hp:-6`) y el
+héroe ya estaba muy débil, sí puede morir de verdad, y la pantalla de
+derrota (con su botón "jugar de nuevo") es justo eso: una muerte real, no
+un reinicio accidental. Pendiente de confirmar con el usuario si le sigue
+pasando con vida de sobra.
+
 ## Altares (V0.24)
 
 Sistema nuevo, reemplaza al viejo evento genérico de 3 opciones que tenía el

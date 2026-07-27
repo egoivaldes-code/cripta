@@ -6,7 +6,7 @@
 //     (paz/combate) que cambian solas según haya un enemigo cerca, con una transición.
 // Además: sacudida al recibir daño y números flotantes (daño/curación).
 
-import { TILE, moveDurationMs } from './config.js?v=0.24';
+import { TILE, moveDurationMs } from './config.js?v=0.25';
 
 const D_ATTACK_LEGACY = 220;
 const D_HURT = 300;   // duración de la sacudida (todos los personajes)
@@ -65,6 +65,12 @@ export const ANIM_CLIPS = {
     attack: { frames: 6, fps: 10,  loop: false },
     death:  { frames: 6, fps: 10,  loop: false },
   },
+  golembone: {   // Golem de hueso: monstruosidad grande, pesada y lenta
+    idle:   { frames: 10, fps: 3,  loop: true  },
+    walk:   { frames: 7,  fps: 7,  loop: true  },
+    attack: { frames: 8,  fps: 9,  loop: false },
+    death:  { frames: 8,  fps: 7,  loop: false },
+  },
   hero: {
     idlepeace:    { frames: 6, fps: 1.6, loop: true },
     idlecombat:   { frames: 6, fps: 2.6,  loop: true  },
@@ -83,11 +89,11 @@ export const ANIM_CLIPS = {
 
 // Qué clip hace de idle normal / idle de combate / transición, por tipo (solo el
 // héroe tiene los dos idles; el esqueleto usa el mismo "idle" siempre).
-export const IDLE_NAME = { enemy1: 'idle', enemy4: 'idle', enemy5: 'idle', enemy6: 'idle', hero: 'idlepeace', chest: 'idle', container: 'idle', altar: 'idle' };
+export const IDLE_NAME = { enemy1: 'idle', enemy4: 'idle', enemy5: 'idle', enemy6: 'idle', golembone: 'idle', hero: 'idlepeace', chest: 'idle', container: 'idle', altar: 'idle' };
 const IDLE_COMBAT_NAME = { hero: 'idlecombat' };
 const STANCECHANGE_NAME = { hero: 'stancechange' };
 // Variantes de ataque entre las que elegir al azar cada vez.
-const ATTACK_VARIANTS = { enemy1: ['attack'], enemy4: ['attack'], enemy5: ['attack'], enemy6: ['attack'], hero: ['attack1', 'attack2'] };
+const ATTACK_VARIANTS = { enemy1: ['attack'], enemy4: ['attack'], enemy5: ['attack'], enemy6: ['attack'], golembone: ['attack'], hero: ['attack1', 'attack2'] };
 
 const isAnimated = (kind) => !!ANIM_CLIPS[kind];
 
@@ -106,6 +112,18 @@ function ensure(name, gx, gy) {
     stance: 'peace', pendingStance: null, actionClip: null,
   };
   return actors[name];
+}
+
+// Coloca a un actor de golpe en una casilla, SIN animación de por medio
+// (p.ej. un teletransporte instantáneo como Golpe desde las Sombras). A
+// diferencia de ensure(), esto siempre mueve el sprite aunque el actor ya
+// existiera — si no, el dibujo se queda en la casilla vieja mientras la
+// posición lógica ya ha saltado (y entonces todo parece alcanzable "a
+// distancia": en realidad el héroe ya está ahí, solo que no se ve).
+export function snapTo(name, gx, gy) {
+  const a = ensure(name, gx, gy);
+  a.anim = null;
+  a.px = center(gx); a.py = center(gy);
 }
 
 export function reset() {

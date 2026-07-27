@@ -1,6 +1,31 @@
 {
   "versions": [
     {
+      "v": "0.25",
+      "es": {
+        "title": "Golem de hueso y varios arreglos",
+        "notes": [
+          "Nuevo enemigo: el Golem de hueso, una monstruosidad grande y muy resistente. Puede rematar de un golpe a quien tenga muy poca vida (y crecerse con ello) o aturdir si se ve rodeado.",
+          "Las entradas y salidas ya tienen arte real en vez del símbolo de siempre.",
+          "Suena música propia durante los combates más duros.",
+          "Las habilidades que no se pueden usar ahora se ven claramente bloqueadas, con los turnos que faltan para poder volver a usarlas.",
+          "Arreglado: Golpe desde las Sombras ya no permite atacar o interactuar a distancia tras usarlo.",
+          "La tienda de habilidades ya no aparece al simplemente retomar una partida guardada."
+        ]
+      },
+      "en": {
+        "title": "Bone golem and several fixes",
+        "notes": [
+          "New enemy: the Bone Golem, a huge and very tough monstrosity. It can finish off anyone with very little health left (growing stronger from it) or stun you if surrounded.",
+          "Entrances and exits now have real artwork instead of the old symbol.",
+          "Tougher fights now have their own music.",
+          "Skills that can't be used are now clearly locked, showing how many turns are left before they're ready again.",
+          "Fixed: Shadow Strike no longer lets you attack or interact at a distance after using it.",
+          "The skill shop no longer pops up when simply resuming a saved game."
+        ]
+      }
+    },
+    {
       "v": "0.24",
       "es": {
         "title": "Altares: bendiciones y maldiciones",

@@ -1,14 +1,14 @@
 // Capa DOM: HUD (con PA), cartas de evento, registro, fin de partida y ajustes.
 // Todo el texto visible pasa por t() (multiidioma). No dibuja en el canvas.
 
-import { state } from './state.js?v=0.24';
-import { t, tRandom } from './i18n.js?v=0.24';
-import * as anim from './anim.js?v=0.24';
-import { IDLE_NAME } from './anim.js?v=0.24';
-import * as audio from './audio.js?v=0.24';
-import { VERSION } from './config.js?v=0.24';
-import { images, SPRITE_TILE } from './assets.js?v=0.24';
-import { pushHistory, getHistory, clearHistory, CATEGORIES } from './eventlog.js?v=0.24';
+import { state } from './state.js?v=0.25';
+import { t, tRandom } from './i18n.js?v=0.25';
+import * as anim from './anim.js?v=0.25';
+import { IDLE_NAME } from './anim.js?v=0.25';
+import * as audio from './audio.js?v=0.25';
+import { VERSION } from './config.js?v=0.25';
+import { images, SPRITE_TILE } from './assets.js?v=0.25';
+import { pushHistory, getHistory, clearHistory, CATEGORIES } from './eventlog.js?v=0.25';
 
 let afterInteract = () => {};
 let restart = () => {};
@@ -108,8 +108,11 @@ function closeLootVeil() {
 // hace que render.js deje de pintarlo (mismo criterio que el resto de
 // props de un solo uso).
 function markLootSourceEmptied(source) {
-  if (source.type === 'container') source.used = true;
-  else source.deathPlaying = false;
+  if (source.type === 'container') {
+    source.used = true;
+    anim.openProp(`prop:${source.x}:${source.y}`, 'container');
+    audio.fx('containerBreak');
+  } else source.deathPlaying = false;
 }
 
 // Coge un objeto suelto. Si era el último que quedaba, la fuente (cadáver o
@@ -168,6 +171,12 @@ $('confirmYes').addEventListener('click', () => { const fn = confirmCb; hideConf
 $('confirmNo').addEventListener('click', hideConfirm);
 $('confirmVeil').addEventListener('click', e => { if (e.target === $('confirmVeil')) hideConfirm(); });
 
+let refreshActionBar = () => {};
+// skills.js no se puede importar aquí (import circular: skills.js ya importa
+// showConfirm de ui.js) — el refresco de la barra de acciones (velo rojo +
+// número de CD) se conecta desde main.js, igual que bindResolveAltar.
+export function bindRefreshActionBar(fn) { refreshActionBar = fn; }
+
 export function syncHUD() {
   const { hero } = state;
   const pct = hero.hp / hero.maxHp;
@@ -199,6 +208,7 @@ export function syncHUD() {
   // que aplicar, así que la fila queda vacía y se esconde sola (ver CSS).
   renderStatusIcons($('heroStatus'), hero.statuses || []);
   syncFoeRow();
+  refreshActionBar();
 }
 
 // Dibuja los iconos de perjuicio/beneficio de una lista tipo

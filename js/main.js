@@ -1,18 +1,18 @@
 // Punto de entrada. Carga idioma y datos, cablea módulos y arranca el bucle.
 
-import { state, initGame, recomputeFog, computeReach } from './state.js?v=0.24';
-import { initRenderer, startLoop, centerOnHero, toggleGrid, isGridOn } from './render.js?v=0.24';
-import { onTapTile, bindDescend, startHeroTurn, endHeroTurn, afterInteract, attemptDisarm, isAITurnActive, getEnemySpeed, setEnemySpeed, setTotalFoeCount, useActiveSkill, rollAltar } from './rules.js?v=0.24';
-import { syncHUD, log, hideVeil, bindAfterInteract, bindRestart, bindAttemptDisarm, bindResolveAltar, applyStaticText, syncInitiativeUI, showConfirm, showLogHistory, hideLogHistory, logHistoryOpen } from './ui.js?v=0.24';
-import { loadAssets } from './assets.js?v=0.24';
-import { initialLang, loadLang, onLangChange, getLang, t } from './i18n.js?v=0.24';
-import * as anim from './anim.js?v=0.24';
-import * as audio from './audio.js?v=0.24';
-import { VERSION } from './config.js?v=0.24';
-import { assemble } from './mapgen.js?v=0.24';
-import { initInventory, openInventory, closeInventory, isInventoryOpen, resetInventory, refreshInventoryTexts } from './inventory.js?v=0.24';
-import { loadSkillsData, initSkillShop, openSkillShop, closeSkillShop, refreshSkillTexts, bindFullReset, applySkillBonuses, bindUseActiveSkill, tryUseArmedOnTile } from './skills.js?v=0.24';
-import * as savegame from './savegame.js?v=0.24';
+import { state, initGame, recomputeFog, computeReach } from './state.js?v=0.25';
+import { initRenderer, startLoop, centerOnHero, toggleGrid, isGridOn } from './render.js?v=0.25';
+import { onTapTile, bindDescend, startHeroTurn, endHeroTurn, afterInteract, attemptDisarm, isAITurnActive, getEnemySpeed, setEnemySpeed, setTotalFoeCount, useActiveSkill, rollAltar, getSkillCooldownLeft } from './rules.js?v=0.25';
+import { syncHUD, log, hideVeil, bindAfterInteract, bindRestart, bindAttemptDisarm, bindResolveAltar, applyStaticText, syncInitiativeUI, showConfirm, showLogHistory, hideLogHistory, logHistoryOpen, bindRefreshActionBar } from './ui.js?v=0.25';
+import { loadAssets } from './assets.js?v=0.25';
+import { initialLang, loadLang, onLangChange, getLang, t } from './i18n.js?v=0.25';
+import * as anim from './anim.js?v=0.25';
+import * as audio from './audio.js?v=0.25';
+import { VERSION } from './config.js?v=0.25';
+import { assemble } from './mapgen.js?v=0.25';
+import { initInventory, openInventory, closeInventory, isInventoryOpen, resetInventory, refreshInventoryTexts } from './inventory.js?v=0.25';
+import { loadSkillsData, initSkillShop, openSkillShop, closeSkillShop, refreshSkillTexts, bindFullReset, applySkillBonuses, bindUseActiveSkill, tryUseArmedOnTile, bindGetSkillCooldownLeft, renderActionBar } from './skills.js?v=0.25';
+import * as savegame from './savegame.js?v=0.25';
 
 // El ensamblador de losetas (mapgen.js) sigue disponible para niveles ALEATORIOS
 // futuros; esta función queda de reserva pero no se usa por ahora, ya que el
@@ -96,6 +96,13 @@ async function boot() {
   // posición, vida, enemigos vivos/muertos, niebla explorada...); si no hay
   // guardado o algo falla al cargarlo (p.ej. un nivel que ya no existe), se
   // empieza una partida nueva normal en el nivel 1.
+  // Se guarda ANTES de que bootLevel() decida nada, porque bootLevel() usa
+  // loadLevel('level1') tanto para "de verdad no hay guardado" como para "el
+  // guardado ha fallado al cargar" — aquí solo interesa el primer caso, para
+  // saber si la tienda de habilidades debe aparecer tras la pantalla de
+  // novedades (ver bindSplashContinue más abajo: partida nueva / muerte / fin
+  // de nivel sí, retomar una partida en curso no).
+  const isFreshBoot = !savegame.hasSave();
   async function bootLevel() {
     if (!savegame.hasSave()) return loadLevel('level1');
     const data = savegame.loadSave();
@@ -120,13 +127,14 @@ async function boot() {
     }
   }
 
-  function newGame() { loadLevel('level1'); }
+  function newGame() { loadLevel('level1').then(openSkillShop); }
   async function descend(to) {
     const c = { hp: state.hero.hp, maxHp: state.hero.maxHp, atk: state.hero.atk, gold: state.hero.gold, totalKills: state.hero.totalKills || 0 };
     try {
       audio.fx('descend');
       await loadLevel(to, c);
       log(t('log.descend'));
+      openSkillShop();   // entre niveles: ocasión de gastar el oro ganado antes de seguir
     } catch (err) {
       console.warn('No se pudo cargar el nivel de destino:', to, err);
       log(t('log.levelMissing'));
@@ -140,6 +148,8 @@ async function boot() {
   bindResolveAltar(rollAltar);
   bindFullReset(newGame);   // "reiniciar progreso" en la tienda de habilidades también reinicia la mazmorra
   bindUseActiveSkill(useActiveSkill);
+  bindGetSkillCooldownLeft(getSkillCooldownLeft);
+  bindRefreshActionBar(renderActionBar);
 
   // Total de enemigos de TODAS las zonas conectadas (cementerio + cripta +
   // mausoleos), para que la victoria dependa de limpiar la mazmorra entera y
@@ -235,7 +245,7 @@ async function boot() {
   document.getElementById('splashContinue').addEventListener('click', () => {
     document.getElementById('splash').classList.remove('show');
     audio.unlock();
-    openSkillShop();
+    if (isFreshBoot) openSkillShop();   // retomar una partida en curso no debe abrir la tienda
   });
 
   // Tienda de habilidades: "Terminar" pide confirmación y entra en el juego

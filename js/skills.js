@@ -18,11 +18,17 @@
 // estado + render + interacción para toda esta pantalla, ya que es un bloque
 // autocontenido de la interfaz.
 
-import { state } from './state.js?v=0.24';
-import { t } from './i18n.js?v=0.24';
-import { VERSION } from './config.js?v=0.24';
-import { showConfirm } from './ui.js?v=0.24';
-import { getPersistedGold, persistGold } from './savegame.js?v=0.24';
+import { state } from './state.js?v=0.25';
+import { t } from './i18n.js?v=0.25';
+import { VERSION, ATTACK_COST } from './config.js?v=0.25';
+import { showConfirm } from './ui.js?v=0.25';
+import { getPersistedGold, persistGold } from './savegame.js?v=0.25';
+
+// rules.js no se puede importar aquí (import circular: rules.js ya importa
+// getOwnedTier/getSkillDef de aquí) — el enfriamiento restante se conecta
+// desde main.js, igual que useSkillFn (ver bindUseActiveSkill).
+let cooldownLeftFn = () => 0;
+export function bindGetSkillCooldownLeft(fn) { cooldownLeftFn = fn; }
 
 const STORAGE_KEY = 'cripta.skills';
 const TIER_COUNT = 3;
@@ -283,19 +289,23 @@ function renderAll() { renderGold(); renderCards(); }
 
 let actionBarEl = null;
 
-function renderActionBar() {
+export function renderActionBar() {
   if (!actionBarEl) return;
   const actives = getActiveOwnedSkills();
   const slots = [];
   for (let i = 0; i < ACTIONBAR_SLOTS; i++) {
     const s = actives[i];
-    slots.push(s
-      ? `<div class="actionbar-slot actionbar-filled${armedSkillId === s.id ? ' actionbar-armed' : ''}" data-skill="${s.id}" title="${t(`skill.${s.id}.name`)}">${iconHTML(s)}</div>`
-      : `<div class="actionbar-slot"></div>`);
+    if (!s) { slots.push(`<div class="actionbar-slot"></div>`); continue; }
+    const cdLeft = cooldownLeftFn(s.id);
+    const noAP = !!(state.hero && state.hero.ap < ATTACK_COST);
+    const locked = cdLeft > 0 || noAP;
+    slots.push(
+      `<div class="actionbar-slot actionbar-filled${armedSkillId === s.id ? ' actionbar-armed' : ''}${locked ? ' actionbar-locked' : ''}" data-skill="${s.id}" data-locked="${locked ? '1' : '0'}" title="${t(`skill.${s.id}.name`)}">${iconHTML(s)}${cdLeft > 0 ? `<div class="actionbar-cd">${cdLeft}</div>` : ''}</div>`
+    );
   }
   actionBarEl.innerHTML = slots.join('');
   actionBarEl.querySelectorAll('[data-skill]').forEach(el => {
-    el.addEventListener('click', () => toggleArm(el.dataset.skill));
+    el.addEventListener('click', () => { if (el.dataset.locked === '1') return; toggleArm(el.dataset.skill); });
   });
 }
 

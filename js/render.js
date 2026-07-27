@@ -7,11 +7,11 @@
 // La altura de cada casilla se pinta con un tinte y, en los escalones, un
 // borde de color: VERDE en el lado alto, ROJO en el lado bajo (estilo Descent).
 
-import { state, elevAt, pathTo, foeAt, blockingTriggerAt, exitAt, adjacent } from './state.js?v=0.24';
-import { isAITurnActive } from './rules.js?v=0.24';
-import { TILE, CAMERA_MARGIN, ZOOM_MIN, ZOOM_MAX, ZOOM_DEFAULT, TOKEN_TALL, HERO_TALL, PROP_TALL } from './config.js?v=0.24';
-import { images, ATLAS_TILE, SPRITE_TILE } from './assets.js?v=0.24';
-import * as anim from './anim.js?v=0.24';
+import { state, elevAt, pathTo, foeAt, blockingTriggerAt, exitAt, adjacent } from './state.js?v=0.25';
+import { isAITurnActive } from './rules.js?v=0.25';
+import { TILE, CAMERA_MARGIN, ZOOM_MIN, ZOOM_MAX, ZOOM_DEFAULT, TOKEN_TALL, HERO_TALL, PROP_TALL } from './config.js?v=0.25';
+import { images, ATLAS_TILE, SPRITE_TILE } from './assets.js?v=0.25';
+import * as anim from './anim.js?v=0.25';
 
 // Algunos artes vienen dibujados mirando a la izquierda de serie (en vez de a
 // la derecha, que es lo que se asume en el resto del código al calcular hacia
@@ -491,14 +491,46 @@ function draw(ts) {
   // Salidas (formato nuevo, varias por nivel): mismo trato visual que el
   // resto de objetos — un color si están abiertas, otro (apagado) si siguen
   // bloqueadas a la espera de algo (p.ej. una palanca).
+  // Entradas/salidas: el modelo (arte de usuario) sustituye al glifo de
+  // siempre. Cuando dos salidas están en casillas adyacentes forman una
+  // "entrada grande": se dibuja UN solo modelo centrado entre las dos, al
+  // DOBLE de tamaño normal (pedido expresamente así, no ajustado a las 2
+  // casillas). El aro/resplandor de color (abierta/bloqueada, con o sin
+  // niebla) se mantiene igual que siempre, detrás del modelo.
+  const exitDrawn = new Set();
   for (const ex of state.exits) {
     if (!state.explored[ex.y] || !state.explored[ex.y][ex.x]) continue;
-    const s = worldToScreen(ex.x * TILE + TILE/2, ex.y * TILE + TILE/2);
-    const on = state.visible[ex.y][ex.x];
-    const col = ex.blocked ? '#8a5a4a' : '#5aa9c9';
-    disc(s.x, s.y, 20*zoom, `rgba(${ex.blocked ? '138,90,74' : '90,169,201'},${(on ? 0.10 : 0.05) + 0.10 * glow})`);
-    ring(s.x, s.y, 14*zoom, on ? col : col + '99', 2);
-    glyph(s.x, s.y, ex.blocked ? '▮' : '▯', on ? col : '#6a6a6a', 20*zoom);
+    const key = `${ex.x}:${ex.y}`;
+    if (exitDrawn.has(key)) continue;
+    const partner = state.exits.find(o => o !== ex && !exitDrawn.has(`${o.x}:${o.y}`) &&
+      Math.max(Math.abs(o.x - ex.x), Math.abs(o.y - ex.y)) === 1);
+    const on = state.visible[ex.y][ex.x] || (partner && state.visible[partner.y] && state.visible[partner.y][partner.x]);
+    const blocked = ex.blocked && (!partner || partner.blocked);
+    const col = blocked ? '#8a5a4a' : '#5aa9c9';
+    let cx, cy, big;
+    if (partner) {
+      cx = (ex.x + partner.x) / 2 * TILE + TILE / 2;
+      cy = (ex.y + partner.y) / 2 * TILE + TILE / 2;
+      big = true;
+      exitDrawn.add(`${partner.x}:${partner.y}`);
+    } else {
+      cx = ex.x * TILE + TILE / 2; cy = ex.y * TILE + TILE / 2;
+      big = false;
+    }
+    exitDrawn.add(key);
+    const s = worldToScreen(cx, cy);
+    const ringR = (big ? 26 : 16) * zoom;
+    disc(s.x, s.y, ringR, `rgba(${blocked ? '138,90,74' : '90,169,201'},${(on ? 0.10 : 0.05) + 0.10 * glow})`);
+    ring(s.x, s.y, ringR - 4, on ? col : col + '99', 2);
+    if (images.exitModel) {
+      const size = TILE * (big ? 2.3 : 1.15) * zoom;
+      ctx.save();
+      ctx.globalAlpha = on ? (blocked ? 0.55 : 1) : 0.45;
+      ctx.drawImage(images.exitModel, s.x - size/2, s.y - size/2, size, size);
+      ctx.restore();
+    } else {
+      glyph(s.x, s.y, blocked ? '▮' : '▯', on ? col : '#6a6a6a', 20*zoom);
+    }
   }
 
   // Enemigos: cada uno con su sprite; su animación siempre avanza; se dibuja si está a la vista.
@@ -511,7 +543,7 @@ function draw(ts) {
     }
     const vis = state.visible[foe.y] && state.visible[foe.y][foe.x];
     drawActor(foe.anim, images[foe.sprite] || images.enemy, foe.x, foe.y, ts,
-              { body:'#b5443a', edge:'#7d2a24', ink:'#2a0f0d', mark:'✕' }, vis, foe.sprite);
+              { body:'#b5443a', edge:'#7d2a24', ink:'#2a0f0d', mark:'✕' }, vis, foe.sprite, foe.tall || TOKEN_TALL);
 
     // Marcador de objetivo: el enemigo elegido en las cajas de vida (ui.js).
     if (foe === state.targetFoe && foe.alive && vis && images.target) {
