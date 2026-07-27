@@ -18,11 +18,11 @@
 // estado + render + interacción para toda esta pantalla, ya que es un bloque
 // autocontenido de la interfaz.
 
-import { state } from './state.js?v=0.25';
-import { t } from './i18n.js?v=0.25';
-import { VERSION, ATTACK_COST } from './config.js?v=0.25';
-import { showConfirm } from './ui.js?v=0.25';
-import { getPersistedGold, persistGold } from './savegame.js?v=0.25';
+import { state } from './state.js?v=0.26';
+import { t } from './i18n.js?v=0.26';
+import { VERSION, ATTACK_COST } from './config.js?v=0.26';
+import { showConfirm } from './ui.js?v=0.26';
+import { getPersistedGold, persistGold } from './savegame.js?v=0.26';
 
 // rules.js no se puede importar aquí (import circular: rules.js ya importa
 // getOwnedTier/getSkillDef de aquí) — el enfriamiento restante se conecta
@@ -142,7 +142,7 @@ export function getSkillDef(id) { return skillDef(id); }
 // Valores de referencia SIN ninguna habilidad — deben coincidir con los
 // valores por defecto de state.js (initGame). Si esos cambian allí, cambiar
 // también aquí para que la hoja de personaje siga sumando bien.
-const BASE_STATS = { critChance: 0.01, armor: 0.10, dodgeChance: 0.01 };
+const BASE_STATS = { critChance: 0.01, armor: 25, dodgeChance: 0.01 }; // armor: valor plano, no %, ver ARMOR_CONSTANT en config.js
 
 // Bonus actuales aportados por las pasivas de estadística plana (no cuenta
 // Golpes de fe/Sed de sangre, que son de proc/combate, no un número fijo).

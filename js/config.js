@@ -23,6 +23,12 @@ export const MAX_CLIMB = 1;    // diferencia de altura máxima cruzable (más = 
 export const DIFFICULT_EXTRA = 1;  // coste extra por entrar en terreno difícil (matorrales, escombros...)
 export const ATTACK_COST = 2;  // coste de atacar (depende del arma; por ahora fijo)
 
+// Armadura estilo "valor numérico con rendimientos decrecientes" (como en WoW):
+// % de daño físico reducido = armadura / (armadura + ARMOR_CONSTANT).
+// Con ARMOR_CONSTANT=200: 25 de armadura -> ~11%, 100 -> 33%, 200 -> 50%, 400 -> 66%...
+// nunca llega al 100%, cada punto extra reduce un poco menos que el anterior.
+export const ARMOR_CONSTANT = 200;
+
 // --- iniciativa (orden de turnos en combate) ---
 // Cada tipo tiene un valor base; al entrar en combate se le suma una tirada de
 // 1 a 6 (una sola vez por escaramuza, no cada ronda). El equipo del héroe podrá
@@ -61,4 +67,4 @@ export function speedMult() { return SPEED_MULT[gameSpeedKey] || 1; }
 export function moveDurationMs() { return Math.max(60, Math.round(MOVE_STEP_BASE_MS * speedMult())); }
 
 // --- versión (fuente única; también se usa para el cache-busting de assets) ---
-export const VERSION = '0.25';
+export const VERSION = '0.26';

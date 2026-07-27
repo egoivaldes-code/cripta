@@ -6,7 +6,7 @@
 // Qué claves tienen animaciones de verdad se define en ANIM_CLIPS (anim.js);
 // aquí solo hace falta indicar dónde está cada hoja.
 
-import { VERSION } from './config.js?v=0.25';
+import { VERSION } from './config.js?v=0.26';
 
 export const ATLAS_TILE = 128;  // px por celda en el tileset fuente (dungeon.png)
 export const SPRITE_TILE = 128; // px por fotograma en las hojas de sprites
@@ -95,6 +95,10 @@ const sources = {
   altar_ev8:  './assets/ui/altars/altar_ev8.jpg',
   altar_ev9:  './assets/ui/altars/altar_ev9.jpg',
   altar_ev10: './assets/ui/altars/altar_ev10.jpg',
+  // Tarjeta de pregunta del cofre (¿lo intentas abrir?). Las 6 ilustraciones
+  // por evento (chest_ev1..6) llegarán más adelante, cuando el usuario las
+  // genere — de momento el resultado sigue siendo solo texto.
+  chest_decision: './assets/ui/chests/chest_decision.jpg',
   exitModel: './assets/props/exit/model.png',
   target: './assets/props/target_marker.png',
   // crypt / crypt_in: aparcados (arte isométrico; el cementerio ahora usa un fondo

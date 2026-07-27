@@ -1,15 +1,15 @@
 // Reglas del juego: economía de Puntos de Acción (PA), interacción a distancia
 // y adyacente, trampas, niebla y salida de nivel. Agnóstico del dibujo.
 
-import { state, walkable, isWall, adjacent, distTo, isVisible, recomputeFog, computeReach, pathTo, findPath, findApproachPath, reachCost, blockingTriggerAt, trapAt, walkTriggerAt, exitAt, stepNeighbors, foeAt, corpseAt, livingFoes, losClear, revealAllExplored } from './state.js?v=0.25';
-import { openEvent, openLeverCard, openAltarCard, openTrapCard, openStoryCard, syncHUD, syncInitiativeUI, showCombatBadge, showLootWindow, showConfirm, log, gameOver } from './ui.js?v=0.25';
-import { t, tRandom } from './i18n.js?v=0.25';
-import { MOVE_COST, ATTACK_COST, INITIATIVE_BASE, INITIATIVE_DIE, TURN_DELAY, COMBAT_ENTER_DELAY, getGameSpeed, setGameSpeed, speedMult, moveDurationMs } from './config.js?v=0.25';
-import * as anim from './anim.js?v=0.25';
-import { ANIM_CLIPS } from './anim.js?v=0.25';
-import * as audio from './audio.js?v=0.25';
-import { centerOnTile } from './render.js?v=0.25';
-import { getOwnedTier, getSkillDef } from './skills.js?v=0.25';
+import { state, walkable, isWall, adjacent, distTo, isVisible, recomputeFog, computeReach, pathTo, findPath, findApproachPath, reachCost, blockingTriggerAt, trapAt, walkTriggerAt, exitAt, stepNeighbors, foeAt, corpseAt, livingFoes, losClear, revealAllExplored } from './state.js?v=0.26';
+import { openEvent, openLeverCard, openAltarCard, openChestCard, openTrapCard, openStoryCard, syncHUD, syncInitiativeUI, showCombatBadge, showLootWindow, showConfirm, log, gameOver } from './ui.js?v=0.26';
+import { t, tRandom } from './i18n.js?v=0.26';
+import { MOVE_COST, ATTACK_COST, INITIATIVE_BASE, INITIATIVE_DIE, TURN_DELAY, COMBAT_ENTER_DELAY, getGameSpeed, setGameSpeed, speedMult, moveDurationMs, ARMOR_CONSTANT } from './config.js?v=0.26';
+import * as anim from './anim.js?v=0.26';
+import { ANIM_CLIPS } from './anim.js?v=0.26';
+import * as audio from './audio.js?v=0.26';
+import { centerOnTile } from './render.js?v=0.26';
+import { getOwnedTier, getSkillDef } from './skills.js?v=0.26';
 
 const sign = (n) => Math.sign(n);
 
@@ -78,7 +78,7 @@ let freeNextCastSkip = false;
 // Forma Salvaje (Druida): buff temporal por turnos, mismo patrón que Grito
 // de guerra (warCryTurnsLeft/Pct) pero con más de un número asociado.
 let wildShapeTurnsLeft = 0;
-let wildShapePower = null;   // { dmgBonusPct, armorBonusPct, healOnHitPct } mientras dura
+let wildShapePower = null;   // { dmgBonusPct, armorBonus, healOnHitPct } mientras dura
 
 // Círculo de Renacer (Clérigo): zonas de curación que quedan en el mapa,
 // se comprueban en cada startHeroTurn(). Varias pueden coexistir si se lanza
@@ -171,11 +171,11 @@ function resolveHeroHit(baseDamage, target, opts = {}) {
 // - Simbiosis Natural (Druida, tier 3): solo con la vida al completo.
 function temporaryArmorBonus() {
   const hero = state.hero;
-  let bonus = wildShapeTurnsLeft > 0 && wildShapePower ? wildShapePower.armorBonusPct : 0;
+  let bonus = wildShapeTurnsLeft > 0 && wildShapePower ? wildShapePower.armorBonus : 0;
   const nsTier = getOwnedTier('natural_symbiosis');
   if (nsTier) {
     const power = getSkillDef('natural_symbiosis').tiers[nsTier - 1].power;
-    if (power.armorBonusAtFullHpPct && hero.hp >= hero.maxHp) bonus += power.armorBonusAtFullHpPct;
+    if (power.armorBonusAtFullHp && hero.hp >= hero.maxHp) bonus += power.armorBonusAtFullHp;
   }
   return bonus;
 }
@@ -186,7 +186,17 @@ function resolveIncomingHit(baseDamage, damageType = 'physical') {
   const hero = state.hero;
   if (Math.random() < (hero.dodgeChance || 0)) return { damage: 0, evaded: true, blocked: false };
   if (hero.hasShield && Math.random() < (hero.blockChance || 0)) return { damage: 0, evaded: false, blocked: true };
-  const mitig = damageType === 'physical' ? (hero.armor || 0) + temporaryArmorBonus() : ((hero.resist && hero.resist[damageType]) || 0);
+  // La armadura es un VALOR PLANO (no un %): % de daño físico reducido =
+  // armadura / (armadura + ARMOR_CONSTANT), con rendimientos decrecientes
+  // (cada punto de armadura reduce un poco menos que el anterior, nunca llega
+  // al 100%). El daño elemental sigue usando resistencias en % directas.
+  let mitig;
+  if (damageType === 'physical') {
+    const totalArmor = (hero.armor || 0) + temporaryArmorBonus();
+    mitig = totalArmor / (totalArmor + ARMOR_CONSTANT);
+  } else {
+    mitig = (hero.resist && hero.resist[damageType]) || 0;
+  }
   const damage = Math.max(0, Math.round(baseDamage * (1 - mitig)));
   return { damage, evaded: false, blocked: false };
 }
@@ -704,6 +714,90 @@ export function rollAltar(tr) {
   return chosen;
 }
 
+// --- Cofres (V0.26): mismo patrón que los altares — un solo marcador
+// genérico (todos los `chest` son iguales), pool de eventos aleatorios, un
+// solo uso por cofre. Ver ui.js (openChestCard/renderChestCard) y AGENTS.md
+// ("Cofres"). Arte pendiente: de momento la carta es solo texto (sin
+// ilustración propia todavía, a diferencia del altar) — en cuanto haya arte
+// nuevo (Nano Banana) se añade a assets.js y renderChestCard se actualiza
+// para mostrarlo, igual que ya se hizo con los altares. De momento 6
+// eventos (3 buenos / 3 malos); pensado para ir ampliando el pool según se
+// añadan más minijuegos/riesgos u objetos de verdad (aún no existen objetos
+// equipables reales, solo oro — ver inventory.js). ---
+const CHEST_BIG_GOLD = [30, 70];      // tesoro abundante
+const CHEST_SMALL_GOLD = [12, 30];    // bolsa modesta, sin riesgo
+const CHEST_SUPPLY_GOLD = [8, 15];    // acompaña a la curación pequeña
+const CHEST_STING_PCT = [0.05, 0.15]; // aguijón oculto: % de la vida actual
+
+const CHEST_EVENTS = [
+  { n: 1, kind: 'good', apply: () => {
+      const hero = state.hero;
+      const gained = Math.round(CHEST_BIG_GOLD[0] + Math.random() * (CHEST_BIG_GOLD[1] - CHEST_BIG_GOLD[0]));
+      hero.gold += gained;
+      anim.floatAt(hero.x, hero.y, `+${gained}`, '#e0b34a');
+      return { gained };
+  } },
+  { n: 2, kind: 'good', apply: () => {
+      const hero = state.hero;
+      const gained = Math.round(CHEST_SMALL_GOLD[0] + Math.random() * (CHEST_SMALL_GOLD[1] - CHEST_SMALL_GOLD[0]));
+      hero.gold += gained;
+      anim.floatAt(hero.x, hero.y, `+${gained}`, '#e0b34a');
+      return { gained };
+  } },
+  { n: 3, kind: 'good', apply: () => {
+      const hero = state.hero;
+      const healed = Math.min(hero.maxHp - hero.hp, Math.max(1, Math.round(hero.maxHp * 0.15)));
+      hero.hp += healed;
+      const gained = Math.round(CHEST_SUPPLY_GOLD[0] + Math.random() * (CHEST_SUPPLY_GOLD[1] - CHEST_SUPPLY_GOLD[0]));
+      hero.gold += gained;
+      if (healed > 0) anim.floatAt(hero.x, hero.y, `+${healed}`, '#7fc06a');
+      anim.floatAt(hero.x, hero.y, `+${gained}`, '#e0b34a');
+      return { healed, gained };
+  } },
+  { n: 4, kind: 'bad', apply: () => ({ gained: 0 }) },   // cofre vacío: solo polvo
+  { n: 5, kind: 'bad', apply: () => {
+      const hero = state.hero;
+      const dmg = Math.max(1, Math.round(hero.hp * altarPct(CHEST_STING_PCT)));
+      hero.hp = Math.max(1, hero.hp - dmg);
+      anim.floatAt(hero.x, hero.y, `−${dmg}`, '#e86a5c');
+      return { dmg };
+  } },
+  { n: 6, kind: 'bad', apply: (tr) => {
+      const summon = pickWeightedSummon();
+      const spot = freeTileAdjacentTo(tr.x, tr.y);
+      let spawned = false;
+      if (spot) {
+        state.foes.push({
+          x: spot.x, y: spot.y, alive: true, hp: summon.hp, maxHp: summon.maxHp,
+          atk: summon.atk, sprite: summon.sprite, apMax: 4,
+          anim: 'foe' + state.foes.length, dormant: false, wakeR: 0,
+        });
+        spawned = true;
+        syncHUD();
+      }
+      return { spawned, sprite: summon.sprite };
+  } },
+];
+
+// Sortea un evento del pool del cofre y marca el cofre como gastado, pero
+// SIN aplicar el efecto todavía. Llamado desde ui.js (openChestCard) en
+// cuanto el jugador confirma "Sí" en la pregunta de si quiere abrirlo — el
+// texto de ambientación del evento sorteado se enseña ya, pero la
+// recompensa (oro/vida/invocación) se aplica de verdad al cerrar la carta
+// (ver applyChestEvent), tal como se pidió.
+export function pickChestEvent(tr) {
+  const chosen = CHEST_EVENTS[Math.floor(Math.random() * CHEST_EVENTS.length)];
+  tr.used = true;
+  return chosen;
+}
+
+// Aplica de verdad el efecto de un evento ya sorteado (pickChestEvent).
+// Llamado desde ui.js al pulsar "Cerrar" en la carta de resultado del cofre.
+export function applyChestEvent(tr, chosen) {
+  chosen.apply(tr);
+  syncHUD();
+}
+
 // Traza una línea recta (8 direcciones) desde el héroe hacia (tx,ty) y
 // devuelve los enemigos que encuentra por el camino, hasta `range` casillas
 // o hasta topar con un muro — la usa Disparo Múltiple.
@@ -753,7 +847,7 @@ export function useActiveSkill(id, gx, gy) {
   // --- Forma Salvaje (Druida): auto-lanzamiento, activa el buff temporal. ---
   if (id === 'wild_shape') {
     wildShapeTurnsLeft = power.durationTurns;
-    wildShapePower = { dmgBonusPct: power.dmgBonusPct, armorBonusPct: power.armorBonusPct, healOnHitPct: power.healOnHitPct };
+    wildShapePower = { dmgBonusPct: power.dmgBonusPct, armorBonus: power.armorBonus, healOnHitPct: power.healOnHitPct };
     anim.floatAt(hero.x, hero.y, skillName, '#7fc06a', { static: true });
     log(t('log.wildShapeStart', { name: skillName }), 'combat');
     audio.fx('ui');
@@ -1000,7 +1094,30 @@ export async function onTapTile(gx, gy) {
     return;
   }
 
-  // --- ¿Objeto (cofre, altar, palanca, orbe, mesa, evento...)? Adyacente =
+  // --- ¿Cofre? Un solo marcador genérico (todos son iguales, igual que el
+  // altar): adyacente y sin gastar todavía = pregunta si quieres abrirlo
+  // (openChestCard, imagen "¿lo intentas abrir?" + Sí/No); ya gastado =
+  // mensaje neutro, se queda ahí abierto para siempre (no desaparece, y al
+  // estar `used` deja de bloquear la casilla — ver blockingTriggerAt en
+  // state.js). No pasa por events.json: el contenido es el mismo pool para
+  // cualquier cofre, en cualquier nivel (ver CHEST_EVENTS más arriba). ---
+  if (tr && tr.type === 'chest') {
+    const d = distTo(hero, gx, gy);
+    if (d <= 1) {
+      if (tr.used) { log(t('log.chestSpent')); return; }
+      const cost = 1;
+      if (hero.ap < cost) { log(t('log.noAP')); return; }
+      hero.ap -= cost; syncHUD();
+      anim.activateAnim('hero', 'hero');
+      openChestCard(tr);
+    } else if (isVisible(gx, gy) && !tr.used) {
+      log(`<b>${t('chest.kicker')}</b> — ${t('chest.hint')}`);
+      audio.fx('ui');
+    }
+    return;
+  }
+
+  // --- ¿Objeto (altar, palanca, orbe, mesa, evento...)? Adyacente =
   // interactuar; a distancia = pista. Si todavía no tiene un evento conectado
   // en events.json (p.ej. un "Evento" recién colocado en el editor, sin
   // enlazar aún), no revienta: se avisa con un mensaje neutro y no pasa nada más. ---
@@ -1012,11 +1129,7 @@ export async function onTapTile(gx, gy) {
       const cost = ev.actionCost || 1;
       if (hero.ap < cost) { log(t('log.noAP')); return; }
       hero.ap -= cost; syncHUD();
-      if (tr.type === 'chest') {
-        // El cofre se abre DESPUÉS de resolver la tarjeta (ver afterInteract);
-        // aquí solo se reproduce la animación de activar/inspeccionar.
-        anim.activateAnim('hero', 'hero');
-      } else if (tr.type === 'grave') {
+      if (tr.type === 'grave') {
         anim.loot('hero', 'hero');
       } else {
         anim.activateAnim('hero', 'hero');
@@ -1123,11 +1236,7 @@ export async function onTapTile(gx, gy) {
 // Si era un cofre, aquí es cuando se abre de verdad (lootear + su propia
 // animación), después del evento/tarjeta que hubiera, tal como se pidió.
 export function afterInteract(trig) {
-  if (trig && trig.type === 'chest') {
-    anim.loot('hero', 'hero');
-    anim.openProp(`prop:${trig.x}:${trig.y}`, 'chest');
-    audio.fx('chestOpen');
-  } else if (trig && trig.type === 'altar') {
+  if (trig && trig.type === 'altar') {
     // Se enciende (fotogramas 1→4) y se apaga solo (4→1); nunca se congela:
     // el altar vuelve a su reposo de siempre, solo queda "gastado" en el
     // estado del nivel (tr.used, ya puesto por rollAltar).
@@ -1136,6 +1245,10 @@ export function afterInteract(trig) {
     triggerAmbush(trig);
     return;   // la propia emboscada decide cómo termina el turno (ver más abajo)
   }
+  // El cofre (`type: 'chest'`) ya no hace nada aquí: su sonido/animación de
+  // apertura y el sorteo del evento se disparan al pulsar "Sí" en la
+  // pregunta (openChestCard, ui.js); al cerrar la carta de resultado solo
+  // se aplica la recompensa (applyChestEvent) — ver rules.js/ui.js.
   computeReach();
   if (state.hero.hp > 0 && state.hero.ap <= 0 && !state.combat.active) endHeroTurn();
 }

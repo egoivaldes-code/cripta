@@ -2,7 +2,7 @@
 // Incluye niebla de guerra (explored/visible) y el alcance de movimiento
 // ligado a los Puntos de Acción (PA) restantes del héroe.
 
-import { SIGHT, SIGHT_DIM, AP_MAX, CLIMB_COST, MAX_CLIMB, DIFFICULT_EXTRA } from './config.js?v=0.25';
+import { SIGHT, SIGHT_DIM, AP_MAX, CLIMB_COST, MAX_CLIMB, DIFFICULT_EXTRA } from './config.js?v=0.26';
 
 export const state = {
   cols: 0, rows: 0,
@@ -43,7 +43,7 @@ export function initGame(level, events) {
   state.editorMap = level._editorMap || null;
   state.biome = level.biome || 'underground';   // 'forest' | 'underground' -> qué fondo de vacío usar (ver render.js)
   state.hero = {
-    critChance: 0.01, dodgeChance: 0.01, armor: 0.10,
+    critChance: 0.01, dodgeChance: 0.01, armor: 25,   // armor: valor plano (no %), ver ARMOR_CONSTANT en config.js
     hasShield: true, blockChance: 0.20,
     resist: { fire: 0, cold: 0, nature: 0, shadow: 0, holy: 0 },
     ...level.start.hero, ap: AP_MAX, apMax: AP_MAX,

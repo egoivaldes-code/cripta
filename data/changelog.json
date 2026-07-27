@@ -1,6 +1,25 @@
 {
   "versions": [
     {
+      "v": "0.26",
+      "es": {
+        "title": "Cofres: sorpresas al abrirlos",
+        "notes": [
+          "Los cofres ahora preguntan antes de abrirse: si te animas, puede tocarte un buen botín (oro extra, hasta algo de curación) o algo más arriesgado (nada de nada, un pinchazo, o despertar a algo cercano).",
+          "Se abren tocándolos, igual que siempre, solo que ahora confirman antes de abrirse del todo.",
+          "La armadura ahora reduce el daño de forma más gradual (cada punto extra ayuda un poco menos que el anterior, en vez de un % fijo)."
+        ]
+      },
+      "en": {
+        "title": "Chests: surprises when opened",
+        "notes": [
+          "Chests now ask before opening: if you go for it, you might get good loot (extra gold, even a bit of healing) or something riskier (nothing at all, a sting, or waking something nearby).",
+          "You still open them by touching them, same as always, they just confirm before opening all the way.",
+          "Armor now reduces damage more gradually (each extra point helps a little less than the last, instead of a fixed %)."
+        ]
+      }
+    },
+    {
       "v": "0.25",
       "es": {
         "title": "Golem de hueso y varios arreglos",

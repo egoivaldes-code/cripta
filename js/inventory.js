@@ -25,9 +25,10 @@
 // icono que ya se ve en el HUD). Los 9 tipos de objeto y sus iconos están
 // listos para cuando haya objetos de verdad que equipar.
 
-import { state } from './state.js?v=0.25';
-import { t } from './i18n.js?v=0.25';
-import { getPassiveOwnedSkills, getOwnedTier, getSkillBonuses } from './skills.js?v=0.25';
+import { state } from './state.js?v=0.26';
+import { t } from './i18n.js?v=0.26';
+import { getPassiveOwnedSkills, getOwnedTier, getSkillBonuses } from './skills.js?v=0.26';
+import { ARMOR_CONSTANT } from './config.js?v=0.26';
 
 // --- 1. Config ---------------------------------------------------------
 
@@ -363,6 +364,13 @@ function skillStatRow(skillId, label, value) {
          `<span class="inv-stat-label">${label}</span> <span class="inv-stat-value">${value}</span></div>`;
 }
 function pct(v) { return Math.round((v || 0) * 100) + '%'; }
+// La armadura ya no es un %-plano (ver ARMOR_CONSTANT en config.js): esto
+// muestra el % de daño físico que reduce de verdad, con la misma fórmula de
+// rendimientos decrecientes que usa rules.js (resolveIncomingHit).
+function armorPct(armor) {
+  const a = armor || 0;
+  return Math.round((a / (a + ARMOR_CONSTANT)) * 100) + '%';
+}
 
 function renderCharSheet() {
   if (!charSheetEl) return;
@@ -377,7 +385,7 @@ function renderCharSheet() {
   ].join('');
 
   const defenseRows = [
-    statRow(t('stat.armor'), pct(h.armor), bonus.armor > 0),
+    statRow(t('stat.armor'), armorPct(h.armor), bonus.armor > 0),
     statRow(t('stat.dodge'), pct(h.dodgeChance), bonus.dodge > 0),
     h.hasShield ? statRow(t('stat.block'), pct(h.blockChance)) : '',
     statRow(t('stat.resist.fire'), pct(resist.fire)),

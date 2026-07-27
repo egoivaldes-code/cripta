@@ -2,6 +2,55 @@
 
 Esquema: `0.X` = cambio grande · `0.X.Y` = cambio pequeño / fix.
 
+## 0.26 — Cofres: pool de eventos aleatorios (3 buenos / 3 malos), un solo uso
+- **Ajuste de layout**: en las tarjetas de imagen (cofre, altar, palanca —
+  comparten la misma clase `storychoices`), el texto ocupaba casi toda la
+  mitad derecha y se acercaba demasiado a la ilustración; ahora deja más
+  margen (no se mete en el dibujo) y los botones Sí/No/Cerrar miden un 75%
+  del ancho del texto en vez de ir de borde a borde.
+- **Fusión de un minifix en paralelo**: se subió `CriptaV0_25_1.zip` con un
+  rebalanceo de armadura hecho en otro chat sobre una base ligeramente más
+  vieja (de antes de que existiera el daño `arcane` — el zip revertía por
+  error `arcane` a `nature` en 2 habilidades del Mago y quitaba su color/
+  texto). Se fusionó SOLO el cambio de verdad (armadura) a mano, verificando
+  archivo por archivo, y se conservó `arcane` tal cual estaba.
+- **Armadura: de %-plano a valor numérico con rendimientos decrecientes**
+  (estilo WoW): `% de daño físico reducido = armadura / (armadura + 200)`
+  (`ARMOR_CONSTANT` en `config.js`). Armadura base del héroe: 25 (antes
+  10%). Piel de hierro pasa a dar +25/+50/+75 de armadura por tier (antes
+  +5%/+10%/+15%). Forma Salvaje y Gracia Vigilante (Druida/Clérigo)
+  actualizadas al mismo esquema (`armorBonus`/`armorBonusAtFullHp`, ya no
+  `...Pct`). El daño elemental (fuego/hielo/naturaleza/sombra/sagrado)
+  sigue igual, con resistencias en % directas.
+- **De paso, arreglado**: la hoja de estadísticas del inventario mostraba la
+  armadura como `pct(h.armor)` (asumía que era un %); con el nuevo valor
+  numérico eso habría mostrado disparates como "2500%". Ahora muestra el %
+  de mitigación real con la misma fórmula que usa el combate.
+- Los cofres ya no dan siempre lo mismo: al tocarlos preguntan "¿lo
+  intentas abrir?" (con ilustración propia); si dices que sí, se sortea 1
+  de 6 eventos del pool (`CHEST_EVENTS` en `rules.js`) y se enseña su texto
+  de ambientación; al cerrar la carta se aplica la recompensa de verdad
+  (buena o mala) y el cofre queda abierto para siempre (ya no bloquea el
+  paso).
+- **El cofre pasa a ser un marcador genérico**, igual que los altares desde
+  la 0.24: ya no depende de una carta de `events.json` con 3 opciones
+  elegidas a mano. Los 3 cofres ya colocados (cementerio, cripta, mausoleo2)
+  no necesitaron ningún cambio en sus niveles.
+- **6 eventos**: 3 buenos (tesoro abundante, bolsa de monedas modesta,
+  suministros con curación pequeña + oro) y 3 malos (cofre vacío, aguijón
+  oculto que quita algo de vida, ruido en la oscuridad que invoca 1 enemigo
+  cerca — reutilizando el mismo pool ponderado de Invocación del altar).
+- **Arte**: ya tiene su ilustración propia para la pregunta de abrir
+  (`chest_decision`). Las 6 ilustraciones por evento siguen pendientes — de
+  momento el resultado es solo texto; cargar una imagen que no existe
+  todavía rompería la carga completa del juego.
+- Quitadas las entradas `cofre`/`chest_1` de `events.json` y sus textos
+  huérfanos en `data/i18n/es.json`/`en.json` (ya no se usan).
+- Batería de pruebas headless propia (reparto de los 6 eventos, que el
+  sorteo no aplica el efecto hasta cerrar la carta, límites de vida/oro,
+  invocación sin hueco libre, fórmula de mitigación de armadura y suma de
+  bonus de Piel de hierro) — ver AGENTS.md ("Cofres" y "Armadura").
+
 ## 0.25 — Golem de hueso, entrada/salida con arte real y varios arreglos
 - **Golem de hueso**: nuevo enemigo grande (escala 1.5×, mucha vida) con 2 habilidades propias comprobadas al empezar su turno: rematar de un golpe a cualquier adyacente (amigo o enemigo suyo) con menos del 5% de vida (se cura 25% y su daño sube 10% para siempre), y aturdir a la que menos vida tenga si tiene 2+ del bando del héroe adyacentes (construido para cuando existan mascotas). Aparece junto a 4 esqueletos en una emboscada al activar el "Evento" que llevaba sin enganchar en Mausoleo 1, con la misma música de combate de élite que la emboscada de espectros de Mausoleo 2.
 - **Aturdido**: primer estado real del juego (PA a 0, texto flotante, pasa turno solo), reutilizando el icono y el texto que ya estaban preparados.

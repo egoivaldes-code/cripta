@@ -1,19 +1,21 @@
 // Capa DOM: HUD (con PA), cartas de evento, registro, fin de partida y ajustes.
 // Todo el texto visible pasa por t() (multiidioma). No dibuja en el canvas.
 
-import { state } from './state.js?v=0.25';
-import { t, tRandom } from './i18n.js?v=0.25';
-import * as anim from './anim.js?v=0.25';
-import { IDLE_NAME } from './anim.js?v=0.25';
-import * as audio from './audio.js?v=0.25';
-import { VERSION } from './config.js?v=0.25';
-import { images, SPRITE_TILE } from './assets.js?v=0.25';
-import { pushHistory, getHistory, clearHistory, CATEGORIES } from './eventlog.js?v=0.25';
+import { state } from './state.js?v=0.26';
+import { t, tRandom } from './i18n.js?v=0.26';
+import * as anim from './anim.js?v=0.26';
+import { IDLE_NAME } from './anim.js?v=0.26';
+import * as audio from './audio.js?v=0.26';
+import { VERSION } from './config.js?v=0.26';
+import { images, SPRITE_TILE } from './assets.js?v=0.26';
+import { pushHistory, getHistory, clearHistory, CATEGORIES } from './eventlog.js?v=0.26';
 
 let afterInteract = () => {};
 let restart = () => {};
 let onAttemptDisarm = () => {};
 let resolveAltar = () => null;
+let resolveChest = () => null;
+let applyChest = () => {};
 export function bindAfterInteract(fn) { afterInteract = fn; }
 export function bindRestart(fn) { restart = fn; }
 export function bindAttemptDisarm(fn) { onAttemptDisarm = fn; }
@@ -21,6 +23,11 @@ export function bindAttemptDisarm(fn) { onAttemptDisarm = fn; }
 // de ui.js) — el sorteo+efecto del altar se conecta desde main.js, igual
 // que afterInteract/restart/onAttemptDisarm.
 export function bindResolveAltar(fn) { resolveAltar = fn; }
+// Cofre: resolveChest solo SORTEA el evento (pickChestEvent, marca el cofre
+// gastado); applyChest aplica de verdad el efecto (applyChestEvent), al
+// cerrar la carta de resultado — ver openChestCard/renderChestCard.
+export function bindResolveChest(fn) { resolveChest = fn; }
+export function bindApplyChest(fn) { applyChest = fn; }
 
 const $ = id => document.getElementById(id);
 let open = null; // { type:'event', trig } | { type:'over', kind } | null
@@ -349,6 +356,19 @@ export function openAltarCard(trig) {
   audio.fx('altarOpen');
 }
 
+// Cofre: mismo patrón visual que el altar (pregunta Sí/No con imagen, luego
+// carta de resultado con botón "Cerrar"), pero con su propia imagen
+// (chest_decision) y sin ilustración propia todavía por evento (arte
+// pendiente — de momento el resultado es solo texto). El sonido de abrir
+// (chestOpen) y la animación de la tapa se disparan al confirmar "Sí", no
+// al cerrar — ver renderChestCard.
+export function openChestCard(trig) {
+  state.busy = true;
+  open = { type: 'chest', trig, stage: 'ask', result: null };
+  renderCard();
+  $('veil').classList.add('show');
+}
+
 function renderCard() {
   if (!open) return;
   const card = $('card');
@@ -357,6 +377,7 @@ function renderCard() {
   if (open.type === 'story') { renderStoryCard(card, open.ev); return; }
   if (open.type === 'lever') { renderLeverCard(card, open); return; }
   if (open.type === 'altar') { renderAltarCard(card, open); return; }
+  if (open.type === 'chest') { renderChestCard(card, open); return; }
 
   const ev = state.events[open.trig.id];
   const b = ev.i18n;
@@ -587,6 +608,74 @@ function renderAltarCard(card, o) {
   close.innerHTML = `<span>${t('ui.close')}</span>`;
   close.onclick = () => {
     card.classList.remove('story');
+    state.busy = false;
+    hideVeil();
+    syncHUD();
+    afterInteract(o.trig);
+  };
+  box.appendChild(close);
+}
+
+// Cofre: misma plantilla visual "story" (imagen a toda tarjeta + hueco de
+// pergamino) que el altar para la pregunta inicial, con su propia imagen
+// (chest_decision). El resultado (stage 'result') sigue siendo solo texto
+// por ahora — arte pendiente, el usuario generará las 6 ilustraciones
+// (chest_ev1..6) más adelante; en cuanto existan, se añade aquí el mismo
+// <div class="storywrap"><img>... que ya usa el stage 'result' del altar.
+function renderChestCard(card, o) {
+  card.onclick = null;
+
+  if (o.stage === 'ask') {
+    card.classList.add('story');
+    const img = images.chest_decision;
+    card.innerHTML =
+      `<div class="storywrap">
+         <img src="${img ? img.src : ''}" alt="">
+         <div class="storychoices">
+           <div class="kicker">${t('chest.kicker')}</div>
+           <h2>${t('chest.title')}</h2>
+           <p>${t('chest.question')}</p>
+           <div class="choices"></div>
+         </div>
+       </div>`;
+    const box = card.querySelector('.choices');
+    const yes = document.createElement('button');
+    yes.className = 'choice';
+    yes.innerHTML = `<span>${t('ui.yes')}</span>`;
+    yes.onclick = () => {
+      const chosen = resolveChest(o.trig);   // sortea (pickChestEvent); no aplica el efecto todavía
+      if (!chosen) { card.classList.remove('story'); state.busy = false; hideVeil(); return; }
+      audio.fx('chestOpen');
+      anim.loot('hero', 'hero');
+      anim.openProp(`prop:${o.trig.x}:${o.trig.y}`, 'chest');   // se queda abierta en su último fotograma
+      o.result = chosen;
+      o.stage = 'result';
+      renderCard();
+    };
+    const no = document.createElement('button');
+    no.className = 'choice';
+    no.innerHTML = `<span>${t('ui.no')}</span>`;
+    no.onclick = () => { card.classList.remove('story'); state.busy = false; hideVeil(); };
+    box.appendChild(yes);
+    box.appendChild(no);
+    return;
+  }
+
+  // stage 'result': texto del evento sorteado, con botón "Cerrar" explícito
+  // (la recompensa de verdad se aplica aquí, al cerrar — ver applyChest).
+  card.classList.remove('story');
+  const n = o.result.n;
+  card.innerHTML =
+    `<div class="kicker">${t('chest.kicker')}</div>
+     <h2>${t('chest.ev' + n + '.title')}</h2>
+     <p>${t('chest.ev' + n + '.result')}</p>
+     <div class="choices"></div>`;
+  const box = card.querySelector('.choices');
+  const close = document.createElement('button');
+  close.className = 'choice';
+  close.innerHTML = `<span>${t('ui.close')}</span>`;
+  close.onclick = () => {
+    applyChest(o.trig, o.result);
     state.busy = false;
     hideVeil();
     syncHUD();

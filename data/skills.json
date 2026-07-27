@@ -49,9 +49,9 @@
       "damageType": "none",
       "durationLabel": "skillshop.duration.permanent",
       "tiers": [
-        { "price": 500, "power": { "armorBonus": 0.05 } },
-        { "price": 1000, "power": { "armorBonus": 0.10 } },
-        { "price": 1500, "power": { "armorBonus": 0.15 } }
+        { "price": 500, "power": { "armorBonus": 25 } },
+        { "price": 1000, "power": { "armorBonus": 50 } },
+        { "price": 1500, "power": { "armorBonus": 75 } }
       ]
     },
     {
@@ -252,9 +252,9 @@
       "cooldown": 4,
       "duration": null,
       "tiers": [
-        { "price": 700, "power": { "durationTurns": 2, "dmgBonusPct": 0.30, "armorBonusPct": 0, "healOnHitPct": 0 } },
-        { "price": 1200, "power": { "durationTurns": 3, "dmgBonusPct": 0.45, "armorBonusPct": 0.10, "healOnHitPct": 0 } },
-        { "price": 1800, "power": { "durationTurns": 4, "dmgBonusPct": 0.60, "armorBonusPct": 0.15, "healOnHitPct": 0.10 } }
+        { "price": 700, "power": { "durationTurns": 2, "dmgBonusPct": 0.30, "armorBonus": 0, "healOnHitPct": 0 } },
+        { "price": 1200, "power": { "durationTurns": 3, "dmgBonusPct": 0.45, "armorBonus": 25, "healOnHitPct": 0 } },
+        { "price": 1800, "power": { "durationTurns": 4, "dmgBonusPct": 0.60, "armorBonus": 40, "healOnHitPct": 0.10 } }
       ]
     },
     {
@@ -265,9 +265,9 @@
       "damageType": "nature",
       "durationLabel": "skillshop.duration.permanent",
       "tiers": [
-        { "price": 500, "power": { "healIfNoDamage": 3, "healIfLowDamagePct": 0, "armorBonusAtFullHpPct": 0 } },
-        { "price": 800, "power": { "healIfNoDamage": 6, "healIfLowDamagePct": 0.15, "armorBonusAtFullHpPct": 0 } },
-        { "price": 1200, "power": { "healIfNoDamage": 10, "healIfLowDamagePct": 0.15, "armorBonusAtFullHpPct": 0.05 } }
+        { "price": 500, "power": { "healIfNoDamage": 3, "healIfLowDamagePct": 0, "armorBonusAtFullHp": 0 } },
+        { "price": 800, "power": { "healIfNoDamage": 6, "healIfLowDamagePct": 0.15, "armorBonusAtFullHp": 0 } },
+        { "price": 1200, "power": { "healIfNoDamage": 10, "healIfLowDamagePct": 0.15, "armorBonusAtFullHp": 15 } }
       ]
     },
     {

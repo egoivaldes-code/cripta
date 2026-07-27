@@ -1,25 +1,4 @@
 {
-  "cofre": {
-    "i18n": "ev.cofre",
-    "type": "chest",
-    "actionCost": 1,
-    "choices": [
-      {
-        "effect": {
-          "gold": 8
-        }
-      },
-      {
-        "effect": {
-          "gold": 18,
-          "hp": -6
-        }
-      },
-      {
-        "effect": {}
-      }
-    ]
-  },
   "mausoleo2_ambush": {
     "i18n": "ev.mausoleo2Ambush",
     "type": "ambush",
@@ -144,27 +123,6 @@
     "type": "trap",
     "actionCost": 2,
     "trapDmg": 5
-  },
-  "chest_1": {
-    "i18n": "ev.cofre",
-    "type": "chest",
-    "actionCost": 1,
-    "choices": [
-      {
-        "effect": {
-          "gold": 8
-        }
-      },
-      {
-        "effect": {
-          "gold": 18,
-          "hp": -6
-        }
-      },
-      {
-        "effect": {}
-      }
-    ]
   },
   "lever_1": {
     "i18n": "ev.palanca1",

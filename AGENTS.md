@@ -735,6 +735,148 @@ itemización — rareza, afijos/sufijos, únicos, sets, palabras rúnicas, tabla
 de drop por nivel — se construirá por partes, con preguntas concretas en
 cada paso.
 
+## Armadura: valor numérico con rendimientos decrecientes (V0.26)
+
+**Fusionado desde un minifix hecho en paralelo** (`CriptaV0_25_1.zip`,
+subido a mitad de esta sesión). Importante: ese zip partía de una base
+ligeramente más vieja que el repo real (de antes de que existiera el daño
+`arcane`, añadido en la 0.23) — por eso el zip revertía por error
+`arcane_chain`/`arcane_overload` a `damageType: "nature"` y quitaba el
+color/texto de `arcane`. **Eso NO se fusionó** (se detectó comparando
+archivo por archivo con `diff`, tal como pide este documento en "Antes de
+empezar a tocar nada"): solo se aplicó el cambio de verdad, el rebalanceo de
+armadura, conservando `arcane` tal cual estaba.
+
+**El cambio**: la armadura deja de ser un %-plano (`hero.armor = 0.10` =
+10% de reducción fija) y pasa a ser un **valor numérico con rendimientos
+decrecientes**, igual que la armadura de WoW:
+
+```
+% de daño físico reducido = armadura / (armadura + ARMOR_CONSTANT)
+```
+
+Con `ARMOR_CONSTANT = 200` (`config.js`): 25 de armadura → ~11%, 100 → 33%,
+200 → 50%, 400 → 66%... nunca llega al 100%, cada punto extra ayuda un poco
+menos que el anterior. El daño elemental (fuego/hielo/naturaleza/sombra/
+sagrado) no cambia: sigue usando `hero.resist[tipo]` en % directo.
+
+**Dónde vive**:
+- `config.js`: `ARMOR_CONSTANT`.
+- `rules.js`: `resolveIncomingHit` aplica la fórmula solo para
+  `damageType === 'physical'`; `temporaryArmorBonus()` (Forma Salvaje +
+  Simbiosis Natural) ahora suma valores planos (`armorBonus`/
+  `armorBonusAtFullHp`, sin el sufijo `Pct` de antes).
+- `state.js`/`skills.js`: armadura base del héroe pasa de `0.10` a `25`
+  (`BASE_STATS.armor` y `hero.armor` inicial).
+- `data/skills.json`: Piel de hierro +25/+50/+75 (antes +5%/+10%/+15%);
+  Forma Salvaje y Gracia Vigilante actualizadas al mismo esquema.
+- `inventory.js`: la hoja de estadísticas mostraba la armadura con
+  `pct(h.armor)` (asumía %) — con el valor numérico eso habría enseñado
+  disparates tipo "2500%". Se añadió `armorPct(armor)`, que calcula el % de
+  mitigación real con la misma fórmula que el combate, y se usa solo para
+  ese stat (el resto de `pct()` para crítico/esquiva/resistencias sigue
+  igual, esos sí son %).
+
+**Pruebas hechas**: fórmula de mitigación comprobada en varios puntos (25→
+~11%, 100→33%, 200→50%, nunca llega a 100% aunque la armadura sea enorme) y
+`applySkillBonuses` comprobado con los datos reales de `data/skills.json`
+(sin Piel de hierro comprada, armadura = 25 exactos). Se repitió también la
+batería de cofres (ver más abajo) para confirmar que este cambio no le
+afecta en nada.
+
+## Ajuste de márgenes en las tarjetas "story" (cofre + altar + palanca) — V0.26
+
+`storychoices` es la columna de texto que se superpone a la ilustración en
+las tarjetas de imagen (cofre, altar, palanca — todas comparten esta misma
+clase CSS en `css/styles.css`). Se estrechó para que el texto no se meta
+en la parte dibujada de la ilustración (dejaba muy poco margen: `left:52%`
+de escritorio / `50%` en móvil, ahora `58%`/`56%`), y los botones Sí/No/
+Cerrar dentro de esa columna pasan a medir un 75% del ancho del texto
+(antes ocupaban el 100%, de borde a borde) — `width:75%; align-self:center`
+en `.card.story .storychoices .choice`. Afecta a la vez a cofres, altares y
+la palanca (misma clase compartida), tal como se pidió.
+
+## Cofres (V0.26)
+
+Mismo patrón que ya se usó con los altares (V0.24): el cofre pasa de ser un
+evento de `events.json` con 3 opciones elegidas por el jugador a ser **un
+solo marcador genérico** — todos los `chest` del juego son iguales y
+comparten el mismo pool de eventos aleatorios, sorteado al abrirlo. Se
+quitaron las entradas `cofre`/`chest_1` de `events.json` (y sus textos
+huérfanos en i18n): el contenido vive directamente en `CHEST_EVENTS`
+(`rules.js`), igual que `ALTAR_EVENTS`. Los 3 cofres ya colocados
+(cementerio, cripta, mausoleo2/level2) no necesitaron ningún cambio en sus
+niveles — su `id` (`chest_1`/`cofre`) queda ahí pero ya no se usa para
+nada, exactamente igual que pasa con el `id` de los altares.
+
+**Flujo de interacción, con pregunta Sí/No (a diferencia de la primera
+versión de esta misma feature, que abría directo)** — rama propia en
+`rules.js`, justo después del bloque de altar y antes del bloque genérico
+de "objeto con carta":
+1. Adyacente y sin gastar → cuesta 1 PA, se reproduce `activateAnim` y se
+   llama a `openChestCard(tr)` (ui.js), que muestra la pregunta ("Te
+   acercas al cofre... ¿lo intentas abrir?") con la ilustración
+   `chest_decision` (mismo molde `storywrap`/`storychoices` que el altar).
+2. **No** → la carta se cierra sin más (el cofre sigue sin gastar: se puede
+   volver a intentar más tarde, aunque el PA de tocarlo ya se haya gastado
+   esta vez, igual que con el altar).
+3. **Sí** → `resolveChest(trig)` (conectado desde `main.js` a
+   `pickChestEvent` en `rules.js` vía `bindResolveChest`) sortea 1 de los 6
+   eventos y marca `tr.used = true` — **pero todavía NO aplica el efecto**.
+   En ese mismo instante: suena `chestOpen`, se reproduce `anim.loot`
+   (héroe) + `anim.openProp(..., 'chest')` (la tapa se abre y se queda
+   congelada en su último fotograma para siempre — `openProp` ya hace esto
+   solo). La MISMA tarjeta cambia a mostrar el texto de ambientación del
+   evento sorteado (`chest.evN.title`/`.result`, todavía sin imagen propia
+   — ver más abajo) con botón **"Cerrar"**.
+4. Al cerrar: `applyChest(trig, result)` (conectado a `applyChestEvent` en
+   rules.js) aplica AHORA de verdad el efecto (oro/vida/invocación) — el
+   jugador ve primero el texto, la recompensa se concreta al cerrar, tal
+   como se pidió. Después, `afterInteract` (rules.js) ya no hace nada
+   específico de cofre (se movió todo al paso 3): solo recalcula alcance y
+   cierra turno si toca, igual que para cualquier otro objeto.
+5. Ya gastado (toque posterior) → mensaje neutro (`log.chestSpent`).
+
+**Por qué el cofre abierto no bloquea el paso**: `blockingTriggerAt` (en
+`state.js`) ya excluye cualquier trigger con `used: true` de golpe — no
+hizo falta ningún cambio para esto, es el mismo mecanismo que ya usa el
+altar.
+
+**Arte**: la imagen de la pregunta (`chest_decision.jpg`, subida por el
+usuario, mismas dimensiones 1672×941 que `altar_decision`) ya está
+conectada. Las 6 ilustraciones POR EVENTO (`chest_ev1..6`) siguen
+pendientes — de momento el resultado es solo texto (cargar una ruta de
+imagen que no existe rompería toda la carga del juego, ver `loadAssets` en
+`assets.js`). Cuando lleguen, añadirlas a `sources` y cambiar el stage
+`'result'` de `renderChestCard` para usar el mismo `storywrap`/`img` que ya
+usa el stage `'ask'`.
+
+**Los 6 eventos** (`CHEST_EVENTS` en `rules.js`; `n` = nº de evento, pensado
+para poder engancharse a `chest_evN` cuando haya arte):
+- **Buenos** (3): 1. Tesoro abundante (oro alto, 30–70). 2. Bolsa de
+  monedas (oro modesto y seguro, 12–30). 3. Suministros del explorador
+  (cura ~15% de la vida máxima que falte + oro pequeño, 8–15).
+- **Malos** (3): 4. Cofre vacío (nada). 5. Aguijón oculto (quita vida,
+  5–15% de la vida actual, nunca deja al héroe a menos de 1 — mismo
+  patrón que el golpe del altar). 6. Ruido en la oscuridad (invoca 1
+  enemigo adyacente al cofre, reutilizando `pickWeightedSummon` +
+  `freeTileAdjacentTo` — el mismo pool ponderado que ya usaba la
+  Invocación del altar; si no hay hueco libre, simplemente no aparece
+  nada, sin reventar).
+
+**Pensado para crecer**: de momento solo hay oro (no existen objetos
+equipables de verdad todavía — ver "Pendiente de verdad" en la sección de
+Contenedores de botín, más arriba). En cuanto haya un sistema de items real,
+o nuevos minijuegos/riesgos, se amplía este mismo pool con más entradas.
+
+**Pruebas hechas esta versión**: batería headless propia — `pickChestEvent`
+invocado miles de veces comprobando que los 6 eventos salen todos, que NO
+aplica ningún cambio de estado hasta que se llama a `applyChestEvent` por
+separado, que oro/vida nunca quedan negativos tras aplicar, y que la
+invocación no revienta aunque no haya hueco libre adyacente. No se tocó
+ninguna posición de nivel, así que no hacía falta repetir el test de
+conectividad completo.
+
 ## Golem de hueso + arreglos varios + entrada/salida con arte real (V0.25)
 
 **Golem de hueso** (nuevo enemigo, `sprite: 'golembone'`): monstruosidad
