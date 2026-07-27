@@ -784,6 +784,138 @@ sagrado) no cambia: sigue usando `hero.resist[tipo]` en % directo.
 batería de cofres (ver más abajo) para confirmar que este cambio no le
 afecta en nada.
 
+## Arreglos varios de UI + bug real de pasivas (V0.26.1)
+
+**1. Barra de acción — número de cooldown y velo de bloqueo sin CSS.** El
+`div.actionbar-cd` (número de turnos restantes) y la clase
+`.actionbar-locked` (habilidad en cooldown o sin PA) existían en el HTML
+generado por `renderActionBar()` (`skills.js`) desde hace tiempo, pero
+**nunca tuvieron ninguna regla CSS** — por eso el número salía descolocado
+(sin posición) y el velo rojo nunca se veía. Añadido en `css/styles.css`:
+`.actionbar-slot{ position:relative }` (para poder posicionar cosas encima),
+`.actionbar-cd` centrado con `position:absolute; inset:0; display:flex`, y
+`.actionbar-locked::after` como velo rojo semitransparente (`rgba(120,10,10,.55)`)
+por encima de todo el icono.
+
+**2. Chroma magenta en el modelo de entrada/salida.**
+`assets/props/exit/model.png` (el único modelo compartido por todas las
+entradas/salidas del juego, ver `render.js` ~línea 525) tenía el fondo
+magenta del chroma de Nano Banana sin quitar — nunca se procesó. Se limpió
+con Python/PIL: distancia euclídea al magenta de referencia (~`(204,9,180)`)
+con transición suave (no corte duro, para no dejar borde rígido) +
+**despill** (se resta el tinte magenta residual de los píxeles semi-
+transparentes del borde, si no queda un halo rosa alrededor del dibujo).
+**Importante**: se mantiene el lienzo cuadrado 512×512 tal cual (NO se
+recorta al contenido) porque `render.js` dibuja este modelo forzándolo a un
+cuadrado (`drawImage(..., size, size)`) — si se recorta a un rectángulo no
+cuadrado, saldría deformado al escalarlo. Mismo criterio a aplicar si en el
+futuro aparecen más modelos con este problema.
+
+**3. Inventario demasiado pequeño en móvil.** El panel de inventario mide
+1920×2112 (diseño ancho tipo escritorio) y `applyScale()` (`inventory.js`)
+elegía el menor de los dos factores de escala (ancho/alto) para que cupiera
+ENTERO sin recortar nada — en un móvil en vertical, el ancho es el cuello de
+botella y el resultado quedaba diminuto (bastante espacio vertical sin usar
+de sobra). Se agranda un 45% extra solo en táctil (`pointer:coarse`),
+asumiendo que ahora puede sobrar por algún lado; para eso `#inventoryVeil`
+gana `overflow:auto` en táctil (antes no se podía hacer scroll dentro). El
+multiplicador (1.45×) es ajustable a ojo si hace falta más o menos.
+
+**4. Pestañas Estadísticas/Habilidades en la hoja de personaje.**
+`renderCharSheet()` (`inventory.js`) antes pintaba los 3 grupos (Ataque,
+Defensa, Habilidades) todos seguidos en la misma columna. Ahora hay una
+mini pestaña arriba (`stat.tab.stats` / `stat.tab.skills`) que alterna entre
+un panel con Ataque+Defensa y otro solo con Habilidades pasivas —
+`charSheetTab` (módulo, 'stats'|'skills') recuerda cuál está activa mientras
+dure la sesión de juego. Ganamos espacio vertical sin quitar información.
+
+**5. BUG DE VERDAD (no solo visual): las pasivas planas no se aplicaban al
+comprarlas, solo al cargar nivel.** `applySkillBonuses(hero)` (recalcula
+`hero.critChance/armor/dodgeChance` desde cero sumando los bonus de Piel de
+hierro/Reflejos felinos/Golpes de fe-crítico) solo se llamaba en
+`loadLevel()`/`bootLevel()` (`main.js`) — es decir, al empezar o retomar un
+nivel. El botón de comprar en la tienda (`buy()` en `skills.js`, invocado
+desde el listener de `renderCards()`) actualizaba `owned[id]` y lo
+persistía, pero **nunca volvía a llamar a `applySkillBonuses`**. Resultado:
+si comprabas Reflejos felinos a mitad de un nivel, la esquiva real del héroe
+NO subía hasta la próxima vez que se cargaba/guardaba la partida (bajar de
+nivel, recargar la página...) — no era un problema de la hoja de
+estadísticas, el número real (`hero.dodgeChance`) se quedaba desactualizado.
+Arreglado añadiendo `applySkillBonuses(state.hero)` justo después de una
+compra con éxito, antes de repintar. Comprobado con datos reales de
+`data/skills.json`: `getSkillBonuses()` y `applySkillBonuses()` ya
+calculaban bien (tier 1 de Reflejos felinos = +0.05 esquiva → 0.06 total
+con la base de 0.01); el fallo estaba solo en cuándo se invocaban.
+
+**6. Palanca con animación de verdad (antes era un simple glifo `/`).**
+El usuario subió una hoja de 4 fotogramas (brazo recto → tumbado del todo,
+base fija) para la palanca del cementerio (`lever_1`), que hasta ahora no
+tenía sprite ninguno — se dibujaba con el sistema de glifo/círculo genérico
+(igual que un evento sin arte). Igual que se hizo con el modelo de
+entrada/salida: componentes conectadas (scipy) para separar los 4
+fotogramas del chroma magenta + despill. A diferencia de la puerta, aquí
+SÍ hacía falta reescalar cada fotograma a una celda cuadrada de
+`SPRITE_TILE` (128×128) — la convención de TODO el sistema de animación
+(personajes y objetos por igual, ver `ANIM_CLIPS` en `anim.js`) — con un
+único factor de escala común para los 4 (referencia = el fotograma más
+alto, el brazo recto) y anclando siempre el borde izquierdo de la base en
+el mismo punto del lienzo, para que la base no "salte" al cambiar de
+fotograma y solo se mueva el brazo. Archivos: `assets/props/lever/idle.png`
+(1 fotograma) y `open.png` (tira de 4). Dado de alta en `assets.js` (fuente)
+y `anim.js` (`ANIM_CLIPS.lever` + `IDLE_NAME.lever = 'idle'`), y se añadió
+`"sprite": "lever"` al trigger `lever_1` en `data/levels/cemetery.json`
+(antes no lo tenía). También se añadió `'lever'` a `staysVisibleUsed` en
+`render.js` para que se quede visible (en su último fotograma, abierta)
+tras usarse, igual que cofre/altar — antes habría desaparecido del mapa al
+gastarse, como los objetos "mueble" normales.
+
+**Cuándo se dispara la animación — pedido expresamente "al cerrar la
+ventana", no al pulsar Sí.** El sistema tiene un enganche automático en
+`render.js`: en cuanto `tr.used` pasa a `true`, el siguiente fotograma
+dispara sola la animación de apertura (`if (tr.used && !a.opened)
+anim.openProp(...)`) — esto es necesario también para que una partida
+guardada con la palanca ya usada se muestre bien abierta al cargar. El
+problema: antes, `activateLever()` (en `ui.js`) marcaba `trig.used = true`
+Y desbloqueaba las salidas **al pulsar "Sí"**, no al cerrar — como el
+bucle de dibujo sigue corriendo de fondo aunque haya una carta abierta
+encima (`loop()` en `render.js` siempre se reprograma), la animación
+habría empezado en cuanto se pulsara "Sí", antes de ver el texto de
+resultado. Se retrasó `activateLever` (renombrada su lógica, se sigue
+llamando igual) para que se ejecute en el `onclick` de **cerrar** la carta
+de resultado (las dos variantes, con imagen y sin imagen), justo antes de
+`afterInteract(trig)` — el botón "Sí" ahora solo cambia la carta a su etapa
+de resultado (`o.stage='result'; renderCard();`), sin tocar el estado del
+juego todavía. Mismo criterio que ya se usó para "aplicar recompensa del
+cofre al cerrar, no al decidir" (ver sección "Cofres" más abajo).
+
+**7. Bug real en `render.js`: los objetos animados con más de 1 fotograma
+salían ~N veces más anchos de lo debido.** Al añadir la palanca se detectó
+que el cálculo de ancho de los props animados (`cofre`/`altar`/ahora
+`palanca`) usaba `img.width` de la **tira entera** del clip (todos los
+fotogramas juntos, p.ej. 512px para un clip de 4 fotogramas de 128px) en
+vez de uno solo — `w = img.width * th/img.height` daba un ancho ~4 veces
+mayor de lo que debía para un clip de 4 fotogramas. Los actores (héroe/
+enemigos) NO tenían este fallo porque `drawActor()` siempre usa un destino
+cuadrado fijo (`size × size`), sin mirar las dimensiones de la imagen.
+Arreglado igualando el criterio: como cada fotograma es cuadrado
+(`SPRITE_TILE`), el destino también lo es (`w = th`, en vez de calcularlo a
+partir de `img.width/img.height`). Esto corrige de paso cualquier
+cofre/altar que se hubiera visto estirado al abrirse — antes de este
+arreglo no se había notado/reportado, pero el cálculo era claramente
+incorrecto para cualquier clip de más de 1 fotograma. **También cubre al
+contenedor genérico** (`item_1`/`item_2`... `type: 'container'`, sprite
+`container`, `open.png` también es una tira de 4 fotogramas 512×128): pasa
+por este MISMO bloque de dibujo compartido (cualquier trigger con `sprite`
+apuntando a un objeto con clips en `ANIM_CLIPS`), así que no hizo falta
+ningún cambio aparte — un solo arreglo cubre chest/altar/lever/container a
+la vez.
+
+**8. Dos stats nuevas en el grupo Ataque de la hoja de personaje**: "Puntos
+de acción" (`h.apMax`) y "Capacidad de movimiento" (`apMax / MOVE_COST`,
+hoy en día siempre el mismo número ya que mover 1 casilla cuesta 1 PA fijo
+— se calcula así, en vez de un número suelto, para que quede bien si algún
+día `MOVE_COST` cambia o aparece algún bonus de movimiento).
+
 ## Ajuste de márgenes en las tarjetas "story" (cofre + altar + palanca) — V0.26
 
 `storychoices` es la columna de texto que se superpone a la ilustración en

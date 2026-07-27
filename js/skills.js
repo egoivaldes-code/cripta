@@ -18,11 +18,11 @@
 // estado + render + interacción para toda esta pantalla, ya que es un bloque
 // autocontenido de la interfaz.
 
-import { state } from './state.js?v=0.26';
-import { t } from './i18n.js?v=0.26';
-import { VERSION, ATTACK_COST } from './config.js?v=0.26';
-import { showConfirm } from './ui.js?v=0.26';
-import { getPersistedGold, persistGold } from './savegame.js?v=0.26';
+import { state } from './state.js?v=0.26.1';
+import { t } from './i18n.js?v=0.26.1';
+import { VERSION, ATTACK_COST } from './config.js?v=0.26.1';
+import { showConfirm } from './ui.js?v=0.26.1';
+import { getPersistedGold, persistGold } from './savegame.js?v=0.26.1';
 
 // rules.js no se puede importar aquí (import circular: rules.js ya importa
 // getOwnedTier/getSkillDef de aquí) — el enfriamiento restante se conecta
@@ -278,7 +278,11 @@ function renderCards() {
   bodyEl.innerHTML = def.skills.map(cardHTML).join('');
   bodyEl.querySelectorAll('[data-buy]').forEach(btn => {
     btn.addEventListener('click', () => {
-      if (buy(btn.dataset.buy)) { renderAll(); renderActionBar(); }
+      if (buy(btn.dataset.buy)) {
+        applySkillBonuses(state.hero);   // si no, un pasivo plano (Piel de hierro, Reflejos felinos...) no se nota hasta el siguiente nivel
+        renderAll();
+        renderActionBar();
+      }
     });
   });
 }

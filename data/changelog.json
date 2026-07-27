@@ -1,6 +1,29 @@
 {
   "versions": [
     {
+      "v": "0.26.1",
+      "es": {
+        "title": "Arreglos de interfaz",
+        "notes": [
+          "La barra de acción ahora muestra bien el cooldown de las habilidades (número centrado y velo rojo cuando está bloqueada).",
+          "El inventario se ve más grande en móvil.",
+          "La hoja de personaje separa Estadísticas y Habilidades en pestañas.",
+          "Arreglado: comprar Piel de hierro o Reflejos felinos a mitad de partida ahora aplica el bonus al instante (antes tardaba hasta cambiar de nivel).",
+          "La palanca del cementerio ya tiene su propia animación al tirar de ella."
+        ]
+      },
+      "en": {
+        "title": "Interface fixes",
+        "notes": [
+          "The action bar now shows skill cooldowns properly (centered number and a red overlay while locked).",
+          "The inventory looks bigger on mobile.",
+          "The character sheet splits Stats and Skills into tabs.",
+          "Fixed: buying Iron Skin or Cat Reflexes mid-run now applies the bonus instantly (it used to wait until the next level change).",
+          "The cemetery lever now has its own animation when pulled."
+        ]
+      }
+    },
+    {
       "v": "0.26",
       "es": {
         "title": "Cofres: sorpresas al abrirlos",

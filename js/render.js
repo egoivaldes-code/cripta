@@ -7,11 +7,11 @@
 // La altura de cada casilla se pinta con un tinte y, en los escalones, un
 // borde de color: VERDE en el lado alto, ROJO en el lado bajo (estilo Descent).
 
-import { state, elevAt, pathTo, foeAt, blockingTriggerAt, exitAt, adjacent } from './state.js?v=0.26';
-import { isAITurnActive } from './rules.js?v=0.26';
-import { TILE, CAMERA_MARGIN, ZOOM_MIN, ZOOM_MAX, ZOOM_DEFAULT, TOKEN_TALL, HERO_TALL, PROP_TALL } from './config.js?v=0.26';
-import { images, ATLAS_TILE, SPRITE_TILE } from './assets.js?v=0.26';
-import * as anim from './anim.js?v=0.26';
+import { state, elevAt, pathTo, foeAt, blockingTriggerAt, exitAt, adjacent } from './state.js?v=0.26.1';
+import { isAITurnActive } from './rules.js?v=0.26.1';
+import { TILE, CAMERA_MARGIN, ZOOM_MIN, ZOOM_MAX, ZOOM_DEFAULT, TOKEN_TALL, HERO_TALL, PROP_TALL } from './config.js?v=0.26.1';
+import { images, ATLAS_TILE, SPRITE_TILE } from './assets.js?v=0.26.1';
+import * as anim from './anim.js?v=0.26.1';
 
 // Algunos artes vienen dibujados mirando a la izquierda de serie (en vez de a
 // la derecha, que es lo que se asume en el resto del código al calcular hacia
@@ -456,7 +456,7 @@ function draw(ts) {
   const glow = reduceMotion ? 0.6 : 0.5 + 0.5 * Math.sin(pulse * 2.6);
   for (const tr of triggers) {
     if (tr.walkTrigger) continue;   // ambientación pura: invisible, salta solo al pisar/cruzar
-    const staysVisibleUsed = tr.type === 'chest' || tr.type === 'altar';
+    const staysVisibleUsed = tr.type === 'chest' || tr.type === 'altar' || tr.type === 'lever';
     if ((tr.used && !staysVisibleUsed) || !state.explored[tr.y][tr.x]) continue;
     if (tr.type === 'trap' && !tr.revealed) continue;   // invisible hasta que se descubre
     const s = worldToScreen(tr.x * TILE + TILE/2, tr.y * TILE + TILE/2);
@@ -470,13 +470,19 @@ function draw(ts) {
       ctx.drawImage(art, s.x - w/2, s.y - th + T*0.42, w, th);
       ctx.restore();
     } else if (art) {
-      // Objeto con animación de verdad (cofre: idle/open). Una vez abierto
-      // (tr.used) se queda congelado en el último fotograma para siempre.
+      // Objeto con animación de verdad (cofre/altar/palanca: idle/open...).
+      // Una vez usado se queda congelado en el último fotograma para siempre.
       const propName = `prop:${tr.x}:${tr.y}`;
       const a = anim.resolve(propName, tr.x, tr.y, ts, tr.sprite);
       if (tr.used && !a.opened) anim.openProp(propName, tr.sprite);
       const img = art[a.clip];
-      const th = (tr.tall || PROP_TALL) * T, w = img.width * th / img.height;
+      // OJO: img es la tira ENTERA del clip (varios fotogramas de SPRITE_TILE
+      // x SPRITE_TILE uno al lado del otro), no un solo fotograma — usar
+      // img.width/img.height directamente estiraba el dibujo tantas veces
+      // más ancho como fotogramas tuviera el clip (con 4 fotogramas, ~4x
+      // más ancho de lo debido). Cada fotograma es cuadrado (SPRITE_TILE),
+      // así que el destino también debe serlo.
+      const th = (tr.tall || PROP_TALL) * T, w = th;
       ctx.save();
       if (!on) ctx.globalAlpha = 0.55;
       ctx.drawImage(img, a.frame * SPRITE_TILE, 0, SPRITE_TILE, SPRITE_TILE, s.x - w/2, s.y - th + T*0.42, w, th);

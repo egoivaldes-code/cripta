@@ -25,10 +25,10 @@
 // icono que ya se ve en el HUD). Los 9 tipos de objeto y sus iconos están
 // listos para cuando haya objetos de verdad que equipar.
 
-import { state } from './state.js?v=0.26';
-import { t } from './i18n.js?v=0.26';
-import { getPassiveOwnedSkills, getOwnedTier, getSkillBonuses } from './skills.js?v=0.26';
-import { ARMOR_CONSTANT } from './config.js?v=0.26';
+import { state } from './state.js?v=0.26.1';
+import { t } from './i18n.js?v=0.26.1';
+import { getPassiveOwnedSkills, getOwnedTier, getSkillBonuses } from './skills.js?v=0.26.1';
+import { ARMOR_CONSTANT, MOVE_COST } from './config.js?v=0.26.1';
 
 // --- 1. Config ---------------------------------------------------------
 
@@ -372,6 +372,8 @@ function armorPct(armor) {
   return Math.round((a / (a + ARMOR_CONSTANT)) * 100) + '%';
 }
 
+let charSheetTab = 'stats';   // 'stats' | 'skills' — se recuerda mientras dure la sesión
+
 function renderCharSheet() {
   if (!charSheetEl) return;
   const h = state.hero;
@@ -382,6 +384,8 @@ function renderCharSheet() {
   const attackRows = [
     statRow(t('stat.damage'), h.atk ?? 0),
     statRow(t('stat.crit'), pct(h.critChance), bonus.crit > 0),
+    statRow(t('stat.actionPoints'), h.apMax ?? 0),
+    statRow(t('stat.moveCapacity'), Math.floor((h.apMax ?? 0) / MOVE_COST)),
   ].join('');
 
   const defenseRows = [
@@ -404,10 +408,28 @@ function renderCharSheet() {
     ? passives.map(s => skillStatRow(s.id, t(`skill.${s.id}.name`), '★'.repeat(getOwnedTier(s.id)))).join('')
     : `<div class="inv-stat-row inv-stat-empty">${t('stat.group.skillsEmpty')}</div>`;
 
-  charSheetEl.innerHTML =
+  const statsHTML =
     `<div class="inv-stat-group"><h3 class="inv-stat-heading">${t('stat.group.attack')}</h3>${attackRows}</div>` +
-    `<div class="inv-stat-group"><h3 class="inv-stat-heading">${t('stat.group.defense')}</h3>${defenseRows}</div>` +
+    `<div class="inv-stat-group"><h3 class="inv-stat-heading">${t('stat.group.defense')}</h3>${defenseRows}</div>`;
+  const skillsHTML =
     `<div class="inv-stat-group"><h3 class="inv-stat-heading">${t('stat.group.skills')}</h3>${passiveRows}</div>`;
+
+  charSheetEl.innerHTML =
+    `<div class="inv-charsheet-tabs">
+       <button type="button" class="inv-charsheet-tab${charSheetTab === 'stats' ? ' inv-charsheet-tab-active' : ''}" data-tab="stats">${t('stat.tab.stats')}</button>
+       <button type="button" class="inv-charsheet-tab${charSheetTab === 'skills' ? ' inv-charsheet-tab-active' : ''}" data-tab="skills">${t('stat.tab.skills')}</button>
+     </div>
+     <div class="inv-charsheet-body">
+       <div class="inv-charsheet-page"${charSheetTab === 'stats' ? '' : ' hidden'}>${statsHTML}</div>
+       <div class="inv-charsheet-page"${charSheetTab === 'skills' ? '' : ' hidden'}>${skillsHTML}</div>
+     </div>`;
+
+  charSheetEl.querySelectorAll('.inv-charsheet-tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      charSheetTab = btn.dataset.tab;
+      renderCharSheet();
+    });
+  });
 }
 
 function updateValidSlotHighlights() {
@@ -490,7 +512,13 @@ function applyScale() {
   const pad = 32;   // 16px de padding de .veil por cada lado
   const availableWidth = Math.max(50, veilEl.clientWidth - pad);
   const availableHeight = Math.max(50, veilEl.clientHeight - pad);
-  const scale = Math.min(availableWidth / BASE_W, availableHeight / BASE_H);
+  let scale = Math.min(availableWidth / BASE_W, availableHeight / BASE_H);
+  // En móvil (táctil) el panel queda diminuto si se obliga a caber entero
+  // sin scroll (el diseño es muy ancho, 1920x2112). Se agranda de verdad
+  // aunque sobre por algún lado — #inventoryVeil ya permite scroll en
+  // táctil (ver css/styles.css) para poder llegar a lo que no quepa.
+  const isCoarse = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+  if (isCoarse) scale *= 1.45;
   scalerEl.style.width = (BASE_W * scale) + 'px';
   scalerEl.style.height = (BASE_H * scale) + 'px';
   uiEl.style.transform = 'scale(' + scale + ')';

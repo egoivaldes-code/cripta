@@ -2,6 +2,33 @@
 
 Esquema: `0.X` = cambio grande · `0.X.Y` = cambio pequeño / fix.
 
+## 0.26.1 — Arreglos de UI + bug real de pasivas al comprarlas
+- **Barra de acción**: el número de turnos de cooldown y el velo rojo de
+  "bloqueada" nunca tenían CSS asignado, así que no se veían bien. Ya salen
+  centrados y visibles.
+- **Puertas de entrada/salida**: tenían el fondo magenta del chroma sin
+  quitar (se veía el rosa alrededor del modelo). Limpiado con Python/PIL,
+  con despill para no dejar halo.
+- **Inventario en móvil**: se agranda un 45% más de lo que cabía "entero sin
+  recortar" — el panel ahora permite scroll en táctil para llegar a lo que
+  sobre.
+- **Hoja de personaje**: pestañas "Estadísticas" / "Habilidades" para ganar
+  espacio, en vez de todo apilado en una sola columna.
+- **Arreglado bug de verdad (no solo visual)**: comprar una pasiva plana
+  (Piel de hierro, Reflejos felinos...) a mitad de nivel no aplicaba el
+  bonus de verdad hasta la próxima carga de nivel/partida — solo se
+  recalculaba al cargar, nunca al comprar. Ahora se aplica al instante.
+- **Palanca con animación de verdad**: antes se dibujaba como un simple
+  glifo `/`; ahora tiene sprite propio (4 fotogramas, brazo bajando) que se
+  reproduce **al cerrar la ventana de "¿tirar de la palanca?"**, no al
+  pulsar Sí, y se queda abierta para siempre después.
+- **Arreglado bug real de render**: los objetos animados con más de 1
+  fotograma (cofre, altar, contenedores genéricos) se dibujaban bastante
+  más anchos de lo debido (el cálculo usaba el ancho de toda la tira de
+  fotogramas en vez de uno solo). Un solo arreglo cubre los cuatro.
+- Añadidas dos stats al grupo Ataque de la hoja de personaje: Puntos de
+  acción y Capacidad de movimiento.
+
 ## 0.26 — Cofres: pool de eventos aleatorios (3 buenos / 3 malos), un solo uso
 - **Ajuste de layout**: en las tarjetas de imagen (cofre, altar, palanca —
   comparten la misma clase `storychoices`), el texto ocupaba casi toda la

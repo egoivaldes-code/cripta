@@ -2126,7 +2126,8 @@
       "x": 21,
       "y": 16,
       "id": "lever_1",
-      "type": "lever"
+      "type": "lever",
+      "sprite": "lever"
     },
     {
       "x": 3,
