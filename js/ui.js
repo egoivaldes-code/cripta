@@ -1,15 +1,16 @@
 // Capa DOM: HUD (con PA), cartas de evento, registro, fin de partida y ajustes.
 // Todo el texto visible pasa por t() (multiidioma). No dibuja en el canvas.
 
-import { state } from './state.js?v=0.29';
-import { t, tRandom } from './i18n.js?v=0.29';
-import * as anim from './anim.js?v=0.29';
-import { IDLE_NAME } from './anim.js?v=0.29';
-import * as audio from './audio.js?v=0.29';
-import { VERSION } from './config.js?v=0.29';
-import { images, SPRITE_TILE } from './assets.js?v=0.29';
-import { pushHistory, getHistory, clearHistory, CATEGORIES } from './eventlog.js?v=0.29';
-import { submitScore, rankWithinTop10, fetchTop10, formatTime } from './leaderboard.js?v=0.29';
+import { state } from './state.js?v=0.30';
+import { t, tRandom } from './i18n.js?v=0.30';
+import * as anim from './anim.js?v=0.30';
+import { IDLE_NAME } from './anim.js?v=0.30';
+import * as audio from './audio.js?v=0.30';
+import { VERSION } from './config.js?v=0.30';
+import { images, SPRITE_TILE } from './assets.js?v=0.30';
+import { pushHistory, getHistory, clearHistory, CATEGORIES } from './eventlog.js?v=0.30';
+import { submitScore, rankWithinTop10, fetchTop10, formatTime } from './leaderboard.js?v=0.30';
+import { logEvent } from './telemetry.js?v=0.30';
 
 let afterInteract = () => {};
 let restart = () => {};

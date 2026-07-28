@@ -7,17 +7,25 @@
 // La altura de cada casilla se pinta con un tinte y, en los escalones, un
 // borde de color: VERDE en el lado alto, ROJO en el lado bajo (estilo Descent).
 
-import { state, elevAt, pathTo, foeAt, blockingTriggerAt, exitAt, adjacent } from './state.js?v=0.29';
-import { isAITurnActive } from './rules.js?v=0.29';
-import { TILE, CAMERA_MARGIN, ZOOM_MIN, ZOOM_MAX, ZOOM_DEFAULT, TOKEN_TALL, HERO_TALL, PROP_TALL } from './config.js?v=0.29';
-import { images, ATLAS_TILE, SPRITE_TILE } from './assets.js?v=0.29';
-import * as anim from './anim.js?v=0.29';
+import { state, elevAt, pathTo, foeAt, blockingTriggerAt, exitAt, adjacent } from './state.js?v=0.30';
+import { isAITurnActive } from './rules.js?v=0.30';
+import { TILE, CAMERA_MARGIN, ZOOM_MIN, ZOOM_MAX, ZOOM_DEFAULT, TOKEN_TALL, HERO_TALL, PROP_TALL } from './config.js?v=0.30';
+import { images, ATLAS_TILE, SPRITE_TILE } from './assets.js?v=0.30';
+import * as anim from './anim.js?v=0.30';
 
 // Algunos artes vienen dibujados mirando a la izquierda de serie (en vez de a
 // la derecha, que es lo que se asume en el resto del código al calcular hacia
 // dónde debe mirar un personaje). Aquí se corrige por tipo: -1 = el arte nativo
 // mira a la izquierda (hay que invertir el volteo), 1 = ya mira a la derecha.
 const NATIVE_FACING = { enemy1: 1, enemy4: 1, enemy5: 1, enemy6: 1, hero: 1 };
+
+// De momento las casillas de elevación no tienen ningún uso de diseño real
+// en ningún nivel (todo a 0, o sin decidir qué hacer con los desniveles
+// todavía) y solo ensucian la pantalla con el tinte por altura y los bordes
+// de escalón rojo/verde. Se apaga la parte VISUAL aquí (un solo interruptor,
+// fácil de revertir) — la lógica de juego (coste de subir, elevAt(),
+// MAX_CLIMB...) sigue intacta y funcionando, solo deja de pintarse.
+const SHOW_ELEVATION_VISUALS = false;
 
 function atlasCol(value, x, y) {
   if (value === 1) return 3;
@@ -94,7 +102,7 @@ let hoverGX = -1, hoverGY = -1, hoverIsMouse = false;   // casilla bajo el rató
 function updateCursor() {
   if (!hoverIsMouse) return;
   let actionable = false;
-  if (hoverGX >= 0 && !state.busy && !anim.active() && !isAITurnActive() && !userPanning) {
+  if (hoverGX >= 0 && !state.busy && !anim.isBusy('hero') && !isAITurnActive() && !userPanning) {
     const { hero } = state;
     if (hoverGX === hero.x && hoverGY === hero.y) actionable = true;               // recentrar
     else if (foeAt(hoverGX, hoverGY) && adjacent(hero, hoverGX, hoverGY)) actionable = true; // atacar
@@ -190,7 +198,7 @@ function bindPointer() {
     pts.delete(e.pointerId);
     if (pinch && pts.size < 2) pinch = null;
     if (p && e.pointerId === p.id) {
-      if (!p.moved && !state.busy && !anim.active() && !isAITurnActive() && pts.size === 0) {   // toque limpio
+      if (!p.moved && !state.busy && !anim.isBusy('hero') && !isAITurnActive() && pts.size === 0) {   // toque limpio
         const rect = canvas.getBoundingClientRect();
         const w = screenToWorld(e.clientX - rect.left, e.clientY - rect.top);
         const gx = Math.floor(w.x / TILE), gy = Math.floor(w.y / TILE);
@@ -369,7 +377,7 @@ function draw(ts) {
       if (atlas) ctx.drawImage(atlas, atlasCol(value, x, y) * ATLAS_TILE, 0, ATLAS_TILE, ATLAS_TILE, s.x, s.y, T, T);
       else { ctx.fillStyle = value === 1 ? '#0e1016' : '#1b2029'; ctx.fillRect(s.x - SEAM, s.y - SEAM, T + SEAM*2, T + SEAM*2); }
     }
-    if (value === 0) {
+    if (value === 0 && SHOW_ELEVATION_VISUALS) {
       // Tinte por altura (más suave sobre fondo pintado, para no tapar el arte).
       const tint = elevTint(elev[y] ? elev[y][x] : 0, bgImg ? 0.55 : 1);
       if (tint) { ctx.fillStyle = tint; ctx.fillRect(s.x - SEAM, s.y - SEAM, T + SEAM*2, T + SEAM*2); }
@@ -387,7 +395,7 @@ function draw(ts) {
   // o más, tiene la ventaja (VERDE). Estilo Descent, pero relativo al jugador.
   const heroElev = elevAt(hero.x, hero.y);
   const bt = Math.max(2, 4 * zoom);
-  for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
+  if (SHOW_ELEVATION_VISUALS) for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
     if (tiles[y][x] !== 0) continue;
     const h = elev[y] ? elev[y][x] : 0;
     const s = worldToScreen(x * TILE, y * TILE);
@@ -407,7 +415,7 @@ function draw(ts) {
   }
 
   // Rango de movimiento (relleno ámbar) y enemigo atacable.
-  if (!state.busy && !anim.active() && !isAITurnActive() && !userPanning) {
+  if (!state.busy && !anim.isBusy('hero') && !isAITurnActive() && !userPanning) {
     const d = state.reach.dist;
     for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
       if (d[y] && d[y][x] > 0) {
@@ -459,7 +467,10 @@ function draw(ts) {
     const staysVisibleUsed = tr.type === 'chest' || tr.type === 'altar' || tr.type === 'lever';
     if ((tr.used && !staysVisibleUsed) || !state.explored[tr.y][tr.x]) continue;
     if (tr.type === 'trap' && !tr.revealed) continue;   // invisible hasta que se descubre
-    const s = worldToScreen(tr.x * TILE + TILE/2, tr.y * TILE + TILE/2);
+    // offsetX/offsetY (fracción de casilla, opcional): mismo ajuste fino que
+    // ya se usa en las salidas — desplaza SOLO el dibujo, sin tocar la
+    // posición lógica (interacción/colisión sigue en tr.x/tr.y de siempre).
+    const s = worldToScreen((tr.x + (tr.offsetX || 0)) * TILE + TILE/2, (tr.y + (tr.offsetY || 0)) * TILE + TILE/2);
     const on = state.visible[tr.y][tr.x];
     const art = tr.sprite ? images[tr.sprite] : null;
     if (art && typeof art.width === 'number') {

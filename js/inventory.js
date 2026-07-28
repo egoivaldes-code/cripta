@@ -25,10 +25,10 @@
 // icono que ya se ve en el HUD). Los 9 tipos de objeto y sus iconos están
 // listos para cuando haya objetos de verdad que equipar.
 
-import { state } from './state.js?v=0.29';
-import { t } from './i18n.js?v=0.29';
-import { getPassiveOwnedSkills, getOwnedTier, getSkillBonuses } from './skills.js?v=0.29';
-import { ARMOR_CONSTANT, MOVE_COST } from './config.js?v=0.29';
+import { state } from './state.js?v=0.30';
+import { t } from './i18n.js?v=0.30';
+import { getPassiveOwnedSkills, getOwnedTier, getSkillBonuses } from './skills.js?v=0.30';
+import { ARMOR_CONSTANT, MOVE_COST } from './config.js?v=0.30';
 
 // --- 1. Config ---------------------------------------------------------
 
@@ -512,13 +512,11 @@ function applyScale() {
   const pad = 32;   // 16px de padding de .veil por cada lado
   const availableWidth = Math.max(50, veilEl.clientWidth - pad);
   const availableHeight = Math.max(50, veilEl.clientHeight - pad);
-  let scale = Math.min(availableWidth / BASE_W, availableHeight / BASE_H);
-  // En móvil (táctil) el panel queda diminuto si se obliga a caber entero
-  // sin scroll (el diseño es muy ancho, 1920x2112). Se agranda de verdad
-  // aunque sobre por algún lado — #inventoryVeil ya permite scroll en
-  // táctil (ver css/styles.css) para poder llegar a lo que no quepa.
-  const isCoarse = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
-  if (isCoarse) scale *= 1.45;
+  // Cabe entero SIEMPRE, sin scroll (pedido expresamente) — antes se
+  // agrandaba un 45% extra en móvil y se dejaba hacer scroll para lo que
+  // sobrara, pero se prefiere que quepa entero de una vez, aunque salga
+  // más pequeño en pantallas estrechas.
+  const scale = Math.min(availableWidth / BASE_W, availableHeight / BASE_H);
   scalerEl.style.width = (BASE_W * scale) + 'px';
   scalerEl.style.height = (BASE_H * scale) + 'px';
   uiEl.style.transform = 'scale(' + scale + ')';

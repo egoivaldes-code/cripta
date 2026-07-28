@@ -1,6 +1,25 @@
 {
   "versions": [
     {
+      "v": "0.30",
+      "es": {
+        "title": "Arreglado bug de movimiento",
+        "notes": [
+          "Arreglado: a veces no se veían las casillas donde te podías mover, aunque sí pudieras hacerlo.",
+          "El inventario vuelve a caber entero en pantalla en móvil.",
+          "Mausoleo 1: un altar duplicado se quedó en uno solo, más grande."
+        ]
+      },
+      "en": {
+        "title": "Fixed movement bug",
+        "notes": [
+          "Fixed: sometimes the tiles you could move to weren't shown, even though you could still move there.",
+          "The inventory fits on screen again on mobile.",
+          "Mausoleum 1: a duplicated altar is now a single, bigger one."
+        ]
+      }
+    },
+    {
       "v": "0.29",
       "es": {
         "title": "Arreglos varios",

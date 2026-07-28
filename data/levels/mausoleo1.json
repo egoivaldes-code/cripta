@@ -760,15 +760,8 @@
       "id": "altar_1",
       "type": "altar",
       "sprite": "altar",
-      "tall": 0.8625
-    },
-    {
-      "x": 6,
-      "y": 3,
-      "id": "altar_2",
-      "type": "altar",
-      "sprite": "altar",
-      "tall": 0.8625
+      "tall": 1.725,
+      "offsetX": 0.5
     }
   ],
   "exit": {

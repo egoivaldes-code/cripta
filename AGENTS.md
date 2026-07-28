@@ -916,6 +916,99 @@ hoy en día siempre el mismo número ya que mover 1 casilla cuesta 1 PA fijo
 — se calcula así, en vez de un número suelto, para que quede bien si algún
 día `MOVE_COST` cambia o aparece algún bonus de movimiento).
 
+## Telemetría: errores + estadísticas de partida (V0.30)
+
+Segundo backend real de Cripta (mismo proyecto Supabase compartido,
+`cripta-habilidades`), esta vez para depurar y sacar estadísticas, no para
+nada de cara al jugador. Dos tablas nuevas:
+
+- **`cripta_error_log`**: errores de JS de verdad capturados en clientes
+  reales (`window.onerror` + `unhandledrejection`), con mensaje, traza,
+  versión, nivel en el que estaba y un `session_id` aleatorio (sin nada
+  identificable — se genera de nuevo cada vez que se abre el juego, no se
+  guarda en localStorage; sirve para agrupar eventos DENTRO de una misma
+  sesión, no para reconocer al mismo jugador entre visitas).
+- **`cripta_events`**: eventos sueltos de partida (`level_start`,
+  `hero_death`, `hero_win`, `skill_purchased` de momento) con su
+  `payload` (jsonb) — para sacar estadísticas agregadas más adelante
+  (embudo de progresión, habilidades más compradas, tiempos medios...).
+
+**Diferencia importante con el leaderboard**: estas dos tablas son **solo
+de escritura pública** (política RLS de `insert`, sin ninguna de `select`)
+— a diferencia de `cripta_boss_leaderboard` (que sí es de lectura pública,
+porque ES el contenido que se le enseña al jugador), aquí nadie con la
+clave anon puede leer los datos de otros. La consulta se hace desde el
+panel de Supabase (SQL editor) o con la service role.
+
+**Cliente**: `js/telemetry.js`, mismo criterio que `leaderboard.js` — habla
+directo con la API REST de Supabase vía `fetch()`, sin SDK, y **nunca**
+puede romper ni ralentizar el juego (try/catch por todas partes, nunca se
+espera la respuesta antes de seguir). `logError()` descarta el mismo
+mensaje repetido dentro de una ventana de 10s (por si un error salta en
+bucle, p.ej. cada fotograma) — probado con una prueba headless.
+
+**Enganches actuales** (fácil de ampliar con más eventos según haga falta):
+- `initErrorCapture()` + `setTelemetryVersion()`: al arrancar (`main.js`,
+  `boot()`), justo después de declarar `currentLevelName` (el capturador de
+  errores necesita poder leerlo en el momento del fallo, no solo al
+  arrancar).
+- `logEvent('level_start', {level, fresh, gold})`: en `loadLevel()`
+  (`main.js`), tras fijar `currentLevelName`. `fresh` distingue partida
+  nueva de bajar de nivel/volver de un mausoleo.
+- `logEvent('hero_win'|'hero_death', {gold, timeMs})`: dentro de
+  `gameOver()` (`ui.js`), el único punto de entrada de victoria/derrota.
+- `logEvent('skill_purchased', {id, tier})`: en el manejador de compra de
+  la tienda (`renderCards`, `skills.js`), justo tras `buy()`.
+
+**Nota sobre el numerado de esta versión**: esta sección y la de arreglos
+de abajo iban a ser dos entregas separadas (V0.30 y V0.31), pero como el
+usuario aún no había aplicado el zip de la V0.30 al repo real (seguía en
+V0.29 quando se empezó la telemetría), se fusionó todo en una sola V0.30 —
+más simple que mandar dos zips encadenados sin confirmar que el primero ya
+estaba puesto.
+
+## Elevación oculta, inventario sin scroll, altar duplicado y bug de casillas de movimiento (V0.30)
+
+**1. Casillas de elevación, ocultas visualmente a propósito.** El tinte por
+altura y los bordes de escalón rojo/verde no tenían ningún diseño de nivel
+real detrás todavía y solo ensuciaban la pantalla. Nuevo interruptor
+`SHOW_ELEVATION_VISUALS` (`render.js`, `false` de momento) que apaga esos
+dos bloques de dibujo — la lógica de juego (coste de subir, `elevAt()`,
+`MAX_CLIMB`...) sigue intacta, solo deja de pintarse. Un solo `true` lo
+recupera todo cuando se decida qué hacer con los desniveles.
+
+**2. Inventario: ya no hace falta scroll en móvil.** En la V0.26.1 se había
+agrandado un 45% extra en táctil (con scroll para lo que sobrara) porque se
+veía chico. Ahora se pide justo lo contrario: que quepa entero siempre, sin
+scroll. Se quitó el multiplicador de `applyScale()` (`inventory.js`) — vuelve
+a ser `Math.min(ancho/BASE_W, alto/BASE_H)` sin más, igual en móvil que en
+PC. El `overflow:auto` de `#inventoryVeil` (CSS) se deja tal cual, como red
+de seguridad inofensiva (no hace nada si no hace falta scroll).
+
+**3. Mausoleo1 tenía DOS altares pegados** (`altar_1` en (5,3), `altar_2`
+en (6,3)) — se quita `altar_2` del todo y `altar_1` se queda como el único,
+con `"offsetX": 0.5` (nuevo soporte de offsetX/offsetY para CUALQUIER
+objeto animado, no solo las salidas — ver el `worldToScreen` compartido en
+`render.js`) para que se dibuje centrado visualmente entre las dos casillas
+originales, y `"tall": 1.725` (el doble de 0.8625). Su posición LÓGICA
+(dónde hay que estar de pie para interactuar) sigue en (5,3), sin cambios.
+
+**4. Bug de verdad: a veces no salían las casillas de movimiento posible
+aunque sí se pudiera mover ahí.** La causa: el resaltado ámbar de alcance,
+el cursor del ratón y el propio manejador de toques usaban `anim.active()`
+— que mira si CUALQUIER actor del mapa (un enemigo lejano moviéndose por su
+cuenta, por ejemplo) está en mitad de una transición animada (mover/atacar),
+no si el HÉROE lo está. Con cualquier bicho animando algo sin relación con
+el turno del jugador, el resaltado desaparecía Y el toque se ignoraba en
+silencio (de ahí que a veces "no salga" pero luego sí puedas moverte — el
+siguiente toque, ya sin esa animación de por medio, sí se procesaba). Nuevo
+`anim.isBusy(name)` (`anim.js`) — como `active()` pero para UN actor
+concreto — usado en los 3 sitios de `render.js` que antes miraban a
+`active()` para gestos/resaltado del héroe (el resaltado de rango, el
+cursor del ratón en PC, y el manejador de toques limpios). Probado con una
+prueba headless: con un enemigo moviéndose y el héroe quieto, `active()`
+da `true` pero `isBusy('hero')` sigue en `false` (el héroe puede actuar).
+
 ## Palanca: modelo un 100% más grande (V0.29)
 
 Se veía demasiado pequeña ("casi no se ve"). Los objetos animados (cofre,

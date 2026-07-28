@@ -6,7 +6,7 @@
 //     (paz/combate) que cambian solas según haya un enemigo cerca, con una transición.
 // Además: sacudida al recibir daño y números flotantes (daño/curación).
 
-import { TILE, moveDurationMs } from './config.js?v=0.29';
+import { TILE, moveDurationMs } from './config.js?v=0.30';
 
 const D_ATTACK_LEGACY = 220;
 const D_HURT = 300;   // duración de la sacudida (todos los personajes)
@@ -284,6 +284,17 @@ export function floatAt(gx, gy, text, color, opts = {}) {
 
 export function active() {
   return Object.values(actors).some(a => a.anim);
+}
+
+// Como active(), pero para UN actor concreto (p.ej. solo el héroe) — active()
+// mira a TODOS los actores del mapa (cualquier enemigo en mitad de un
+// movimiento/ataque, aunque sea lejos y no tenga nada que ver con el turno
+// del jugador), lo que podía ocultar el resaltado ámbar de alcance de
+// movimiento sin motivo real (el héroe no estaba haciendo nada, pero algún
+// bicho sí). Se usa donde de verdad solo importa si ESE actor está ocupado.
+export function isBusy(name) {
+  const a = actors[name];
+  return !!(a && a.anim);
 }
 
 // ¿Está este actor en mitad de un desplazamiento animado ahora mismo? Se usa

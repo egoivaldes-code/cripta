@@ -2,6 +2,22 @@
 
 Esquema: `0.X` = cambio grande · `0.X.Y` = cambio pequeño / fix.
 
+## 0.30 — Elevación oculta, inventario sin scroll, altar duplicado, bug de movimiento, telemetría
+- Casillas de elevación (tinte + bordes rojo/verde) ocultas visualmente a
+  propósito hasta decidir qué hacer con ellas — la lógica sigue intacta.
+- El inventario vuelve a caber entero en pantalla en móvil, sin scroll.
+- Mausoleo1 tenía 2 altares pegados; ahora es uno solo, centrado entre las
+  2 casillas originales y al doble de tamaño.
+- **Arreglado bug real**: a veces no salían las casillas de movimiento
+  posible aunque sí se pudiera mover ahí (y el propio toque se ignoraba en
+  silencio la primera vez) — el resaltado y el manejador de toques miraban
+  si CUALQUIER actor del mapa estaba animando algo, no solo el héroe.
+- **Nuevo backend de depuración/estadísticas** (Supabase, mismo proyecto que
+  el leaderboard): `cripta_error_log` (errores de JS de clientes reales) y
+  `cripta_events` (empezar nivel, morir, ganar, comprar habilidad...). Solo
+  escritura pública — los datos se consultan desde el panel de Supabase.
+  Nunca puede romper ni ralentizar el juego.
+
 ## 0.29 — Reinicio de verdad, mausoleos, sprites, atajos de PC y golem de hueso
 - **Reiniciar nivel/partida ahora limpia de verdad todo**: cooldowns de
   habilidades, buffs de combate (Grito de Guerra, Forma Salvaje...),

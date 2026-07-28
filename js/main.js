@@ -1,19 +1,20 @@
 // Punto de entrada. Carga idioma y datos, cablea módulos y arranca el bucle.
 
-import { state, initGame, recomputeFog, computeReach, walkable } from './state.js?v=0.29';
-import { initRenderer, startLoop, centerOnHero, toggleGrid, isGridOn } from './render.js?v=0.29';
-import { onTapTile, bindDescend, startHeroTurn, endHeroTurn, afterInteract, attemptDisarm, isAITurnActive, getEnemySpeed, setEnemySpeed, setTotalFoeCount, useActiveSkill, rollAltar, pickChestEvent, applyChestEvent, checkLeverBossSpawn, checkBossLooted, resetRunState, getSkillCooldownLeft } from './rules.js?v=0.29';
-import { syncHUD, log, hideVeil, bindAfterInteract, bindRestart, bindAttemptDisarm, bindResolveAltar, bindResolveChest, bindApplyChest, bindOnLeverPulled, bindOnCorpseLooted, applyStaticText, syncInitiativeUI, showConfirm, showLogHistory, hideLogHistory, logHistoryOpen, bindRefreshActionBar } from './ui.js?v=0.29';
-import { loadAssets } from './assets.js?v=0.29';
-import { initialLang, loadLang, onLangChange, getLang, t } from './i18n.js?v=0.29';
-import * as anim from './anim.js?v=0.29';
-import * as audio from './audio.js?v=0.29';
-import { VERSION } from './config.js?v=0.29';
-import { assemble } from './mapgen.js?v=0.29';
-import { initInventory, openInventory, closeInventory, isInventoryOpen, resetInventory, refreshInventoryTexts } from './inventory.js?v=0.29';
-import { loadSkillsData, initSkillShop, openSkillShop, closeSkillShop, refreshSkillTexts, bindFullReset, applySkillBonuses, bindUseActiveSkill, tryUseArmedOnTile, bindGetSkillCooldownLeft, renderActionBar } from './skills.js?v=0.29';
-import * as savegame from './savegame.js?v=0.29';
-import { fetchTop10, formatTime } from './leaderboard.js?v=0.29';
+import { state, initGame, recomputeFog, computeReach, walkable } from './state.js?v=0.30';
+import { initRenderer, startLoop, centerOnHero, toggleGrid, isGridOn } from './render.js?v=0.30';
+import { onTapTile, bindDescend, startHeroTurn, endHeroTurn, afterInteract, attemptDisarm, isAITurnActive, getEnemySpeed, setEnemySpeed, setTotalFoeCount, useActiveSkill, rollAltar, pickChestEvent, applyChestEvent, checkLeverBossSpawn, checkBossLooted, resetRunState, getSkillCooldownLeft } from './rules.js?v=0.30';
+import { syncHUD, log, hideVeil, bindAfterInteract, bindRestart, bindAttemptDisarm, bindResolveAltar, bindResolveChest, bindApplyChest, bindOnLeverPulled, bindOnCorpseLooted, applyStaticText, syncInitiativeUI, showConfirm, showLogHistory, hideLogHistory, logHistoryOpen, bindRefreshActionBar } from './ui.js?v=0.30';
+import { loadAssets } from './assets.js?v=0.30';
+import { initialLang, loadLang, onLangChange, getLang, t } from './i18n.js?v=0.30';
+import * as anim from './anim.js?v=0.30';
+import * as audio from './audio.js?v=0.30';
+import { VERSION } from './config.js?v=0.30';
+import { assemble } from './mapgen.js?v=0.30';
+import { initInventory, openInventory, closeInventory, isInventoryOpen, resetInventory, refreshInventoryTexts } from './inventory.js?v=0.30';
+import { loadSkillsData, initSkillShop, openSkillShop, closeSkillShop, refreshSkillTexts, bindFullReset, applySkillBonuses, bindUseActiveSkill, tryUseArmedOnTile, bindGetSkillCooldownLeft, renderActionBar } from './skills.js?v=0.30';
+import * as savegame from './savegame.js?v=0.30';
+import { fetchTop10, formatTime } from './leaderboard.js?v=0.30';
+import { logEvent, initErrorCapture, setTelemetryVersion } from './telemetry.js?v=0.30';
 
 // El ensamblador de losetas (mapgen.js) sigue disponible para niveles ALEATORIOS
 // futuros; esta función queda de reserva pero no se usa por ahora, ya que el
@@ -103,6 +104,8 @@ async function boot() {
   }
 
   let currentLevelName = null;   // nombre tal cual se le pasa a loadLevel/getLevel (p.ej. 'level1', 'cripta'...)
+  setTelemetryVersion(VERSION);
+  initErrorCapture(() => currentLevelName);
 
   // Busca una casilla caminable en/junto a (x,y) — la propia si ya lo es, si
   // no la más cercana en un anillo creciente (hasta 3 casillas). Se usa para
@@ -151,6 +154,7 @@ async function boot() {
     }
     applySkillBonuses(state.hero);
     currentLevelName = name;
+    logEvent('level_start', { level: name, fresh: !carry, gold: state.hero.gold });
     anim.reset();
     centerOnHero(true);
     hideVeil();
