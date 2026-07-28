@@ -1,15 +1,15 @@
 // Reglas del juego: economía de Puntos de Acción (PA), interacción a distancia
 // y adyacente, trampas, niebla y salida de nivel. Agnóstico del dibujo.
 
-import { state, walkable, isWall, adjacent, distTo, isVisible, recomputeFog, computeReach, pathTo, findPath, findApproachPath, reachCost, blockingTriggerAt, trapAt, walkTriggerAt, exitAt, stepNeighbors, foeAt, corpseAt, livingFoes, losClear, revealAllExplored } from './state.js?v=0.30';
-import { openEvent, openLeverCard, openAltarCard, openChestCard, openTrapCard, openStoryCard, syncHUD, syncInitiativeUI, showCombatBadge, showLootWindow, showConfirm, log, gameOver } from './ui.js?v=0.30';
-import { t, tRandom } from './i18n.js?v=0.30';
-import { MOVE_COST, ATTACK_COST, INITIATIVE_BASE, INITIATIVE_DIE, TURN_DELAY, COMBAT_ENTER_DELAY, getGameSpeed, setGameSpeed, speedMult, moveDurationMs, ARMOR_CONSTANT } from './config.js?v=0.30';
-import * as anim from './anim.js?v=0.30';
-import { ANIM_CLIPS } from './anim.js?v=0.30';
-import * as audio from './audio.js?v=0.30';
-import { centerOnTile } from './render.js?v=0.30';
-import { getOwnedTier, getSkillDef } from './skills.js?v=0.30';
+import { state, walkable, isWall, adjacent, distTo, isVisible, recomputeFog, computeReach, pathTo, findPath, findApproachPath, reachCost, blockingTriggerAt, trapAt, walkTriggerAt, exitAt, stepNeighbors, foeAt, corpseAt, livingFoes, losClear, revealAllExplored } from './state.js?v=0.31';
+import { openEvent, openLeverCard, openAltarCard, openChestCard, openTrapCard, openStoryCard, syncHUD, syncInitiativeUI, showCombatBadge, showLootWindow, showConfirm, log, gameOver } from './ui.js?v=0.31';
+import { t, tRandom } from './i18n.js?v=0.31';
+import { MOVE_COST, ATTACK_COST, INITIATIVE_BASE, INITIATIVE_DIE, TURN_DELAY, COMBAT_ENTER_DELAY, getGameSpeed, setGameSpeed, speedMult, moveDurationMs, ARMOR_CONSTANT } from './config.js?v=0.31';
+import * as anim from './anim.js?v=0.31';
+import { ANIM_CLIPS } from './anim.js?v=0.31';
+import * as audio from './audio.js?v=0.31';
+import { centerOnTile } from './render.js?v=0.31';
+import { getOwnedTier, getSkillDef } from './skills.js?v=0.31';
 
 const sign = (n) => Math.sign(n);
 
@@ -1048,6 +1048,91 @@ export function useActiveSkill(id, gx, gy) {
   return true;
 }
 
+// Anda un camino ya calculado (dentro de alcance) paso a paso, con las
+// mismas interrupciones de siempre: trampa mortal a mitad de camino, carta
+// de evento que se abre, salida de nivel, o un enemigo que entra en rango
+// de activación (empieza combate ahí mismo, sin completar el resto). Se
+// extrajo del movimiento normal para poder reutilizarla también cuando se
+// toca un cadáver/objeto fuera de alcance directo (acercarse solo y
+// lootear/abrir al llegar, ver bestApproachTile más abajo). Devuelve `true`
+// si se completó el camino entero sin cortes, `false` si se interrumpió por
+// cualquier motivo (el llamante no debe seguir con lo que tuviera pensado
+// hacer al llegar).
+async function walkPath(path) {
+  const { hero } = state;
+  heroMoving = true;
+  try {
+    for (let i = 1; i < path.length; i++) {
+      const prev = path[i - 1], cell = path[i];
+      const stepEntry = stepNeighbors(prev.x, prev.y).find(([nx, ny]) => nx === cell.x && ny === cell.y);
+      const stepCost = stepEntry ? stepEntry[2] : 1;
+      if (hero.ap < stepCost) break;   // por si acaso; no debería pasar (el camino ya viene dentro de alcance)
+
+      hero.ap -= stepCost;
+      anim.move('hero', prev.x, prev.y, cell.x, cell.y);
+      hero.x = cell.x; hero.y = cell.y;
+      audio.fx('move');
+      recomputeFog();
+      revealTrapsNear(cell.x, cell.y);
+      syncHUD();
+
+      const trap = trapAt(cell.x, cell.y);
+      if (trap) triggerTrap(trap);
+      if (hero.hp <= 0) return false;                     // trampa mortal a mitad de camino
+      const wt = walkTriggerAt(cell.x, cell.y);
+      if (wt) triggerWalkEvent(wt);
+      if (state.busy) return false;                        // se abrió una carta (evento de historia): se para aquí
+
+      if (state.exit && cell.x === state.exit.x && cell.y === state.exit.y) {
+        // Si la salida trae dónde debe aparecer el héroe en el nivel de
+        // destino (arriveX/arriveY — p.ej. la puerta del mausoleo en el
+        // cementerio, en vez del punto de inicio por defecto del nivel),
+        // se pasa junto con el destino. Ver descend()/loadLevel() en main.js.
+        const arrive = state.exit.arriveX != null ? { x: state.exit.arriveX, y: state.exit.arriveY } : null;
+        onDescend(state.exit.to, arrive);
+        return false;
+      }
+
+      computeReach();
+      // Fuera de combate el movimiento es libre (sin turnos); en cuanto un
+      // enemigo entra en rango de activación —aunque sea a mitad de camino—
+      // se para aquí mismo y empieza el combate por turnos ya, sin esperar
+      // a llegar a la casilla que se había tocado.
+      const justEnteredCombat = scanForNewCombatants();
+      if (justEnteredCombat) { await endHeroTurn(true); return false; }
+
+      if (i < path.length - 1) await sleep(moveDurationMs());   // deja ver el paso antes de encadenar el siguiente
+    }
+    return true;
+  } finally {
+    heroMoving = false;
+  }
+}
+
+// Como walkPath(), pero además cierra el turno solo si al llegar ya no
+// quedan PA (mismo criterio que el movimiento normal de toda la vida).
+// Devuelve si se completó el camino entero (para que el llamante sepa si
+// puede seguir con lo que tuviera pensado hacer al llegar: lootear, abrir...).
+async function walkTo(path) {
+  const completed = await walkPath(path);
+  if (completed && state.hero.hp > 0 && state.hero.ap <= 0 && !state.combat.active) endHeroTurn();
+  return completed;
+}
+
+// Busca la casilla adyacente a (tx,ty) más barata dentro del alcance actual
+// del héroe (según state.reach) — para poder acercarse solo con un toque a
+// algo que no se pueda pisar (cadáver, cofre, objeto...) en vez de tener que
+// caminar manualmente paso a paso hasta quedar pegado.
+function bestApproachTile(tx, ty) {
+  let best = null, bestCost = Infinity;
+  for (const [dx, dy] of [[-1,0],[1,0],[0,-1],[0,1],[-1,-1],[1,-1],[-1,1],[1,1]]) {
+    const ax = tx + dx, ay = ty + dy;
+    const c = reachCost(ax, ay);
+    if (c > 0 && c < bestCost) { bestCost = c; best = { x: ax, y: ay }; }
+  }
+  return best;
+}
+
 export async function onTapTile(gx, gy) {
   const { hero } = state;
   if (heroMoving) return;   // ya está andando; ignora el toque hasta que termine (o se corte por combate/carta)
@@ -1086,13 +1171,23 @@ export async function onTapTile(gx, gy) {
     return;
   }
 
-  // --- ¿Cadáver con loot pendiente? Adyacente = abre la ventana de botín;
-  // a distancia = solo un aviso de que hay que acercarse (los cadáveres no
-  // usan el sistema de pistas de eventos/trampas, no tienen ese id). ---
+  // --- ¿Cadáver con loot pendiente? Adyacente = abre la ventana de botín; a
+  // distancia pero DENTRO del alcance de movimiento de este turno = el héroe
+  // se acerca solo (mismo camino animado de siempre) y lootea al llegar;
+  // fuera de alcance del todo = solo un aviso de que hay que acercarse (los
+  // cadáveres no usan el sistema de pistas de eventos/trampas, no tienen
+  // ese id). ---
   const corpse = corpseAt(gx, gy);
   if (corpse) {
-    if (distTo(hero, gx, gy) <= 1) showLootWindow(corpse);
-    else if (isVisible(gx, gy)) log(t('log.corpseTooFar'));
+    if (distTo(hero, gx, gy) <= 1) { showLootWindow(corpse); return; }
+    const spot = bestApproachTile(gx, gy);
+    const approachPath = spot ? pathTo(spot.x, spot.y) : null;
+    if (approachPath) {
+      const completed = await walkTo(approachPath);
+      if (completed) showLootWindow(corpse);
+      return;
+    }
+    if (isVisible(gx, gy)) log(t('log.corpseTooFar'));
     return;
   }
 
@@ -1230,55 +1325,7 @@ export async function onTapTile(gx, gy) {
   // aunque le quedaran más pasos o PA para llegar más lejos. ---
   const path = pathTo(gx, gy);
   if (!path) return;
-
-  heroMoving = true;
-  try {
-    for (let i = 1; i < path.length; i++) {
-      const prev = path[i - 1], cell = path[i];
-      const stepEntry = stepNeighbors(prev.x, prev.y).find(([nx, ny]) => nx === cell.x && ny === cell.y);
-      const stepCost = stepEntry ? stepEntry[2] : 1;
-      if (hero.ap < stepCost) break;   // por si acaso; no debería pasar (el camino ya viene dentro de alcance)
-
-      hero.ap -= stepCost;
-      anim.move('hero', prev.x, prev.y, cell.x, cell.y);
-      hero.x = cell.x; hero.y = cell.y;
-      audio.fx('move');
-      recomputeFog();
-      revealTrapsNear(cell.x, cell.y);
-      syncHUD();
-
-      const trap = trapAt(cell.x, cell.y);
-      if (trap) triggerTrap(trap);
-      if (hero.hp <= 0) return;                          // trampa mortal a mitad de camino
-      const wt = walkTriggerAt(cell.x, cell.y);
-      if (wt) triggerWalkEvent(wt);
-      if (state.busy) return;                             // se abrió una carta (evento de historia): se para aquí
-
-      if (state.exit && cell.x === state.exit.x && cell.y === state.exit.y) {
-        // Si la salida trae dónde debe aparecer el héroe en el nivel de
-        // destino (arriveX/arriveY — p.ej. la puerta del mausoleo en el
-        // cementerio, en vez del punto de inicio por defecto del nivel),
-        // se pasa junto con el destino. Ver descend()/loadLevel() en main.js.
-        const arrive = state.exit.arriveX != null ? { x: state.exit.arriveX, y: state.exit.arriveY } : null;
-        onDescend(state.exit.to, arrive);
-        return;
-      }
-
-      computeReach();
-      // Fuera de combate el movimiento es libre (sin turnos); en cuanto un
-      // enemigo entra en rango de activación —aunque sea a mitad de camino—
-      // se para aquí mismo y empieza el combate por turnos ya, sin esperar
-      // a llegar a la casilla que se había tocado.
-      const justEnteredCombat = scanForNewCombatants();
-      if (justEnteredCombat) { await endHeroTurn(true); return; }
-
-      if (i < path.length - 1) await sleep(moveDurationMs());   // deja ver el paso antes de encadenar el siguiente
-    }
-  } finally {
-    heroMoving = false;
-  }
-
-  if (hero.hp > 0 && hero.ap <= 0 && !state.combat.active) endHeroTurn();
+  await walkTo(path);
 }
 
 // --- Cripta (V0.27): jefe de las dos palancas ------------------------------
@@ -1296,7 +1343,7 @@ export async function onTapTile(gx, gy) {
 // nivel (no existe hasta que se cumple la condición), se le suma +1 a mano
 // al total en main.js (ver setTotalFoeCount) — si no, matarlo no contaría
 // para la pantalla de victoria.
-const CRYPT_BOSS_LEVERS = ['lever_1', 'lever_4'];
+const CRYPT_BOSS_LEVERS = ['cripta_lever_1', 'cripta_lever_4'];
 const CRYPT_BOSS_MARKER = 'event_boss';
 const CRYPT_BOSS_ID = 'enemy6_boss';
 

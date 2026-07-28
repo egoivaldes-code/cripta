@@ -2,6 +2,28 @@
 
 Esquema: `0.X` = cambio grande · `0.X.Y` = cambio pequeño / fix.
 
+## 0.31 — Palancas de la cripta, fondo pintado, pathfinding de botín y más
+- Las dos palancas del jefe de la cripta compartían ID con la palanca del
+  cementerio (`lever_1`) — una mostraba el texto equivocado y la otra
+  (`lever_4`) no tenía entrada ninguna y **no hacía nada al tocarla**, por
+  lo que el jefe nunca podía llegar a aparecer (exige las dos activadas).
+  Ya tienen IDs e historia propios.
+- **La cripta nunca tuvo su fondo pintado conectado**: se dibujaba con el
+  atlas de losetas genérico (gris, "placeholder") en vez de su propio mapa
+  de referencia. Ya conectado, con la transparencia del vacío bien puesta.
+- Aclarado el texto del enfriamiento de habilidades en la tienda ("N
+  combates (no turnos)") — no bajaba paseando sin pelear porque de verdad
+  se mide en combates enteros, no en turnos; no era un bug.
+- Al tocar un cadáver con botín que esté fuera de alcance directo pero
+  dentro del alcance de movimiento del turno, el héroe se acerca solo
+  (mismo camino animado de siempre) y lootea al llegar, en vez de solo
+  avisar que hay que acercarse. Si el camino se corta a mitad (trampa,
+  combate, carta de evento), el héroe se queda donde esté y no se abre
+  el botín — hay que tocar otra vez.
+- En PC, si la ventana de botín está abierta, la barra espaciadora coge
+  todo y cierra la ventana (en vez de saltar turno, que sigue siendo lo
+  que hace espacio en cualquier otro momento).
+
 ## 0.30 — Elevación oculta, inventario sin scroll, altar duplicado, bug de movimiento, telemetría
 - Casillas de elevación (tinte + bordes rojo/verde) ocultas visualmente a
   propósito hasta decidir qué hacer con ellas — la lógica sigue intacta.

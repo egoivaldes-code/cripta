@@ -916,6 +916,152 @@ hoy en día siempre el mismo número ya que mover 1 casilla cuesta 1 PA fijo
 — se calcula así, en vez de un número suelto, para que quede bien si algún
 día `MOVE_COST` cambia o aparece algún bonus de movimiento).
 
+## Barra espaciadora: coger todo el botín si la ventana está abierta (V0.31)
+
+Pedido expreso, solo PC (atajo de teclado): la barra espaciadora ya salta
+turno (`skipTurn()`, ver el `keydown` de `main.js`). Ahora, si la ventana de
+botín está abierta en ese momento, espacio en vez de eso **coge todo y
+cierra la ventana** (más rápido que ir al botón) — únicamente mientras esa
+ventana esté abierta; en cualquier otro momento sigue saltando turno igual
+que siempre.
+
+Nuevo en `ui.js`: `isLootOpen()` (expone si `lootCorpse` — antes privada —
+está puesto) y `lootAllNow()` pasa a exportarse (ya existía, solo la
+llamaba el botón "Coger todo"). En el `keydown` de `main.js`: si
+`isLootOpen()`, llama a `lootAllNow()` y no sigue con `skipTurn()`.
+
+**Pruebas hechas**: `isLootOpen()` cambia de `false` a `true` al abrir la
+ventana de botín y vuelve a `false` tras `lootAllNow()`; el oro de las
+entradas de tipo `gold` se aplica de verdad al héroe.
+
+## Pathfinding para lootear a distancia (V0.31)
+
+Pedido expreso: al tocar un cadáver con loot pendiente que esté fuera de
+alcance directo (no adyacente) pero SÍ dentro del alcance de movimiento de
+este turno, el héroe debe acercarse solo y lootear al llegar, en vez de
+solo avisar "acércate más" como hacía siempre.
+
+**Refactor necesario primero**: el bucle de movimiento paso a paso (trampas,
+eventos al pisar, salidas de nivel, corte si empieza combate a mitad de
+camino...) vivía TODO dentro de `onTapTile()`, con `return` directos a la
+función entera en cada corte — no se podía reutilizar tal cual. Se extrajo
+a `walkPath(path)` (nueva, privada), que devuelve `true`/`false` según si
+se completó el camino entero sin cortes, y `walkTo(path)` (envuelve a
+`walkPath` + cierra turno solo si ya no quedan PA al terminar, mismo
+criterio de siempre). El movimiento normal (tocar una casilla vacía dentro
+de alcance) ahora también pasa por `walkTo()` — mismo comportamiento de
+antes, solo reorganizado.
+
+**Lo nuevo**: `bestApproachTile(tx, ty)` busca la casilla adyacente a
+`(tx,ty)` más barata dentro de `state.reach` (mira las 8 direcciones,
+`reachCost()`). En el bloque del cadáver (`onTapTile`): si no está ya
+adyacente, se busca esa casilla de aproximación, se calcula el camino con
+`pathTo()` de siempre, y si existe se anda con `walkTo()` — si el camino se
+completa entero (no se cortó por trampa/combate/carta a mitad), se abre la
+ventana de botín al llegar. Si no hay ninguna casilla de aproximación
+alcanzable, se mantiene el aviso de siempre ("acércate más").
+
+**Ojo**: si el camino se corta a mitad (p.ej. una trampa revienta o un
+enemigo se activa de camino al cadáver), el héroe se queda donde se haya
+parado y NO se abre el botín — hay que tocar el cadáver otra vez cuando se
+pueda. Mismo criterio de "nunca completar de más" que ya rige el
+movimiento normal.
+
+**Pruebas hechas**: cadáver a distancia 2 dentro de alcance → el héroe
+camina hasta quedar adyacente (comprobado con `distTo`) y gasta los PA del
+camino. Cadáver fuera de alcance del todo (PA insuficientes) → el héroe no
+se mueve. Cadáver ya adyacente → se abre directo, sin gastar PA de más ni
+intentar moverse.
+
+## Enfriamiento de habilidades: aclarado en la tienda, no es un bug (V0.31)
+
+Reportado por un tester: "Disparo Múltiple" se quedaba con enfriamiento
+"2" para siempre aunque saltara turno ~10 veces. Investigado: **no es un
+bug** — el enfriamiento de las habilidades activas se mide en COMBATES
+ENTEROS que terminan, no en turnos sueltos. `skillCooldowns` solo baja
+dentro de `checkCombatEnd()` (`rules.js`), que corta en seco si
+`!state.combat.active` — o sea, si no hay ningún combate en marcha (el
+tester estaba caminando por el mapa sin pelear), no baja nunca, por mucho
+que se salte turno. Confirmado con el usuario: se deja el diseño tal cual
+(combates, no turnos) — solo se aclara el texto de la tienda:
+`skillshop.cooldown` pasa de "Enfriamiento: {n} combates" a "Enfriamiento:
+{n} combates (no turnos)" (es/en) para que quede inequívoco.
+
+(De paso, lo otro que reportó el tester —que "Disparo Múltiple" no
+aparecía en su lista de "Habilidades" del inventario— tampoco es un bug:
+esa pestaña solo lista PASIVAS (`getPassiveOwnedSkills()`, ver sección de
+pestañas de la hoja de personaje), y Disparo Múltiple es una activa
+[`"kind": "active"` en `data/skills.json`] — nunca iba a salir ahí, es el
+comportamiento esperado.)
+
+## Bug real: la cripta nunca tuvo su fondo pintado conectado (V0.31)
+
+Segundo bug de verdad de esta ronda, detrás de la sensación de "Cripta no
+carga bien". `cripta.json` no tenía ningún `"background"` (a diferencia de
+`cemetery`/`mausoleum1`/`mausoleum2`, que sí lo tienen) — por eso
+`render.js` caía en su rama de "sin fondo pintado": pintar el atlas de
+losetas genérico (`assets/tiles/dungeon.png`, el mismo "placeholder" gris
+de toda la vida) casilla a casilla, en vez del mapa de referencia
+precioso que el usuario ya había subido (`42395.jpg`) para calibrar la
+malla del editor — esa imagen **nunca se guardó como asset del juego**,
+solo se usó de forma puntual para verificar el encaje de la malla en su
+momento (ver sección "Nivel Cripta de verdad").
+
+**Arreglo**:
+1. La imagen de referencia (`42395.jpg`, sigue disponible en
+   `/mnt/user-data/uploads/`) tenía el fondo magenta de verdad fuera del
+   dungeon (34.3% de la imagen) — quitado por tono de color
+   (`min(R,B)-G`, la misma técnica que ya funcionó bien con los sprites del
+   golem) y guardada como **PNG con transparencia** (no JPG): así el vacío
+   fuera del dungeon deja ver el fondo de vacío del propio motor
+   (`drawVoidBackground()`, se dibuja ANTES que el fondo pintado) en vez de
+   enseñar magenta a lo bruto — mismo patrón que ya usa `cemetery.png`
+   (que también es PNG con transparencia, a diferencia de
+   `mausoleum1/2.jpg`, que no la necesitan por estar totalmente pintados).
+2. Nueva clave `bg_cripta` en `assets.js` → `assets/backgrounds/cripta.png`.
+3. `cripta.json` → `"background": {"key": "bg_cripta"}`.
+4. **`_editorMap` reescalado al tamaño REAL del archivo guardado**
+   (2160×1440), no al que traía el JSON original del editor (1400×933,
+   calibrado sobre una versión más pequeña de la misma imagen — ver la
+   sección de comprobación de malla, más abajo, donde ya se detectó este
+   mismo desajuste de escala). `state.editorMap` (`state.js`) es lo que usa
+   `render.js` para recortar exactamente la misma región que el editor
+   alineó sobre su rejilla, estirada a la rejilla del motor — con los
+   valores viejos (sin reescalar) el recorte habría salido mal otra vez.
+   Verificado con el mismo método cuantitativo de sesiones anteriores: 0%
+   de casillas de suelo cayendo en zona transparente/vacía.
+
+## Bug real: palancas de la cripta chocaban de ID con la del cementerio (V0.31)
+
+Reportado por un tester vía el usuario. Las dos palancas del jefe de la
+cripta (`lever_1`/`lever_4`, ver "Nivel Cripta de verdad + jefe de dos
+palancas") usaban los MISMOS IDs que la palanca del cementerio (también
+`lever_1`, dada de alta bastante antes). Como `events.json` es un
+diccionario único por ID (sin distinguir de qué nivel viene cada trigger),
+esto causaba:
+- `lever_1` de la cripta: mostraba el texto/comportamiento de la palanca
+  DEL CEMENTERIO (sin sentido en ese contexto), aunque de rebote sí llegaba
+  a marcarse `used` y disparar la comprobación del jefe.
+- `lever_4` de la cripta: **no tenía ninguna entrada en absoluto** →
+  `state.events[tr.id]` daba `undefined` → rama `if (!ev) { log(neutro);
+  return; }` en `onTapTile` (`rules.js`) → no pasaba nada al tocarla, nunca
+  se marcaba `used`. Con esa palanca inútil, el jefe (que exige las DOS)
+  nunca podía aparecer.
+
+**Arreglo**: renombrados los triggers a `cripta_lever_1`/`cripta_lever_4`
+en `data/levels/cripta.json` (únicos de verdad, ya no coinciden con
+ningún otro nivel), actualizado `CRYPT_BOSS_LEVERS` en `rules.js` a juego,
+y añadidas sus propias entradas en `events.json` con texto propio (sin
+`unlocks`, ya que estas palancas no abren ninguna salida — su único efecto
+real es disparar `checkLeverBossSpawn`). Probado con una prueba headless:
+el jefe aparece con los IDs nuevos, y una palanca `lever_1` de OTRO nivel ya
+no interfiere para nada.
+
+**Lección para el futuro**: al montar niveles nuevos con marcadores
+genéricos tipo `lever_N`/`chest_N`, comprobar que el número no choque con
+otro nivel ya existente — `events.json` es un espacio de nombres GLOBAL,
+no por nivel.
+
 ## Telemetría: errores + estadísticas de partida (V0.30)
 
 Segundo backend real de Cripta (mismo proyecto Supabase compartido,

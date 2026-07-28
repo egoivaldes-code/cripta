@@ -1,20 +1,20 @@
 // Punto de entrada. Carga idioma y datos, cablea módulos y arranca el bucle.
 
-import { state, initGame, recomputeFog, computeReach, walkable } from './state.js?v=0.30';
-import { initRenderer, startLoop, centerOnHero, toggleGrid, isGridOn } from './render.js?v=0.30';
-import { onTapTile, bindDescend, startHeroTurn, endHeroTurn, afterInteract, attemptDisarm, isAITurnActive, getEnemySpeed, setEnemySpeed, setTotalFoeCount, useActiveSkill, rollAltar, pickChestEvent, applyChestEvent, checkLeverBossSpawn, checkBossLooted, resetRunState, getSkillCooldownLeft } from './rules.js?v=0.30';
-import { syncHUD, log, hideVeil, bindAfterInteract, bindRestart, bindAttemptDisarm, bindResolveAltar, bindResolveChest, bindApplyChest, bindOnLeverPulled, bindOnCorpseLooted, applyStaticText, syncInitiativeUI, showConfirm, showLogHistory, hideLogHistory, logHistoryOpen, bindRefreshActionBar } from './ui.js?v=0.30';
-import { loadAssets } from './assets.js?v=0.30';
-import { initialLang, loadLang, onLangChange, getLang, t } from './i18n.js?v=0.30';
-import * as anim from './anim.js?v=0.30';
-import * as audio from './audio.js?v=0.30';
-import { VERSION } from './config.js?v=0.30';
-import { assemble } from './mapgen.js?v=0.30';
-import { initInventory, openInventory, closeInventory, isInventoryOpen, resetInventory, refreshInventoryTexts } from './inventory.js?v=0.30';
-import { loadSkillsData, initSkillShop, openSkillShop, closeSkillShop, refreshSkillTexts, bindFullReset, applySkillBonuses, bindUseActiveSkill, tryUseArmedOnTile, bindGetSkillCooldownLeft, renderActionBar } from './skills.js?v=0.30';
-import * as savegame from './savegame.js?v=0.30';
-import { fetchTop10, formatTime } from './leaderboard.js?v=0.30';
-import { logEvent, initErrorCapture, setTelemetryVersion } from './telemetry.js?v=0.30';
+import { state, initGame, recomputeFog, computeReach, walkable } from './state.js?v=0.31';
+import { initRenderer, startLoop, centerOnHero, toggleGrid, isGridOn } from './render.js?v=0.31';
+import { onTapTile, bindDescend, startHeroTurn, endHeroTurn, afterInteract, attemptDisarm, isAITurnActive, getEnemySpeed, setEnemySpeed, setTotalFoeCount, useActiveSkill, rollAltar, pickChestEvent, applyChestEvent, checkLeverBossSpawn, checkBossLooted, resetRunState, getSkillCooldownLeft } from './rules.js?v=0.31';
+import { syncHUD, log, hideVeil, bindAfterInteract, bindRestart, bindAttemptDisarm, bindResolveAltar, bindResolveChest, bindApplyChest, bindOnLeverPulled, bindOnCorpseLooted, applyStaticText, syncInitiativeUI, showConfirm, showLogHistory, hideLogHistory, logHistoryOpen, bindRefreshActionBar, isLootOpen, lootAllNow } from './ui.js?v=0.31';
+import { loadAssets } from './assets.js?v=0.31';
+import { initialLang, loadLang, onLangChange, getLang, t } from './i18n.js?v=0.31';
+import * as anim from './anim.js?v=0.31';
+import * as audio from './audio.js?v=0.31';
+import { VERSION } from './config.js?v=0.31';
+import { assemble } from './mapgen.js?v=0.31';
+import { initInventory, openInventory, closeInventory, isInventoryOpen, resetInventory, refreshInventoryTexts } from './inventory.js?v=0.31';
+import { loadSkillsData, initSkillShop, openSkillShop, closeSkillShop, refreshSkillTexts, bindFullReset, applySkillBonuses, bindUseActiveSkill, tryUseArmedOnTile, bindGetSkillCooldownLeft, renderActionBar } from './skills.js?v=0.31';
+import * as savegame from './savegame.js?v=0.31';
+import { fetchTop10, formatTime } from './leaderboard.js?v=0.31';
+import { logEvent, initErrorCapture, setTelemetryVersion } from './telemetry.js?v=0.31';
 
 // El ensamblador de losetas (mapgen.js) sigue disponible para niveles ALEATORIOS
 // futuros; esta función queda de reserva pero no se usa por ahora, ya que el
@@ -306,6 +306,10 @@ async function boot() {
 
     if (e.code === 'Space') {
       e.preventDefault();   // si no, la barra espaciadora también scrollea la página
+      // Con la ventana de botín abierta, espacio coge todo y la cierra (más
+      // rápido que ir al botón) — SOLO en ese caso; si no hay botín abierto,
+      // sigue saltando turno como de costumbre.
+      if (isLootOpen()) { lootAllNow(); return; }
       skipTurn();
       return;
     }

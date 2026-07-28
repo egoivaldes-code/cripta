@@ -1,6 +1,29 @@
 {
   "versions": [
     {
+      "v": "0.31",
+      "es": {
+        "title": "Palancas de la cripta y mejoras de botín",
+        "notes": [
+          "Las dos palancas del jefe de la cripta no funcionaban bien (una no hacía nada). Ya están arregladas.",
+          "La cripta ya tiene su propio mapa de fondo, en vez del genérico de siempre.",
+          "Aclarado en la tienda: el enfriamiento de las habilidades se mide en combates, no en turnos.",
+          "Si tocas un cadáver con botín que está un poco lejos (pero llegarías este turno), tu personaje se acerca solo y lo lootea al llegar.",
+          "En PC: con la ventana de botín abierta, la barra espaciadora coge todo y la cierra."
+        ]
+      },
+      "en": {
+        "title": "Crypt levers and loot improvements",
+        "notes": [
+          "The crypt boss's two levers weren't working right (one did nothing at all). Now fixed.",
+          "The crypt now has its own background map instead of the generic one.",
+          "Clarified in the shop: skill cooldowns are measured in fights, not turns.",
+          "If you tap a corpse with loot that's a bit far (but reachable this turn), your character walks there on its own and loots it on arrival.",
+          "On PC: with the loot window open, the spacebar grabs everything and closes it."
+        ]
+      }
+    },
+    {
       "v": "0.30",
       "es": {
         "title": "Arreglado bug de movimiento",

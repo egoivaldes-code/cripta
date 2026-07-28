@@ -6,7 +6,7 @@
 // Qué claves tienen animaciones de verdad se define en ANIM_CLIPS (anim.js);
 // aquí solo hace falta indicar dónde está cada hoja.
 
-import { VERSION } from './config.js?v=0.30';
+import { VERSION } from './config.js?v=0.31';
 
 export const ATLAS_TILE = 128;  // px por celda en el tileset fuente (dungeon.png)
 export const SPRITE_TILE = 128; // px por fotograma en las hojas de sprites
@@ -110,6 +110,7 @@ const sources = {
   bg_mausoleum1: './assets/backgrounds/mausoleum1.jpg',
   bg_mausoleum2: './assets/backgrounds/mausoleum2.jpg',
   bg_cemetery: './assets/backgrounds/cemetery.png',   // recuperado: se había desconectado sin querer en la 0.19
+  bg_cripta: './assets/backgrounds/cripta.png',   // nunca se había conectado (V0.31): la cripta se dibujaba con el atlas de losetas genérico en vez de su propio mapa pintado. PNG con transparencia (magenta quitado) para que el vacío fuera del dungeon deje ver el fondo de vacío del motor, igual que cemetery.png
   void_forest: './assets/backgrounds/void_forest.jpg',           // fondo de "vacío" para biomas de exterior/bosque
   void_underground: './assets/backgrounds/void_underground.jpg', // fondo de "vacío" para biomas subterráneos
   story_cemetery_noises: './assets/ui/story_cemetery_noises.jpg',

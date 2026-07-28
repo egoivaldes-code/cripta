@@ -25,10 +25,10 @@
 // icono que ya se ve en el HUD). Los 9 tipos de objeto y sus iconos están
 // listos para cuando haya objetos de verdad que equipar.
 
-import { state } from './state.js?v=0.30';
-import { t } from './i18n.js?v=0.30';
-import { getPassiveOwnedSkills, getOwnedTier, getSkillBonuses } from './skills.js?v=0.30';
-import { ARMOR_CONSTANT, MOVE_COST } from './config.js?v=0.30';
+import { state } from './state.js?v=0.31';
+import { t } from './i18n.js?v=0.31';
+import { getPassiveOwnedSkills, getOwnedTier, getSkillBonuses } from './skills.js?v=0.31';
+import { ARMOR_CONSTANT, MOVE_COST } from './config.js?v=0.31';
 
 // --- 1. Config ---------------------------------------------------------
 

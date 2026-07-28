@@ -13167,7 +13167,7 @@
     {
       "x": 10,
       "y": 5,
-      "id": "lever_1",
+      "id": "cripta_lever_1",
       "type": "lever",
       "sprite": "lever",
       "tall": 1.15
@@ -13175,7 +13175,7 @@
     {
       "x": 55,
       "y": 5,
-      "id": "lever_4",
+      "id": "cripta_lever_4",
       "type": "lever",
       "sprite": "lever",
       "tall": 1.15
@@ -13549,5 +13549,18 @@
     "y": 49,
     "to": "cemetery",
     "id": "exit_1"
+  },
+  "background": {
+    "key": "bg_cripta"
+  },
+  "_editorMap": {
+    "image": "cripta.jpg",
+    "width": 2160,
+    "height": 1440,
+    "cols": 78,
+    "rows": 52,
+    "cellSize": 27.771,
+    "originX": -24.686,
+    "originY": -12.347
   }
 }

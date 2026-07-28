@@ -152,5 +152,17 @@
   },
   "event_tchamber": {
     "i18n": "ev.tchamber"
+  },
+  "cripta_lever_1": {
+    "i18n": "ev.criptaLever1",
+    "type": "lever",
+    "actionCost": 1,
+    "image": "story_lever_arm"
+  },
+  "cripta_lever_4": {
+    "i18n": "ev.criptaLever4",
+    "type": "lever",
+    "actionCost": 1,
+    "image": "story_lever_arm"
   }
 }
