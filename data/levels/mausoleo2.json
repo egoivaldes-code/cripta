@@ -662,7 +662,9 @@
   "exit": {
     "x": 8,
     "y": 10,
-    "to": "cemetery"
+    "to": "cemetery",
+    "arriveX": 22,
+    "arriveY": 13
   },
   "_editorMap": {
     "image": "mausoleum2.jpg",

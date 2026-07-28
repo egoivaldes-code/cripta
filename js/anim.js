@@ -6,7 +6,7 @@
 //     (paz/combate) que cambian solas según haya un enemigo cerca, con una transición.
 // Además: sacudida al recibir daño y números flotantes (daño/curación).
 
-import { TILE, moveDurationMs } from './config.js?v=0.28';
+import { TILE, moveDurationMs } from './config.js?v=0.29';
 
 const D_ATTACK_LEGACY = 220;
 const D_HURT = 300;   // duración de la sacudida (todos los personajes)
@@ -70,7 +70,7 @@ export const ANIM_CLIPS = {
     death:  { frames: 6, fps: 10,  loop: false },
   },
   golembone: {   // Golem de hueso: monstruosidad grande, pesada y lenta
-    idle:   { frames: 10, fps: 3,  loop: true  },
+    idle:   { frames: 6,  fps: 3,  loop: true  },
     walk:   { frames: 7,  fps: 7,  loop: true  },
     attack: { frames: 8,  fps: 9,  loop: false },
     death:  { frames: 8,  fps: 7,  loop: false },

@@ -13169,14 +13169,16 @@
       "y": 5,
       "id": "lever_1",
       "type": "lever",
-      "sprite": "lever"
+      "sprite": "lever",
+      "tall": 1.15
     },
     {
       "x": 55,
       "y": 5,
       "id": "lever_4",
       "type": "lever",
-      "sprite": "lever"
+      "sprite": "lever",
+      "tall": 1.15
     },
     {
       "x": 39,

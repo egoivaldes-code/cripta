@@ -7,11 +7,11 @@
 // La altura de cada casilla se pinta con un tinte y, en los escalones, un
 // borde de color: VERDE en el lado alto, ROJO en el lado bajo (estilo Descent).
 
-import { state, elevAt, pathTo, foeAt, blockingTriggerAt, exitAt, adjacent } from './state.js?v=0.28';
-import { isAITurnActive } from './rules.js?v=0.28';
-import { TILE, CAMERA_MARGIN, ZOOM_MIN, ZOOM_MAX, ZOOM_DEFAULT, TOKEN_TALL, HERO_TALL, PROP_TALL } from './config.js?v=0.28';
-import { images, ATLAS_TILE, SPRITE_TILE } from './assets.js?v=0.28';
-import * as anim from './anim.js?v=0.28';
+import { state, elevAt, pathTo, foeAt, blockingTriggerAt, exitAt, adjacent } from './state.js?v=0.29';
+import { isAITurnActive } from './rules.js?v=0.29';
+import { TILE, CAMERA_MARGIN, ZOOM_MIN, ZOOM_MAX, ZOOM_DEFAULT, TOKEN_TALL, HERO_TALL, PROP_TALL } from './config.js?v=0.29';
+import { images, ATLAS_TILE, SPRITE_TILE } from './assets.js?v=0.29';
+import * as anim from './anim.js?v=0.29';
 
 // Algunos artes vienen dibujados mirando a la izquierda de serie (en vez de a
 // la derecha, que es lo que se asume en el resto del código al calcular hacia
@@ -530,9 +530,16 @@ function draw(ts) {
     ring(s.x, s.y, ringR - 4, on ? col : col + '99', 2);
     if (images.exitModel) {
       const size = TILE * (big ? 2.3 : 1.15) * zoom;
+      // Ajuste visual fino opcional (offsetX/offsetY, en fracción de casilla)
+      // para que el modelo genérico encaje mejor con el detalle concreto del
+      // fondo pintado en ESTA salida en particular, sin mover su posición
+      // lógica (colisión/interacción) ni afectar a las demás salidas que
+      // comparten el mismo modelo.
+      const offX = (ex.offsetX || 0) * TILE * zoom;
+      const offY = (ex.offsetY || 0) * TILE * zoom;
       ctx.save();
       ctx.globalAlpha = on ? (blocked ? 0.55 : 1) : 0.45;
-      ctx.drawImage(images.exitModel, s.x - size/2, s.y - size/2, size, size);
+      ctx.drawImage(images.exitModel, s.x - size/2 + offX, s.y - size/2 + offY, size, size);
       ctx.restore();
     } else {
       glyph(s.x, s.y, blocked ? '▮' : '▯', on ? col : '#6a6a6a', 20*zoom);

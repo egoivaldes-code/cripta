@@ -1,15 +1,15 @@
 // Reglas del juego: economía de Puntos de Acción (PA), interacción a distancia
 // y adyacente, trampas, niebla y salida de nivel. Agnóstico del dibujo.
 
-import { state, walkable, isWall, adjacent, distTo, isVisible, recomputeFog, computeReach, pathTo, findPath, findApproachPath, reachCost, blockingTriggerAt, trapAt, walkTriggerAt, exitAt, stepNeighbors, foeAt, corpseAt, livingFoes, losClear, revealAllExplored } from './state.js?v=0.28';
-import { openEvent, openLeverCard, openAltarCard, openChestCard, openTrapCard, openStoryCard, syncHUD, syncInitiativeUI, showCombatBadge, showLootWindow, showConfirm, log, gameOver } from './ui.js?v=0.28';
-import { t, tRandom } from './i18n.js?v=0.28';
-import { MOVE_COST, ATTACK_COST, INITIATIVE_BASE, INITIATIVE_DIE, TURN_DELAY, COMBAT_ENTER_DELAY, getGameSpeed, setGameSpeed, speedMult, moveDurationMs, ARMOR_CONSTANT } from './config.js?v=0.28';
-import * as anim from './anim.js?v=0.28';
-import { ANIM_CLIPS } from './anim.js?v=0.28';
-import * as audio from './audio.js?v=0.28';
-import { centerOnTile } from './render.js?v=0.28';
-import { getOwnedTier, getSkillDef } from './skills.js?v=0.28';
+import { state, walkable, isWall, adjacent, distTo, isVisible, recomputeFog, computeReach, pathTo, findPath, findApproachPath, reachCost, blockingTriggerAt, trapAt, walkTriggerAt, exitAt, stepNeighbors, foeAt, corpseAt, livingFoes, losClear, revealAllExplored } from './state.js?v=0.29';
+import { openEvent, openLeverCard, openAltarCard, openChestCard, openTrapCard, openStoryCard, syncHUD, syncInitiativeUI, showCombatBadge, showLootWindow, showConfirm, log, gameOver } from './ui.js?v=0.29';
+import { t, tRandom } from './i18n.js?v=0.29';
+import { MOVE_COST, ATTACK_COST, INITIATIVE_BASE, INITIATIVE_DIE, TURN_DELAY, COMBAT_ENTER_DELAY, getGameSpeed, setGameSpeed, speedMult, moveDurationMs, ARMOR_CONSTANT } from './config.js?v=0.29';
+import * as anim from './anim.js?v=0.29';
+import { ANIM_CLIPS } from './anim.js?v=0.29';
+import * as audio from './audio.js?v=0.29';
+import { centerOnTile } from './render.js?v=0.29';
+import { getOwnedTier, getSkillDef } from './skills.js?v=0.29';
 
 const sign = (n) => Math.sign(n);
 
@@ -98,6 +98,37 @@ let altarStrengthCombats = 0;   // Bendición de fuerza: +daño hecho
 let altarStonehideCombats = 0;  // Bendición de piel de piedra: −daño recibido
 let altarWeaknessCombats = 0;   // Maldición de debilidad: −daño hecho
 let altarFragileCombats = 0;    // Maldición de fragilidad: +daño recibido
+
+// Todo lo de arriba (cooldowns, buffs de combate, rachas, bendiciones de
+// altar, zonas de Círculo de Renacer...) vive en variables de MÓDULO, no en
+// `state` (state.js) — por eso `initGame()` (que solo toca `state.*`) nunca
+// las tocaba, y reiniciar nivel/partida las dejaba tal cual venían de la
+// partida anterior (cooldowns que no bajaban, un Grito de Guerra que seguía
+// activo, zonas de curación fantasma en el mapa nuevo...). Se llama desde
+// `loadLevel()` (main.js) en CUALQUIER carga de nivel — partida nueva,
+// reiniciar tras morir/ganar, o bajar de nivel entre zonas — para que de
+// verdad se reinicie todo, no solo el mapa.
+export function resetRunState() {
+  for (const id in skillCooldowns) delete skillCooldowns[id];
+  warCryTurnsLeft = 0; warCryPct = 0;
+  bloodlustStacks = 0;
+  shadowStrikeUsedThisCombat = false;
+  soulHarvestStacks = 0;
+  arcaneOverloadStreak = 0;
+  freeNextCastSkip = false;
+  wildShapeTurnsLeft = 0;
+  wildShapePower = null;
+  holyZones.length = 0;
+  damageTakenLastTurn = 0;
+  altarStrengthCombats = 0;
+  altarStonehideCombats = 0;
+  altarWeaknessCombats = 0;
+  altarFragileCombats = 0;
+  cryptBossLooted = false;
+  lastHeroAttackAt = 0;
+  aiTurnActive = false;
+  heroMoving = false;
+}
 const ALTAR_STRENGTH_PCT = 0.15;
 const ALTAR_STONEHIDE_PCT = 0.15;
 const ALTAR_WEAKNESS_PCT = 0.10;
@@ -1223,7 +1254,15 @@ export async function onTapTile(gx, gy) {
       if (wt) triggerWalkEvent(wt);
       if (state.busy) return;                             // se abrió una carta (evento de historia): se para aquí
 
-      if (state.exit && cell.x === state.exit.x && cell.y === state.exit.y) { onDescend(state.exit.to); return; }
+      if (state.exit && cell.x === state.exit.x && cell.y === state.exit.y) {
+        // Si la salida trae dónde debe aparecer el héroe en el nivel de
+        // destino (arriveX/arriveY — p.ej. la puerta del mausoleo en el
+        // cementerio, en vez del punto de inicio por defecto del nivel),
+        // se pasa junto con el destino. Ver descend()/loadLevel() en main.js.
+        const arrive = state.exit.arriveX != null ? { x: state.exit.arriveX, y: state.exit.arriveY } : null;
+        onDescend(state.exit.to, arrive);
+        return;
+      }
 
       computeReach();
       // Fuera de combate el movimiento es libre (sin turnos); en cuanto un
@@ -1592,7 +1631,7 @@ async function spectreTurn(foe) {
 // cerca posible de él (sin pasar de 4 casillas), gastando el turno entero.
 const MAGE_RANGE = 4, MAGE_SHOOT_COST = 3, MAGE_SUMMON_COST = 2, MAGE_MAX_MOVE = 4;
 const MAGE_SUMMON_RADIUS = 4, MAGE_SUMMON_EVERY = 2, MAGE_MAX_SKELETONS = 3;
-const MAGE_CALL_RANGE = 20, MAGE_CALL_GATHER = 4;
+const MAGE_CALL_RANGE = 100, MAGE_CALL_GATHER = 4;   // 100 = "toda la sala" de facto (el mapa más grande, Cripta, mide 78x52)
 
 // Casillas libres cerca de (ox,oy), más cercanas primero (para colocar invocaciones).
 function freeTilesNear(ox, oy, maxDist) {

@@ -1,19 +1,19 @@
 // Punto de entrada. Carga idioma y datos, cablea módulos y arranca el bucle.
 
-import { state, initGame, recomputeFog, computeReach } from './state.js?v=0.28';
-import { initRenderer, startLoop, centerOnHero, toggleGrid, isGridOn } from './render.js?v=0.28';
-import { onTapTile, bindDescend, startHeroTurn, endHeroTurn, afterInteract, attemptDisarm, isAITurnActive, getEnemySpeed, setEnemySpeed, setTotalFoeCount, useActiveSkill, rollAltar, pickChestEvent, applyChestEvent, checkLeverBossSpawn, checkBossLooted, getSkillCooldownLeft } from './rules.js?v=0.28';
-import { syncHUD, log, hideVeil, bindAfterInteract, bindRestart, bindAttemptDisarm, bindResolveAltar, bindResolveChest, bindApplyChest, bindOnLeverPulled, bindOnCorpseLooted, applyStaticText, syncInitiativeUI, showConfirm, showLogHistory, hideLogHistory, logHistoryOpen, bindRefreshActionBar } from './ui.js?v=0.28';
-import { loadAssets } from './assets.js?v=0.28';
-import { initialLang, loadLang, onLangChange, getLang, t } from './i18n.js?v=0.28';
-import * as anim from './anim.js?v=0.28';
-import * as audio from './audio.js?v=0.28';
-import { VERSION } from './config.js?v=0.28';
-import { assemble } from './mapgen.js?v=0.28';
-import { initInventory, openInventory, closeInventory, isInventoryOpen, resetInventory, refreshInventoryTexts } from './inventory.js?v=0.28';
-import { loadSkillsData, initSkillShop, openSkillShop, closeSkillShop, refreshSkillTexts, bindFullReset, applySkillBonuses, bindUseActiveSkill, tryUseArmedOnTile, bindGetSkillCooldownLeft, renderActionBar } from './skills.js?v=0.28';
-import * as savegame from './savegame.js?v=0.28';
-import { fetchTop10, formatTime } from './leaderboard.js?v=0.28';
+import { state, initGame, recomputeFog, computeReach, walkable } from './state.js?v=0.29';
+import { initRenderer, startLoop, centerOnHero, toggleGrid, isGridOn } from './render.js?v=0.29';
+import { onTapTile, bindDescend, startHeroTurn, endHeroTurn, afterInteract, attemptDisarm, isAITurnActive, getEnemySpeed, setEnemySpeed, setTotalFoeCount, useActiveSkill, rollAltar, pickChestEvent, applyChestEvent, checkLeverBossSpawn, checkBossLooted, resetRunState, getSkillCooldownLeft } from './rules.js?v=0.29';
+import { syncHUD, log, hideVeil, bindAfterInteract, bindRestart, bindAttemptDisarm, bindResolveAltar, bindResolveChest, bindApplyChest, bindOnLeverPulled, bindOnCorpseLooted, applyStaticText, syncInitiativeUI, showConfirm, showLogHistory, hideLogHistory, logHistoryOpen, bindRefreshActionBar } from './ui.js?v=0.29';
+import { loadAssets } from './assets.js?v=0.29';
+import { initialLang, loadLang, onLangChange, getLang, t } from './i18n.js?v=0.29';
+import * as anim from './anim.js?v=0.29';
+import * as audio from './audio.js?v=0.29';
+import { VERSION } from './config.js?v=0.29';
+import { assemble } from './mapgen.js?v=0.29';
+import { initInventory, openInventory, closeInventory, isInventoryOpen, resetInventory, refreshInventoryTexts } from './inventory.js?v=0.29';
+import { loadSkillsData, initSkillShop, openSkillShop, closeSkillShop, refreshSkillTexts, bindFullReset, applySkillBonuses, bindUseActiveSkill, tryUseArmedOnTile, bindGetSkillCooldownLeft, renderActionBar } from './skills.js?v=0.29';
+import * as savegame from './savegame.js?v=0.29';
+import { fetchTop10, formatTime } from './leaderboard.js?v=0.29';
 
 // El ensamblador de losetas (mapgen.js) sigue disponible para niveles ALEATORIOS
 // futuros; esta función queda de reserva pero no se usa por ahora, ya que el
@@ -104,8 +104,32 @@ async function boot() {
 
   let currentLevelName = null;   // nombre tal cual se le pasa a loadLevel/getLevel (p.ej. 'level1', 'cripta'...)
 
-  async function loadLevel(name, carry) {
+  // Busca una casilla caminable en/junto a (x,y) — la propia si ya lo es, si
+  // no la más cercana en un anillo creciente (hasta 3 casillas). Se usa para
+  // "aparecer junto a esta puerta" sin arriesgarse a caer encima de un
+  // "mueble" no pisable (ver `arrive` en loadLevel más abajo).
+  function findWalkableNear(x, y) {
+    if (walkable(x, y)) return { x, y };
+    for (let r = 1; r <= 3; r++) {
+      for (let dy = -r; dy <= r; dy++) {
+        for (let dx = -r; dx <= r; dx++) {
+          if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;   // solo el borde del anillo
+          if (walkable(x + dx, y + dy)) return { x: x + dx, y: y + dy };
+        }
+      }
+    }
+    return null;
+  }
+
+  async function loadLevel(name, carry, arrive) {
     const level = await getLevel(name);
+    // Reinicio de VERDAD, no solo el mapa: cooldowns de habilidades, buffs de
+    // combate en marcha (Grito de Guerra, Forma Salvaje...), bendiciones de
+    // altar, zonas de Círculo de Renacer y la música de combate de élite si
+    // se estaba reiniciando a mitad de una emboscada. Antes de initGame() para
+    // que ningún efecto de la partida anterior se cuele en el nivel nuevo.
+    resetRunState();
+    audio.stopEliteMusic();
     initGame(level, events);
     if (carry) Object.assign(state.hero, carry);        // arrastra vida/oro entre niveles (bajar de nivel)
     else {
@@ -116,6 +140,15 @@ async function boot() {
       // arrastrado, ver descend() más abajo).
       state.hero.runStartedAt = Date.now();
     }   // partida nueva de verdad: inventario limpio, oro = el que traías guardado (1000 la primera vez)
+    if (arrive) {
+      // Vuelta de un mausoleo (u otra salida de un solo tramo con
+      // arriveX/arriveY): aparecer junto a la puerta por la que se entró, no
+      // en el punto de inicio por defecto del nivel. La puerta en sí puede
+      // no ser pisable (es "mueble", se interactúa desde al lado), así que
+      // se busca la casilla caminable más cercana a su alrededor.
+      const spot = findWalkableNear(arrive.x, arrive.y);
+      if (spot) { state.hero.x = spot.x; state.hero.y = spot.y; }
+    }
     applySkillBonuses(state.hero);
     currentLevelName = name;
     anim.reset();
@@ -164,13 +197,18 @@ async function boot() {
   }
 
   function newGame() { loadLevel('level1').then(openSkillShop); }
-  async function descend(to) {
+  async function descend(to, arrive) {
     const c = { hp: state.hero.hp, maxHp: state.hero.maxHp, atk: state.hero.atk, gold: state.hero.gold, totalKills: state.hero.totalKills || 0, runStartedAt: state.hero.runStartedAt };
     try {
       audio.fx('descend');
-      await loadLevel(to, c);
+      await loadLevel(to, c, arrive);
       log(t('log.descend'));
-      openSkillShop();   // entre niveles: ocasión de gastar el oro ganado antes de seguir
+      // La tienda se salta al entrar o salir de un mausoleo (es un desvío
+      // lateral corto, no un avance real de mazmorra — antes reaparecía ahí
+      // también, lo que se sentía como un reinicio de nivel sin serlo). Al
+      // VOLVER de un mausoleo, `arrive` viene puesto (ver goExit/onDescend en
+      // rules.js); al ENTRAR, es `to` quien lo delata.
+      if (!to.startsWith('mausoleo') && !arrive) openSkillShop();
     } catch (err) {
       console.warn('No se pudo cargar el nivel de destino:', to, err);
       log(t('log.levelMissing'));

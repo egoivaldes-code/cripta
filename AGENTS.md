@@ -916,6 +916,221 @@ hoy en día siempre el mismo número ya que mover 1 casilla cuesta 1 PA fijo
 — se calcula así, en vez de un número suelto, para que quede bien si algún
 día `MOVE_COST` cambia o aparece algún bonus de movimiento).
 
+## Palanca: modelo un 100% más grande (V0.29)
+
+Se veía demasiado pequeña ("casi no se ve"). Los objetos animados (cofre,
+altar, palanca, contenedor) usan `tr.tall` (por defecto `PROP_TALL` =
+`TOKEN_TALL/2` = 0.575, la mitad de un personaje) para decidir su tamaño en
+pantalla — ver el `w = th` fijo en `render.js` (arreglo de estiramiento de
+la V0.26.1). Se añadió `"tall": 1.15` (el doble, `TOKEN_TALL` completo — el
+mismo tamaño que un personaje) a las 3 palancas ya colocadas (`lever_1` en
+`cemetery.json`; `lever_1`/`lever_4` en `cripta.json`).
+
+## Llamada Sepulcral: rango de toda la sala (V0.29)
+
+`MAGE_CALL_RANGE` (`rules.js`) subido de 20 a 100 — de facto cubre
+cualquier nivel del juego de una tacada (el más grande, Cripta, mide
+78×52). Pedido expresamente: "si tiene rango, que llame a toda la
+habitación". `MAGE_CALL_GATHER` (dónde se agrupan los llamados alrededor
+del mago) se queda igual, en 4.
+
+## Golem de hueso: idle/death reconstruidos con arte nuevo (V0.29)
+
+**Contexto**: tras la V0.29, el usuario reportó que las animaciones del
+golem seguían mal (el fotograma roto de `idle` que se "arregló" resultó ser
+en realidad que `idle.png` y `death.png` estaban con el CONTENIDO
+intercambiado desde que se dieron de alta en una sesión anterior —
+"desguazada entera de la original, recortaste mal los frames"). El usuario
+proporcionó las dos hojas de referencia ORIGINALES (sin recortar, en
+rejilla sobre fondo magenta): una de 8 celdas (4×2) para `death`, otra de 6
+celdas (3×2) para `idle`.
+
+**Extracción desde cero** (no reutilizar nada de las hojas anteriores,
+corruptas): cada celda de la rejilla se recorta por su tamaño exacto
+(`ancho_imagen/cols`, `alto_imagen/filas`), se le quita el fondo y se monta
+en un tile de 128×128 (convención `SPRITE_TILE` de todo el proyecto) con
+una **única escala por animación completa** (no por fotograma — calculada a
+partir del fotograma más alto, normalmente el primero) para que el
+desmoronamiento de `death` conserve su encogimiento real en vez de
+"renormalizarse" en cada fotograma. Todos los fotogramas anclados a la
+misma línea de suelo (y=125).
+
+**Centrado por "cabeza" en vez de por el recuadro completo**: centrar cada
+fotograma por su bounding box entero hacía que la figura oscilara de lado a
+lado (un brazo/hueso que se abre hacia un lado desplaza el centro del
+recuadro aunque el cuerpo no se haya movido — mismo principio que ya se
+aplicó al héroe: "recentrar por la cabeza, no por el cuerpo entero"). Se
+usa el 22% superior del contenido de cada fotograma como proxy de "zona de
+la cabeza" y se centra por ahí. Con esto, `idle` queda con los fotogramas
+casi clavados en la misma X (1px de margen); `death` varía algo más hacia
+el final, esperable porque ya no queda una "cabeza" reconocible entre los
+huesos dispersos.
+
+**Quitar el chroma de verdad — la lección de esta ronda**: se probaron
+varios enfoques cada vez más agresivos (distancia a un color de referencia
+con degradado + "despill", corte binario simple, limpieza de fragmentos
+sueltos por tamaño+color) y todos dejaban algo de magenta visible,
+sobre todo en los fotogramas donde el golem se rompe en muchos trozos
+pequeños (más perímetro de borde = más superficie donde falla un recorte
+por distancia de color). **La solución de verdad, mucho más simple**: como
+el diseño real del golem es solo tonos marrón/hueso/negro (el
+morado/magenta que parecía un "brillo de energía" en las articulaciones
+NUNCA fue un elemento de diseño intencionado — era chroma sin quitar del
+todo), basta con detectar cualquier píxel donde el canal verde quede por
+debajo de rojo Y azul a la vez (`min(R,B) - G > margen`) y volverlo
+transparente sin más — sin comparar contra ningún color de referencia ni
+degradado. Aplicado a las celdas en crudo (no a versiones ya procesadas,
+para no arrastrar pérdida de información de intentos anteriores). Residuo
+final medido: **0.00%**. Al redimensionar, alfa premultiplicado (para que
+el color de los píxeles ya transparentes no se cuele mezclado en los
+opaços vecinos — otra fuente de fleco magenta que no viene del chroma en
+sí, sino del propio redimensionado).
+
+**`idle` finalmente NO se tocó** — el usuario confirmó que la versión ya
+en el proyecto (6 fotogramas, quedándose con los buenos de la hoja vieja
+corrupta) estaba bien tal cual; solo hizo falta reconstruir `death` con la
+hoja de referencia nueva.
+
+**Recuento de fotogramas final** (`ANIM_CLIPS.golembone`, `anim.js`):
+`idle`: 6. `walk`: 7 (sin tocar en toda esta ronda). `attack`: 8 (con el
+reanclado de pies y centrado horizontal de la V0.29, sin tocar aquí).
+`death`: 8 (arte nuevo, reemplaza los 10 fotogramas corruptos de la V0.29).
+
+**Para la próxima vez que haga falta extraer una hoja de referencia en
+rejilla** (celdas de tamaño fijo, fondo magenta, varios fotogramas por
+fila): 1) recortar por tamaño de celda exacto, no por contenido; 2) escanear
+magenta por HUE (`min(R,B)-G`), no por distancia a un color de referencia —
+mucho más simple y sin dejar residuo; 3) una única escala para toda la
+animación (referencia = el fotograma más alto), nunca por fotograma suelto;
+4) centrar por la zona superior (cabeza), no por el recuadro completo;
+5) alfa premultiplicado al redimensionar.
+
+## Arreglos de reinicio, mausoleos, sprites y atajos de PC (V0.29)
+
+**1. Reinicio de nivel/partida — de verdad, no solo el mapa.** `initGame()`
+(`state.js`) solo tocaba `state.*`; un montón de estado de combate vivía en
+variables sueltas de MÓDULO en `rules.js` (cooldowns de habilidades, Grito
+de Guerra, Forma Salvaje, rachas de Sed de sangre/Cosecha de Almas,
+bendiciones/maldiciones de altar, zonas de Círculo de Renacer...) que
+sobrevivían a cualquier "reinicio". Nuevo `resetRunState()` (`rules.js`,
+exportado) las limpia todas de golpe; se llama desde `loadLevel()`
+(`main.js`) en CUALQUIER carga de nivel, junto con `audio.stopEliteMusic()`
+(la música de combate de élite tampoco se paraba si se reiniciaba a mitad
+de una emboscada — el gain node de Web Audio es un grafo persistente que
+`initGame()` nunca tocaba).
+
+**2. Volver de un mausoleo ya no teleporta al inicio del cementerio.**
+Antes, `descend()`→`loadLevel()` siempre colocaba al héroe en el
+`start.hero` por defecto del nivel de destino, viniera de donde viniera.
+Se añadió un mecanismo de "coordenada de llegada": la salida antigua de un
+solo tramo (`state.exit`, la que usan `mausoleo1`/`mausoleo2` para volver a
+`cemetery`) puede traer `arriveX`/`arriveY` — las coordenadas de la puerta
+del NIVEL DE ORIGEN por las que se entró. Al pisar esa salida
+(`rules.js`, chequeo de `state.exit`), se pasan a `onDescend(to, arrive)` →
+`descend(to, arrive)` → `loadLevel(name, carry, arrive)` (`main.js`), que
+coloca al héroe en la casilla caminable más cercana a esa puerta
+(`findWalkableNear()`, búsqueda en anillo creciente hasta 3 casillas — la
+puerta en sí es "mueble", no pisable). Configurado en `mausoleo1.json`/
+`mausoleo2.json` → `exit.arriveX/arriveY` = coordenadas de `exit_3`/`exit_4`
+en `cemetery.json` (25,14 y 22,13).
+
+**3. La tienda ya no reaparece al entrar/salir de un mausoleo.** Es un
+desvío lateral corto, no avance real de mazmorra — `descend()` salta
+`openSkillShop()` si `to` empieza por `mausoleo` (entrando) o si viene
+`arrive` (volviendo). El resto de transiciones de nivel (cementerio→cripta)
+siguen abriendo la tienda como siempre.
+
+**4. Malla de mausoleo1 desplazada una casilla hacia abajo.** Estaba
+descuadrada respecto al fondo pintado. Se insertó una fila de muro arriba
+de `tiles`/`elev`/`difficult` (crecen de 12 a 13 filas) y se sumó `y+=1` a
+héroe, enemigos, triggers y `exit` — pero NO a `exit.arriveX/arriveY`
+(son coordenadas del CEMENTERIO, un nivel distinto, no deben tocarse).
+Verificado que todo sigue en casillas caminables tras el desplazamiento.
+
+**5. Ajuste fino de posición por salida (offsetX/offsetY).** Nuevo campo
+opcional en cualquier entrada de `exits[]`: desplaza SOLO el dibujo del
+modelo de esa salida en concreto (en fracción de casilla, `render.js`), sin
+tocar su posición lógica (colisión/interacción) ni afectar a las demás
+salidas que comparten el mismo `exitModel`. Usado en `exit_3` de
+`cemetery.json` (la puerta a mausoleo1), `offsetX: -0.2`, para que encaje
+mejor con el detalle del fondo pintado. Ajustable a ojo si hace falta más
+o menos.
+
+**6. Cadáveres demasiado pequeños para lootear (esqueleto arquero y
+básico).** Medido con Python: el último fotograma de `death.png` ocupaba
+una fracción minúscula del lienzo de 128×128 (68×32 px el básico, 61×30 el
+arquero, pegado abajo del todo). Reescalado con Lanczos, anclado por el
+punto centro-abajo del contenido original (para no "flotar" ni desplazarse
+del suelo): arquero (`enemy5`) ×2, básico (`enemy1`) ×1.5, tal como se pidió.
+
+**7. Esqueleto básico (`enemy1`), idle con trocito de mano/daga
+desaparecido en varios fotogramas.** Comparación píxel a píxel de los 6
+fotogramas de `idle.png` contra el más completo (frame 0): varios (1,2,3,4,5)
+tenían huecos de 28 a 84 píxeles en la zona de la mano/daga (recorte fijo
+x50-105,y60-110) que frame 0 sí tenía. Se parchearon SOLO esos píxeles
+concretos (no todo el fotograma, para no romper el balanceo natural del
+idle) copiándolos del frame de referencia.
+
+**8. Golem de hueso (`golembone`), fotograma roto en `idle` + pies flotando
+en `attack`.** El 10º (y último) fotograma de `idle.png` salía notablemente
+más pequeño y flotando por encima del suelo respecto a los otros 9 (altura
+de contenido 81px vs 114-116px en el resto, medido con bounding box de
+alpha). Sustituido por una copia del fotograma 9 (el anterior, bueno) —
+recurso rápido y seguro para quitar un fotograma roto de un bucle sutil sin
+arte nuevo. Además, en `attack.png` el golem literalmente flotaba 18-20px
+por encima del suelo en 2 de sus 8 fotogramas (pies en y=103-104 frente a
+y=119-123 en el resto) — confirmado bug de verdad (no un salto
+intencionado: idle/walk/death del mismo bicho tienen los pies siempre en la
+misma fila). Arreglado desplazando verticalmente el contenido de cada
+fotograma para que los pies queden todos en la misma fila de referencia
+(y=122), sin reescalar nada, solo corrigiendo la posición.
+
+**8b. Diagnóstico sistemático de las 40 y pico tiras de sprite del juego**
+(pedido expreso del usuario: "revisar todas las animaciones"). Se midió,
+por cada fotograma de cada clip, dónde empieza la cabeza de verdad (saltando
+armas/objetos alargados que falsean la medida — el problema de origen que
+señaló el usuario) y dónde caen los pies. Hallazgos:
+- **Muertes de todos los bichos + `hero/loot`**: varían mucho de altura a
+  propósito (se van desplomando/agachando) — dadas por buenas por el
+  usuario, no se tocan salvo que algo concreto se vea mal.
+- **Esqueleto arquero (`enemy5`) al atacar**: varía de altura (72-101px)
+  pero los PIES están perfectamente clavados en la misma fila (y=122) en
+  los 7 fotogramas — la variación es casi seguro el propio arco
+  tensándose/soltando, no un fallo de escala. Anotado, sin tocar, a la
+  espera de que el usuario vea algo raro de verdad jugando.
+- El resto de clips (`idle`/`walk` de todos los bichos, `hero/attack1`,
+  `hero/potion`, `hero/activate`...) miden consistentes, sin bandera.
+
+## Leaderboard global del Esqueleto Mago (V0.28)
+
+**9. Animación de ataque del héroe (`attack1`/`attack2`) — medido con la
+capucha como referencia, no la espada.** Confirmado el diagnóstico del
+usuario: medir la altura total del sprite (incluyendo la espada en alto)
+da lecturas muy infladas en los fotogramas de estocada alta (hasta 89px)
+frente a los de guardia baja (~55-65px), lo que llevaría a "corregir" una
+escala que en realidad nunca estuvo mal. Midiendo desde donde EMPIEZA la
+cabeza de verdad (saltando el tramo fino de la hoja de la espada, detectado
+por anchura de silueta ≥15px) hasta los pies: `attack1` da 52-57px (muy
+consistente), `attack2` da 52-64px (más variación, pero con los pies
+siempre clavados en la misma fila — podría ser el propio agachado/estirado
+del golpe, no un fallo de escala). **No se ha aplicado ningún reescalado**
+a la espera de que el usuario confirme si el "cambio de tamaño" que percibe
+va más allá de esto.
+
+**10. Atajos de teclado 1-9 y 0 para la barra de acción (solo PC).** Nuevo
+`initActionBarHotkeys()` en `skills.js`, llamado una vez desde
+`initSkillShop()`. 1-9 arman los huecos 1-9, 0 arma el 10º (último,
+`ACTIONBAR_SLOTS=10`). Se ignora si hay Ctrl/Alt/Meta pulsado, si el foco
+está en un `<input>`/`<textarea>` (el nombre del leaderboard, por ejemplo),
+o si la habilidad de ese hueco está bloqueada (cooldown o sin PA — mismo
+criterio que el velo rojo visual).
+
+**Pruebas hechas**: `resetRunState()` no revienta al llamarla. Datos de
+`mausoleo1.json`/`mausoleo2.json` tras el desplazamiento: héroe, enemigos y
+salida en casillas caminables, `arriveX/arriveY` correctos; `exit_3` de
+`cemetery.json` con su `offsetX`. Verificación de dimensiones de todos los
+sprites tocados (múltiplos de 128×128 tras el reescalado/parcheado).
+
 ## Leaderboard global del Esqueleto Mago (V0.28)
 
 Primer sistema con backend de verdad en Cripta. Cripta es una web estática

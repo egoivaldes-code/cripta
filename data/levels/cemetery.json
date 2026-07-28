@@ -2127,7 +2127,8 @@
       "y": 16,
       "id": "lever_1",
       "type": "lever",
-      "sprite": "lever"
+      "sprite": "lever",
+      "tall": 1.15
     },
     {
       "x": 3,
@@ -2178,7 +2179,8 @@
       "x": 25,
       "y": 14,
       "to": "mausoleo1",
-      "blocked": true
+      "blocked": true,
+      "offsetX": -0.2
     },
     {
       "id": "exit_4",

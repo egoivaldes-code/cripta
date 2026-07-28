@@ -18,11 +18,11 @@
 // estado + render + interacción para toda esta pantalla, ya que es un bloque
 // autocontenido de la interfaz.
 
-import { state } from './state.js?v=0.28';
-import { t } from './i18n.js?v=0.28';
-import { VERSION, ATTACK_COST } from './config.js?v=0.28';
-import { showConfirm } from './ui.js?v=0.28';
-import { getPersistedGold, persistGold } from './savegame.js?v=0.28';
+import { state } from './state.js?v=0.29';
+import { t } from './i18n.js?v=0.29';
+import { VERSION, ATTACK_COST } from './config.js?v=0.29';
+import { showConfirm } from './ui.js?v=0.29';
+import { getPersistedGold, persistGold } from './savegame.js?v=0.29';
 
 // rules.js no se puede importar aquí (import circular: rules.js ya importa
 // getOwnedTier/getSkillDef de aquí) — el enfriamiento restante se conecta
@@ -81,6 +81,34 @@ function toggleArm(id) {
   }
   armedSkillId = (armedSkillId === id) ? null : id;
   renderActionBar();
+}
+
+// Atajos de teclado para PC: 1-9 arman el hueco 1-9 de la barra de acción,
+// 0 arma el 10º (último) hueco — igual que si se tocara directamente. Solo
+// tiene sentido con teclado de verdad, así que no hace nada especial en
+// móvil (simplemente no hay tecla que pulsar). Se ignora si el foco está en
+// un campo de texto (el nombre del leaderboard, por ejemplo) para no robarle
+// las teclas mientras se escribe, y si hay algún modificador (Ctrl/Alt/Meta)
+// por si el navegador quiere usarlas para otra cosa.
+function slotIndexForKey(key) {
+  if (key >= '1' && key <= '9') return key.charCodeAt(0) - '1'.charCodeAt(0);
+  if (key === '0') return 9;
+  return -1;
+}
+function initActionBarHotkeys() {
+  document.addEventListener('keydown', (e) => {
+    if (e.ctrlKey || e.altKey || e.metaKey) return;
+    const tag = document.activeElement && document.activeElement.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+    const idx = slotIndexForKey(e.key);
+    if (idx < 0 || idx >= ACTIONBAR_SLOTS) return;
+    const s = getActiveOwnedSkills()[idx];
+    if (!s) return;
+    const cdLeft = cooldownLeftFn(s.id);
+    const noAP = !!(state.hero && state.hero.ap < ATTACK_COST);
+    if (cdLeft > 0 || noAP) return;   // mismo criterio que el velo rojo: bloqueada, no hace nada
+    toggleArm(s.id);
+  });
 }
 
 // Llamado desde main.js en CADA toque al mapa, antes que la lógica normal de
@@ -328,6 +356,7 @@ export function initSkillShop() {
 
   renderAll();
   renderActionBar();
+  initActionBarHotkeys();
 }
 
 export function openSkillShop() {

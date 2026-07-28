@@ -36,6 +36,20 @@
     [
       1,
       1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    [
+      1,
+      1,
       0,
       0,
       0,
@@ -217,6 +231,20 @@
     ]
   ],
   "elev": [
+    [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
     [
       0,
       0,
@@ -638,12 +666,26 @@
       false,
       false,
       false
+    ],
+    [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
     ]
   ],
   "start": {
     "hero": {
       "x": 6,
-      "y": 10,
+      "y": 11,
       "hp": 26,
       "maxHp": 26,
       "atk": 6,
@@ -652,7 +694,7 @@
     "foes": [
       {
         "x": 4,
-        "y": 6,
+        "y": 7,
         "sprite": "enemy1",
         "hp": 12,
         "maxHp": 12,
@@ -662,7 +704,7 @@
       },
       {
         "x": 7,
-        "y": 6,
+        "y": 7,
         "sprite": "enemy1",
         "hp": 12,
         "maxHp": 12,
@@ -675,46 +717,46 @@
   "triggers": [
     {
       "x": 2,
-      "y": 2,
+      "y": 3,
       "id": "item_1",
       "type": "container",
       "sprite": "container"
     },
     {
       "x": 9,
-      "y": 2,
+      "y": 3,
       "id": "item_2",
       "type": "container",
       "sprite": "container"
     },
     {
       "x": 2,
-      "y": 7,
+      "y": 8,
       "id": "item_3",
       "type": "container",
       "sprite": "container"
     },
     {
       "x": 4,
-      "y": 5,
+      "y": 6,
       "id": "trap_1",
       "type": "trap"
     },
     {
       "x": 7,
-      "y": 5,
+      "y": 6,
       "id": "trap_2",
       "type": "trap"
     },
     {
       "x": 5,
-      "y": 4,
+      "y": 5,
       "id": "mausoleo1_golem_guard",
       "type": "ambush"
     },
     {
       "x": 5,
-      "y": 2,
+      "y": 3,
       "id": "altar_1",
       "type": "altar",
       "sprite": "altar",
@@ -722,7 +764,7 @@
     },
     {
       "x": 6,
-      "y": 2,
+      "y": 3,
       "id": "altar_2",
       "type": "altar",
       "sprite": "altar",
@@ -731,7 +773,9 @@
   ],
   "exit": {
     "x": 2,
-    "y": 11,
-    "to": "cemetery"
+    "y": 12,
+    "to": "cemetery",
+    "arriveX": 25,
+    "arriveY": 14
   }
 }

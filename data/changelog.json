@@ -1,6 +1,31 @@
 {
   "versions": [
     {
+      "v": "0.29",
+      "es": {
+        "title": "Arreglos varios",
+        "notes": [
+          "Reiniciar partida limpia de verdad todo (cooldowns, buffs, música de combate).",
+          "Volver de un mausoleo ya te deja junto a su puerta, no en el inicio del cementerio.",
+          "Cadáveres de esqueletos más grandes y fáciles de lootear.",
+          "Varios arreglos de animación (golem de hueso, esqueleto básico).",
+          "En PC: teclas 1-9 y 0 para usar las habilidades de la barra de acción.",
+          "El Esqueleto Mago ahora convoca a toda la sala al lanzar Llamada Sepulcral."
+        ]
+      },
+      "en": {
+        "title": "Various fixes",
+        "notes": [
+          "Restarting a run now properly resets everything (cooldowns, buffs, combat music).",
+          "Returning from a mausoleum now places you by its door, not at the cemetery's start.",
+          "Skeleton corpses are bigger and easier to loot.",
+          "Several animation fixes (bone golem, basic skeleton).",
+          "On PC: keys 1-9 and 0 to use action bar skills.",
+          "The Skeleton Mage now summons the whole room when it casts Sepulchral Call."
+        ]
+      }
+    },
+    {
       "v": "0.28",
       "es": {
         "title": "Leaderboard global",

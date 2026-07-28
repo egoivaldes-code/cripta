@@ -2,6 +2,36 @@
 
 Esquema: `0.X` = cambio grande · `0.X.Y` = cambio pequeño / fix.
 
+## 0.29 — Reinicio de verdad, mausoleos, sprites, atajos de PC y golem de hueso
+- **Reiniciar nivel/partida ahora limpia de verdad todo**: cooldowns de
+  habilidades, buffs de combate (Grito de Guerra, Forma Salvaje...),
+  bendiciones de altar, zonas de curación y la música de combate de élite.
+  Antes sobrevivían al "reinicio".
+- **Volver de un mausoleo** ya no teleporta al inicio del cementerio:
+  aparece junto a la puerta por la que se entró.
+- La tienda ya no reaparece al entrar/salir de un mausoleo.
+- Malla de mausoleo1 corregida (estaba descuadrada una casilla).
+- Puerta de entrada a mausoleo1 reajustada visualmente.
+- Cadáveres del esqueleto arquero y básico más grandes (antes quedaban
+  diminutos y costaba lootearlos).
+- Arreglado un trocito de mano/daga que desaparecía en varios fotogramas
+  del idle del esqueleto básico.
+- Pies del golem de hueso reanclados al suelo (flotaban 18-20px en 2
+  fotogramas de su animación de ataque).
+- **Golem de hueso, `death` reconstruida de verdad**: resultó que `idle` y
+  `death` tenían el contenido intercambiado desde que se dieron de alta (no
+  un fotograma suelto roto). Reconstruida `death` desde cero con la hoja de
+  referencia original, escala única para toda la animación (conserva el
+  encogimiento real del desmoronamiento), centrado por la cabeza (no oscila
+  de lado a lado), y sin ningún resto de chroma magenta (0% de residuo,
+  detectado por tono de color en vez de por distancia a un color de
+  referencia). `idle` se queda tal cual estaba (confirmado que ya iba bien).
+- Atajos de teclado 1-9 y 0 para la barra de acción, en PC.
+- Llamada Sepulcral (Esqueleto Mago) llama ahora a toda la sala/mapa
+  (rango subido de 20 a 100 casillas — de facto cubre cualquier nivel del
+  juego, incluida la Cripta entera, 78×52).
+- Modelo de la palanca un 100% más grande (se veía demasiado pequeña).
+
 ## 0.28 — Leaderboard global del Esqueleto Mago
 - **Primer backend real de Cripta**: Supabase (proyecto compartido
   `cripta-habilidades`), tabla `cripta_boss_leaderboard`. Lectura y
