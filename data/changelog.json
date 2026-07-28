@@ -1,6 +1,23 @@
 {
   "versions": [
     {
+      "v": "0.32",
+      "es": {
+        "title": "Golem de hueso e idle arreglado",
+        "notes": [
+          "La animación de reposo del golem de hueso ya no se ve rara (estaba mal recortada de origen).",
+          "El cadáver del Esqueleto arquero era diminuto y costaba lootearlo. Ya es más grande."
+        ]
+      },
+      "en": {
+        "title": "Bone golem and fixed idle",
+        "notes": [
+          "The bone golem's idle animation no longer looks off (it was badly cropped at the source).",
+          "The Skeleton archer's corpse was tiny and hard to loot. Now it's bigger."
+        ]
+      }
+    },
+    {
       "v": "0.31",
       "es": {
         "title": "Palancas de la cripta y mejoras de botín",

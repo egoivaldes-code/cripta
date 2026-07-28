@@ -2,6 +2,17 @@
 
 Esquema: `0.X` = cambio grande · `0.X.Y` = cambio pequeño / fix.
 
+## 0.32 — Golem de hueso: idle reconstruido + cadáver del arquero agrandado
+- El `idle` del golem de hueso arrastraba un mal recorte de origen desde
+  hace varias versiones (bamboleo de cabeza, pies variando de sitio).
+  Reconstruido desde cero con la hoja de referencia original: 0% de
+  residuo de color, sin recortes en los bordes, y las 6 poses bien
+  centradas y ancladas al mismo suelo.
+- Se detectó que en su día se había agrandado el cadáver del enemigo
+  equivocado (`enemy5`, que es el "Espectro", no el arquero). El arquero
+  de verdad es `enemy4` — su cadáver seguía diminuto (50×26px) y ya está
+  agrandado como los demás.
+
 ## 0.31 — Palancas de la cripta, fondo pintado, pathfinding de botín y más
 - Las dos palancas del jefe de la cripta compartían ID con la palanca del
   cementerio (`lever_1`) — una mostraba el texto equivocado y la otra

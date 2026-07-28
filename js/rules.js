@@ -1,15 +1,15 @@
 // Reglas del juego: economía de Puntos de Acción (PA), interacción a distancia
 // y adyacente, trampas, niebla y salida de nivel. Agnóstico del dibujo.
 
-import { state, walkable, isWall, adjacent, distTo, isVisible, recomputeFog, computeReach, pathTo, findPath, findApproachPath, reachCost, blockingTriggerAt, trapAt, walkTriggerAt, exitAt, stepNeighbors, foeAt, corpseAt, livingFoes, losClear, revealAllExplored } from './state.js?v=0.31';
-import { openEvent, openLeverCard, openAltarCard, openChestCard, openTrapCard, openStoryCard, syncHUD, syncInitiativeUI, showCombatBadge, showLootWindow, showConfirm, log, gameOver } from './ui.js?v=0.31';
-import { t, tRandom } from './i18n.js?v=0.31';
-import { MOVE_COST, ATTACK_COST, INITIATIVE_BASE, INITIATIVE_DIE, TURN_DELAY, COMBAT_ENTER_DELAY, getGameSpeed, setGameSpeed, speedMult, moveDurationMs, ARMOR_CONSTANT } from './config.js?v=0.31';
-import * as anim from './anim.js?v=0.31';
-import { ANIM_CLIPS } from './anim.js?v=0.31';
-import * as audio from './audio.js?v=0.31';
-import { centerOnTile } from './render.js?v=0.31';
-import { getOwnedTier, getSkillDef } from './skills.js?v=0.31';
+import { state, walkable, isWall, adjacent, distTo, isVisible, recomputeFog, computeReach, pathTo, findPath, findApproachPath, reachCost, blockingTriggerAt, trapAt, walkTriggerAt, exitAt, stepNeighbors, foeAt, corpseAt, livingFoes, losClear, revealAllExplored } from './state.js?v=0.32';
+import { openEvent, openLeverCard, openAltarCard, openChestCard, openTrapCard, openStoryCard, syncHUD, syncInitiativeUI, showCombatBadge, showLootWindow, showConfirm, log, gameOver } from './ui.js?v=0.32';
+import { t, tRandom } from './i18n.js?v=0.32';
+import { MOVE_COST, ATTACK_COST, INITIATIVE_BASE, INITIATIVE_DIE, TURN_DELAY, COMBAT_ENTER_DELAY, getGameSpeed, setGameSpeed, speedMult, moveDurationMs, ARMOR_CONSTANT } from './config.js?v=0.32';
+import * as anim from './anim.js?v=0.32';
+import { ANIM_CLIPS } from './anim.js?v=0.32';
+import * as audio from './audio.js?v=0.32';
+import { centerOnTile } from './render.js?v=0.32';
+import { getOwnedTier, getSkillDef } from './skills.js?v=0.32';
 
 const sign = (n) => Math.sign(n);
 

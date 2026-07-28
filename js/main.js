@@ -1,20 +1,20 @@
 // Punto de entrada. Carga idioma y datos, cablea módulos y arranca el bucle.
 
-import { state, initGame, recomputeFog, computeReach, walkable } from './state.js?v=0.31';
-import { initRenderer, startLoop, centerOnHero, toggleGrid, isGridOn } from './render.js?v=0.31';
-import { onTapTile, bindDescend, startHeroTurn, endHeroTurn, afterInteract, attemptDisarm, isAITurnActive, getEnemySpeed, setEnemySpeed, setTotalFoeCount, useActiveSkill, rollAltar, pickChestEvent, applyChestEvent, checkLeverBossSpawn, checkBossLooted, resetRunState, getSkillCooldownLeft } from './rules.js?v=0.31';
-import { syncHUD, log, hideVeil, bindAfterInteract, bindRestart, bindAttemptDisarm, bindResolveAltar, bindResolveChest, bindApplyChest, bindOnLeverPulled, bindOnCorpseLooted, applyStaticText, syncInitiativeUI, showConfirm, showLogHistory, hideLogHistory, logHistoryOpen, bindRefreshActionBar, isLootOpen, lootAllNow } from './ui.js?v=0.31';
-import { loadAssets } from './assets.js?v=0.31';
-import { initialLang, loadLang, onLangChange, getLang, t } from './i18n.js?v=0.31';
-import * as anim from './anim.js?v=0.31';
-import * as audio from './audio.js?v=0.31';
-import { VERSION } from './config.js?v=0.31';
-import { assemble } from './mapgen.js?v=0.31';
-import { initInventory, openInventory, closeInventory, isInventoryOpen, resetInventory, refreshInventoryTexts } from './inventory.js?v=0.31';
-import { loadSkillsData, initSkillShop, openSkillShop, closeSkillShop, refreshSkillTexts, bindFullReset, applySkillBonuses, bindUseActiveSkill, tryUseArmedOnTile, bindGetSkillCooldownLeft, renderActionBar } from './skills.js?v=0.31';
-import * as savegame from './savegame.js?v=0.31';
-import { fetchTop10, formatTime } from './leaderboard.js?v=0.31';
-import { logEvent, initErrorCapture, setTelemetryVersion } from './telemetry.js?v=0.31';
+import { state, initGame, recomputeFog, computeReach, walkable } from './state.js?v=0.32';
+import { initRenderer, startLoop, centerOnHero, toggleGrid, isGridOn } from './render.js?v=0.32';
+import { onTapTile, bindDescend, startHeroTurn, endHeroTurn, afterInteract, attemptDisarm, isAITurnActive, getEnemySpeed, setEnemySpeed, setTotalFoeCount, useActiveSkill, rollAltar, pickChestEvent, applyChestEvent, checkLeverBossSpawn, checkBossLooted, resetRunState, getSkillCooldownLeft } from './rules.js?v=0.32';
+import { syncHUD, log, hideVeil, bindAfterInteract, bindRestart, bindAttemptDisarm, bindResolveAltar, bindResolveChest, bindApplyChest, bindOnLeverPulled, bindOnCorpseLooted, applyStaticText, syncInitiativeUI, showConfirm, showLogHistory, hideLogHistory, logHistoryOpen, bindRefreshActionBar, isLootOpen, lootAllNow } from './ui.js?v=0.32';
+import { loadAssets } from './assets.js?v=0.32';
+import { initialLang, loadLang, onLangChange, getLang, t } from './i18n.js?v=0.32';
+import * as anim from './anim.js?v=0.32';
+import * as audio from './audio.js?v=0.32';
+import { VERSION } from './config.js?v=0.32';
+import { assemble } from './mapgen.js?v=0.32';
+import { initInventory, openInventory, closeInventory, isInventoryOpen, resetInventory, refreshInventoryTexts } from './inventory.js?v=0.32';
+import { loadSkillsData, initSkillShop, openSkillShop, closeSkillShop, refreshSkillTexts, bindFullReset, applySkillBonuses, bindUseActiveSkill, tryUseArmedOnTile, bindGetSkillCooldownLeft, renderActionBar } from './skills.js?v=0.32';
+import * as savegame from './savegame.js?v=0.32';
+import { fetchTop10, formatTime } from './leaderboard.js?v=0.32';
+import { logEvent, initErrorCapture, setTelemetryVersion } from './telemetry.js?v=0.32';
 
 // El ensamblador de losetas (mapgen.js) sigue disponible para niveles ALEATORIOS
 // futuros; esta función queda de reserva pero no se usa por ahora, ya que el

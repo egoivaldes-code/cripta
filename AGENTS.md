@@ -916,6 +916,58 @@ hoy en día siempre el mismo número ya que mover 1 casilla cuesta 1 PA fijo
 — se calcula así, en vez de un número suelto, para que quede bien si algún
 día `MOVE_COST` cambia o aparece algún bonus de movimiento).
 
+## Corrección importante: el arquero de verdad es enemy4, no enemy5 (V0.32)
+
+**Se detectó un error de identificación arrastrado desde hace varias
+versiones**: en el V0.28 (y en referencias posteriores) se agrandó el
+cadáver de `enemy5` pensando que era el "Esqueleto arquero" — pero
+`enemy.enemy5` en los textos es en realidad **"Espectro"**. El arquero DE
+VERDAD es **`enemy4`** (`"enemy.enemy4": "Esqueleto arquero"`), confirmado
+mirando `data/i18n/es.json` directamente en vez de fiarse de la memoria de
+sesiones anteriores. Nombres correctos de todos los esqueletos, para no
+volver a confundirlos:
+- `enemy1` = Esqueleto (básico)
+- `enemy4` = Esqueleto arquero
+- `enemy5` = Espectro
+- `enemy6` = Esqueleto mago (jefe de la cripta)
+
+**Arreglo de verdad de esta versión**: el cadáver de `enemy4` (el arquero
+real) nunca se había tocado — seguía diminuto (50×26px dentro del tile de
+128×128). Reescalado ×2.3 con el mismo método de siempre (anclado por el
+punto centro-abajo del contenido original, para no flotar ni desplazarse
+del suelo). Resultado: 116×61px, sin tocar ningún borde del lienzo. El
+cadáver de `enemy5` (Espectro) que se agrandó por error en la V0.28 se
+deja tal cual — no hace daño tenerlo más grande también, y deshacerlo no
+aporta nada.
+
+## Golem de hueso: idle reconstruido de verdad desde la hoja original (V0.32)
+
+Cierre de un hilo largo: el `idle.png` que quedó en pie tras la V0.29 (los
+6 "fotogramas buenos" rescatados de la hoja vieja intercambiada con
+`death`) seguía dando problemas — primero un bamboleo real (cabeza
+descentrada, pies variando hasta 7px), y al arreglar eso el usuario señaló
+que la hoja en sí venía **mal recortada de origen** (arrastrando el
+problema de sesiones anteriores, ya que se llevaba reprocesando el mismo
+recorte una y otra vez sin arte nuevo de por medio).
+
+El usuario SÍ tenía la hoja de referencia original sin recortar (la misma
+`43514.png` que ya se había usado en un intento anterior de esta misma
+sesión, y que en su momento se descartó porque "el idle ya estaba bien" —
+ya no lo estaba). Reconstruido desde cero con la técnica que ya funcionó
+bien para `death` (ver esa sección): recorte por celda exacta de la
+rejilla (3×2, 418×627 por celda), magenta fuera por tono de color
+(`min(R,B)-G`, sin comparar contra ningún color de referencia), escala
+única para toda la animación (referencia = el fotograma más alto),
+centrado por el 22% superior del contenido (zona de la cabeza, no el
+cuerpo entero) y redimensionado con alfa premultiplicado (evita que el
+color de los píxeles transparentes se cuele mezclado en los opacos).
+Resultado: 0.00% de residuo de magenta, ningún fotograma toca el borde del
+lienzo (sin recortes), posiciones de pegado casi idénticas entre
+fotogramas (28-29, 8). Confirmado a ojo por el usuario.
+
+`ANIM_CLIPS.golembone.idle` se queda igual (6 fotogramas, 3fps, loop) — no
+hizo falta tocar `anim.js`.
+
 ## Barra espaciadora: coger todo el botín si la ventana está abierta (V0.31)
 
 Pedido expreso, solo PC (atajo de teclado): la barra espaciadora ya salta

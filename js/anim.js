@@ -6,7 +6,7 @@
 //     (paz/combate) que cambian solas según haya un enemigo cerca, con una transición.
 // Además: sacudida al recibir daño y números flotantes (daño/curación).
 
-import { TILE, moveDurationMs } from './config.js?v=0.31';
+import { TILE, moveDurationMs } from './config.js?v=0.32';
 
 const D_ATTACK_LEGACY = 220;
 const D_HURT = 300;   // duración de la sacudida (todos los personajes)
