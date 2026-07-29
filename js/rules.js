@@ -1,15 +1,15 @@
 // Reglas del juego: economía de Puntos de Acción (PA), interacción a distancia
 // y adyacente, trampas, niebla y salida de nivel. Agnóstico del dibujo.
 
-import { state, walkable, isWall, adjacent, distTo, isVisible, recomputeFog, computeReach, pathTo, findPath, findApproachPath, reachCost, blockingTriggerAt, trapAt, walkTriggerAt, exitAt, stepNeighbors, foeAt, corpseAt, livingFoes, losClear, revealAllExplored } from './state.js?v=0.32';
-import { openEvent, openLeverCard, openAltarCard, openChestCard, openTrapCard, openStoryCard, syncHUD, syncInitiativeUI, showCombatBadge, showLootWindow, showConfirm, log, gameOver } from './ui.js?v=0.32';
-import { t, tRandom } from './i18n.js?v=0.32';
-import { MOVE_COST, ATTACK_COST, INITIATIVE_BASE, INITIATIVE_DIE, TURN_DELAY, COMBAT_ENTER_DELAY, getGameSpeed, setGameSpeed, speedMult, moveDurationMs, ARMOR_CONSTANT } from './config.js?v=0.32';
-import * as anim from './anim.js?v=0.32';
-import { ANIM_CLIPS } from './anim.js?v=0.32';
-import * as audio from './audio.js?v=0.32';
-import { centerOnTile } from './render.js?v=0.32';
-import { getOwnedTier, getSkillDef } from './skills.js?v=0.32';
+import { state, walkable, isWall, adjacent, distTo, isVisible, recomputeFog, computeReach, pathTo, findPath, findApproachPath, reachCost, blockingTriggerAt, trapAt, walkTriggerAt, exitAt, stepNeighbors, foeAt, corpseAt, livingFoes, losClear, revealAllExplored } from './state.js?v=0.32.1';
+import { openEvent, openLeverCard, openAltarCard, openChestCard, openTrapCard, openStoryCard, syncHUD, syncInitiativeUI, showCombatBadge, showLootWindow, showConfirm, log, gameOver } from './ui.js?v=0.32.1';
+import { t, tRandom } from './i18n.js?v=0.32.1';
+import { MOVE_COST, ATTACK_COST, INITIATIVE_BASE, INITIATIVE_DIE, TURN_DELAY, COMBAT_ENTER_DELAY, getGameSpeed, setGameSpeed, speedMult, moveDurationMs, ARMOR_CONSTANT } from './config.js?v=0.32.1';
+import * as anim from './anim.js?v=0.32.1';
+import { ANIM_CLIPS } from './anim.js?v=0.32.1';
+import * as audio from './audio.js?v=0.32.1';
+import { centerOnTile } from './render.js?v=0.32.1';
+import { getOwnedTier, getSkillDef } from './skills.js?v=0.32.1';
 
 const sign = (n) => Math.sign(n);
 
@@ -1554,7 +1554,26 @@ export function isAITurnActive() { return aiTurnActive; }
 // el cambio se note de verdad y no solo en las pausas.
 export function getEnemySpeed() { return getGameSpeed(); }
 export function setEnemySpeed(v) { setGameSpeed(v); }
-const enemySleep = (ms) => sleep(ms * speedMult());
+
+// Cuantos más enemigos activos haya en la escaramuza (los que ya están en la
+// cola de iniciativa, no los dormidos en otra punta del mapa), más se
+// recortan las pausas entre acciones — así un combate con muchos
+// combatientes de golpe (p.ej. tras Llamada Sepulcral, que reúne a todo el
+// que pueda) no se siente eterno. Se multiplica DEBAJO del ajuste de
+// velocidad manual del jugador (menú de Ajustes), nunca lo sustituye: a
+// "lenta" sigue siendo más lenta que a "rápida", solo que las dos se aceleran
+// juntas cuando hay mucha gente en danza.
+function activeCombatantCount() {
+  return state.combat.order.filter(o => o.ref !== 'hero' && o.ref.alive).length;
+}
+function crowdSpeedFactor() {
+  const n = activeCombatantCount();
+  if (n >= 16) return 0.25;
+  if (n >= 10) return 0.4;
+  if (n >= 6) return 0.65;
+  return 1;
+}
+const enemySleep = (ms) => sleep(ms * speedMult() * crowdSpeedFactor());
 
 // Recorre la cola de iniciativa desde donde se quedó, actuando un enemigo
 // cada vez (con pausa antes y después de cada uno), hasta llegar de nuevo al
@@ -1652,15 +1671,13 @@ async function spectreTurn(foe) {
     // Solo: sin compañía a 2 casillas, se acerca a otro no-muerto en vez de
     // ir directo al héroe (busca compañía antes que pelear en solitario).
     const isolated = !livingFoes().some(f => f !== foe && distTo(f, foe.x, foe.y) <= 2);
-    let target = hero;
-    if (isolated && ally) target = ally;
-    const cur = distTo(foe, target.x, target.y);
-    const step = stepNeighbors(foe.x, foe.y)
-      .map(([x, y, cost]) => ({ x, y, cost }))
-      .filter(p => !(p.x === hero.x && p.y === hero.y) && p.cost <= ap)
-      .map(p => ({ ...p, d: distTo(target, p.x, p.y) }))
-      .sort((a, b) => a.d - b.d)[0];
-    if (!step || step.d >= cur) break;
+    const target = (isolated && ally) ? ally : hero;
+    // Camino real (rodea muros/objetos), igual que el resto de enemigos —
+    // antes solo miraba la casilla vecina inmediata y se quedaba plantado
+    // en cuanto acercarse de verdad exigía un rodeo (alejarse un paso antes
+    // de poder seguir), aunque el héroe fuera perfectamente alcanzable.
+    const step = stepToward(foe, ap, target.x, target.y);
+    if (!step) break;
     doMove(foe, step);
     ap -= step.cost;
     await enemySleep(190);
@@ -1851,31 +1868,43 @@ function fleeStep(foe, ap) {
   return best;
 }
 
-// Mejor casilla para acercarse al héroe (lejos o sin línea de tiro). null si no
-// puede acercarse más (no malgasta PA).
-function approachStep(foe, ap) {
+// Mejor casilla para acercarse a (tx,ty) (lejos o sin línea de tiro). null si
+// no puede acercarse más (no malgasta PA). Nunca devuelve la casilla del
+// héroe como destino: moverse y atacar son cosas distintas, así que aunque
+// el camino real termine justo ahí, el paso se corta uno antes — evita que
+// un enemigo se "cuele" encima del héroe cuando le faltan PA para pegar pero
+// le sobran para moverse.
+function stepToward(foe, ap, tx, ty) {
   const { hero } = state;
-  // Camino real hasta la casilla del héroe (el terreno en sí es transitable
-  // ahí; el hueco de "adyacente, no encima" lo da quedarse en el penúltimo
-  // paso). Así, si hace falta rodear un muro o pasar por un cuello de botella
-  // de una sola casilla, el enemigo encuentra el camino en vez de quedarse
-  // parado esperando que la línea recta se despeje sola.
-  let path = findPath(foe.x, foe.y, hero.x, hero.y);
+  // Camino real hasta (tx,ty) (el terreno en sí es transitable ahí; el hueco
+  // de "adyacente, no encima" lo da quedarse en el penúltimo paso). Así, si
+  // hace falta rodear un muro o pasar por un cuello de botella de una sola
+  // casilla, el enemigo encuentra el camino en vez de quedarse parado
+  // esperando que la línea recta se despeje sola.
+  let path = findPath(foe.x, foe.y, tx, ty);
   if (!path || path.length < 2) {
     // No hay camino directo — normalmente porque otro enemigo ya ocupa la
     // única casilla de paso (pasillo de una sola casilla, p.ej.). En vez de
     // quedarse quieto, se acerca todo lo que pueda: a la casilla alcanzable
-    // más próxima al héroe (típicamente, justo detrás del aliado que sí
+    // más próxima al objetivo (típicamente, justo detrás del aliado que sí
     // llegó). Si ni eso mejora nada, entonces sí, no puede acercarse más.
-    path = findApproachPath(foe.x, foe.y, hero.x, hero.y);
+    path = findApproachPath(foe.x, foe.y, tx, ty);
     if (!path || path.length < 2) return null;
   }
   const next = path[1];
+  if (next.x === hero.x && next.y === hero.y) return null;   // no se pisa al héroe
   const here = stepNeighbors(foe.x, foe.y).find(([x, y]) => x === next.x && y === next.y);
   if (!here) return null;
   const cost = here[2];
   if (cost > ap) return null;   // el primer paso del camino ya no le llega con el PA que le queda
   return { x: next.x, y: next.y, cost };
+}
+
+// Acercarse al héroe en concreto (caso más habitual: arquero, mago, golem y
+// enemigos cuerpo a cuerpo normales).
+function approachStep(foe, ap) {
+  const { hero } = state;
+  return stepToward(foe, ap, hero.x, hero.y);
 }
 
 function doMove(foe, step) {

@@ -1,6 +1,29 @@
 {
   "versions": [
     {
+      "v": "0.32.1",
+      "es": {
+        "title": "IA enemiga más lista y zonas que ya recuerdan",
+        "notes": [
+          "Los espectros ya no se quedan plantados sin razón: ahora rodean muros y obstáculos de verdad para llegar hasta ti.",
+          "El Esqueleto Mago (y en teoría el arquero y el golem) ya no puede plantarse encima de tu propia casilla.",
+          "Cuando Llamada Sepulcral reúne a mucha gente de golpe, el turno enemigo ahora va más rápido cuantos más NPCs haya activos.",
+          "Arreglado: volver de un mausoleo ya no reinicia el cementerio entero. Cada zona recuerda cómo la dejaste.",
+          "Arreglado: si el terreno difícil o un desnivel te dejaba con muy poca energía (PA) fuera de combate, podías quedarte completamente atascado sin poder moverte ni usar nada. Ahora siempre aparece un botón para refrescar tu turno cuando hace falta."
+        ]
+      },
+      "en": {
+        "title": "Smarter enemy AI and zones that remember",
+        "notes": [
+          "Spectres no longer freeze for no reason: they now path around walls and obstacles to actually reach you.",
+          "The Skeleton Mage (and in theory the archer and the golem) can no longer stand on your own tile.",
+          "When Sepulchral Call gathers a lot of enemies at once, the enemy turn now speeds up the more NPCs are active.",
+          "Fixed: leaving a mausoleum no longer resets the entire cemetery. Each zone now remembers how you left it.",
+          "Fixed: if difficult terrain or a height change left you with very little action points (AP) outside combat, you could get completely stuck with no way to move or act. A button to refresh your turn now always appears when needed."
+        ]
+      }
+    },
+    {
       "v": "0.32",
       "es": {
         "title": "Golem de hueso e idle arreglado",

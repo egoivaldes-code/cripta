@@ -2,6 +2,73 @@
 
 Esquema: `0.X` = cambio grande · `0.X.Y` = cambio pequeño / fix.
 
+## 0.32.1 — 5 fixes de IA enemiga y una reparación grande de zonas
+- **Espectros atascados sin razón aparente**: se movían mirando solo la
+  casilla vecina inmediata (no un camino real), así que en cuanto acercarse
+  de verdad exigía rodear un obstáculo (alejarse un paso antes de poder
+  seguir), se quedaban plantados aunque el héroe fuera perfectamente
+  alcanzable. Ahora usan el mismo cálculo de camino real (rodea muros/
+  objetos) que el resto de enemigos.
+- **Esqueleto Mago (y en teoría arquero/golem) pisando la casilla del
+  héroe**: al intentar "acercarse un paso" cuando ya estaban adyacentes pero
+  sin PA para atacar/disparar ese turno, el cálculo de aproximación no tenía
+  ningún candado que impidiera elegir la propia casilla del héroe como
+  destino. Confirmado con una prueba de regresión (se reproducía siempre con
+  el código viejo, deja de pasar con el arreglo). Ahora el paso de
+  aproximación nunca termina un movimiento encima del héroe.
+- **Turno enemigo demasiado largo cuando Llamada Sepulcral reúne a mucha
+  gente**: no crea NPCs de la nada (solo teletransporta a los que ya
+  existen en el nivel), pero al meter a todos de golpe en combate, el turno
+  se sentía eterno. Se deja el alcance de Llamada Sepulcral tal cual está
+  (a petición expresa) y en su lugar las pausas entre acciones de la IA
+  ahora se acortan automáticamente cuantos más enemigos activos haya en la
+  escaramuza (6+, 10+ y 16+ combatientes activos aceleran el ritmo un
+  escalón cada vez), por encima del ajuste manual de velocidad de los
+  Ajustes, sin sustituirlo.
+- **El cementerio se reiniciaba entero al volver de un mausoleo** (fallo de
+  arquitectura, no un detalle): solo existía un hueco de partida guardada
+  para la zona activa, así que la zona que se dejaba atrás no tenía dónde
+  quedar guardada y se recargaba de fábrica al volver. Ahora cada zona
+  (cementerio, cripta, mausoleo1, mausoleo2) se hace una "foto" de su
+  estado dinámico (enemigos vivos/muertos, niebla explorada, cofres/
+  palancas usados, combate en curso) justo antes de salir de ella, y esa
+  foto se restaura al volver a entrar — incluso si se cierra la app de por
+  medio (persistida en el mismo almacenamiento que la partida guardada).
+  "Reiniciar progreso" borra también todas estas fotos, para que una
+  partida nueva de verdad empiece de fábrica en todas las zonas.
+- Revisado el velo azul reportado en PC: confirmado por el propio usuario
+  que era un efecto de la foto (cámara de móvil a la pantalla, no captura
+  real), no un fallo del juego. Sin cambios de código en este punto.
+- **Héroe atascado del todo en terreno difícil/con desnivel, fuera de
+  combate**: el botón "Fin de turno" se escondía siempre que no había
+  combate activo, dando por hecho que fuera de combate el PA se refresca
+  solo en cuanto llega a 0. Pero terreno difícil (+1 PA) o subir un escalón
+  (+1 PA) pueden dejar un resto de PA que NO es 0 y que tampoco da para
+  ningún paso más (p.ej. 1 PA con el siguiente paso costando 2) — ese resto
+  nunca se refrescaba solo, y sin el botón visible no había ninguna forma de
+  saltar el turno a mano. El héroe se quedaba completamente atascado: sin
+  poder moverse ni usar nada que costara más que ese resto. Ahora el botón
+  (y el contador de PA) también se muestran fuera de combate mientras el PA
+  no esté al máximo, así siempre hay una forma de refrescarlo.
+
+**Pruebas hechas esta versión**: batería headless propia con stubs de
+localStorage/DOM/fetch, importando el motor entero (`rules.js`) fuera del
+navegador. Espectro rodeando una esquina en forma de L hasta llegar
+adyacente al héroe (antes se quedaba atascado). Mago con PA insuficiente
+para atacar y ya adyacente al héroe: 10 rondas seguidas sin pisar nunca su
+casilla (con el código viejo, lo hacía las 10/10 veces — prueba de
+regresión válida). Aceleración del turno enemigo medida con 2 vs 14
+enemigos activos (proporcionalmente más rápido por combatiente). Foto de
+zona: guardar zona A con 1 de 2 enemigos muertos y una casilla explorada,
+cargar zona B, volver a A y comprobar que sigue con 1 enemigo vivo y la
+casilla explorada (en vez de fábrica). Regresión conjunta con los 4 tipos
+de IA (melee, arquero, mago, golem) actuando varias rondas seguidas sin
+errores ni solapes sobre la casilla del héroe. Botón de Fin de turno:
+reproducido el atasco real (terreno difícil dejando 1 PA de resto fuera de
+combate, sin poder moverse ni afrontar ningún paso más), confirmado que el
+botón aparece justo en ese momento (y sigue oculto con PA lleno fuera de
+combate) y que pulsarlo refresca el PA y deja seguir jugando con normalidad.
+
 ## 0.32 — Golem de hueso: idle reconstruido + cadáver del arquero agrandado
 - El `idle` del golem de hueso arrastraba un mal recorte de origen desde
   hace varias versiones (bamboleo de cabeza, pies variando de sitio).

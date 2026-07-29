@@ -1,20 +1,20 @@
 // Punto de entrada. Carga idioma y datos, cablea módulos y arranca el bucle.
 
-import { state, initGame, recomputeFog, computeReach, walkable } from './state.js?v=0.32';
-import { initRenderer, startLoop, centerOnHero, toggleGrid, isGridOn } from './render.js?v=0.32';
-import { onTapTile, bindDescend, startHeroTurn, endHeroTurn, afterInteract, attemptDisarm, isAITurnActive, getEnemySpeed, setEnemySpeed, setTotalFoeCount, useActiveSkill, rollAltar, pickChestEvent, applyChestEvent, checkLeverBossSpawn, checkBossLooted, resetRunState, getSkillCooldownLeft } from './rules.js?v=0.32';
-import { syncHUD, log, hideVeil, bindAfterInteract, bindRestart, bindAttemptDisarm, bindResolveAltar, bindResolveChest, bindApplyChest, bindOnLeverPulled, bindOnCorpseLooted, applyStaticText, syncInitiativeUI, showConfirm, showLogHistory, hideLogHistory, logHistoryOpen, bindRefreshActionBar, isLootOpen, lootAllNow } from './ui.js?v=0.32';
-import { loadAssets } from './assets.js?v=0.32';
-import { initialLang, loadLang, onLangChange, getLang, t } from './i18n.js?v=0.32';
-import * as anim from './anim.js?v=0.32';
-import * as audio from './audio.js?v=0.32';
-import { VERSION } from './config.js?v=0.32';
-import { assemble } from './mapgen.js?v=0.32';
-import { initInventory, openInventory, closeInventory, isInventoryOpen, resetInventory, refreshInventoryTexts } from './inventory.js?v=0.32';
-import { loadSkillsData, initSkillShop, openSkillShop, closeSkillShop, refreshSkillTexts, bindFullReset, applySkillBonuses, bindUseActiveSkill, tryUseArmedOnTile, bindGetSkillCooldownLeft, renderActionBar } from './skills.js?v=0.32';
-import * as savegame from './savegame.js?v=0.32';
-import { fetchTop10, formatTime } from './leaderboard.js?v=0.32';
-import { logEvent, initErrorCapture, setTelemetryVersion } from './telemetry.js?v=0.32';
+import { state, initGame, recomputeFog, computeReach, walkable } from './state.js?v=0.32.1';
+import { initRenderer, startLoop, centerOnHero, toggleGrid, isGridOn } from './render.js?v=0.32.1';
+import { onTapTile, bindDescend, startHeroTurn, endHeroTurn, afterInteract, attemptDisarm, isAITurnActive, getEnemySpeed, setEnemySpeed, setTotalFoeCount, useActiveSkill, rollAltar, pickChestEvent, applyChestEvent, checkLeverBossSpawn, checkBossLooted, resetRunState, getSkillCooldownLeft } from './rules.js?v=0.32.1';
+import { syncHUD, log, hideVeil, bindAfterInteract, bindRestart, bindAttemptDisarm, bindResolveAltar, bindResolveChest, bindApplyChest, bindOnLeverPulled, bindOnCorpseLooted, applyStaticText, syncInitiativeUI, showConfirm, showLogHistory, hideLogHistory, logHistoryOpen, bindRefreshActionBar, isLootOpen, lootAllNow } from './ui.js?v=0.32.1';
+import { loadAssets } from './assets.js?v=0.32.1';
+import { initialLang, loadLang, onLangChange, getLang, t } from './i18n.js?v=0.32.1';
+import * as anim from './anim.js?v=0.32.1';
+import * as audio from './audio.js?v=0.32.1';
+import { VERSION } from './config.js?v=0.32.1';
+import { assemble } from './mapgen.js?v=0.32.1';
+import { initInventory, openInventory, closeInventory, isInventoryOpen, resetInventory, refreshInventoryTexts } from './inventory.js?v=0.32.1';
+import { loadSkillsData, initSkillShop, openSkillShop, closeSkillShop, refreshSkillTexts, bindFullReset, applySkillBonuses, bindUseActiveSkill, tryUseArmedOnTile, bindGetSkillCooldownLeft, renderActionBar } from './skills.js?v=0.32.1';
+import * as savegame from './savegame.js?v=0.32.1';
+import { fetchTop10, formatTime } from './leaderboard.js?v=0.32.1';
+import { logEvent, initErrorCapture, setTelemetryVersion } from './telemetry.js?v=0.32.1';
 
 // El ensamblador de losetas (mapgen.js) sigue disponible para niveles ALEATORIOS
 // futuros; esta función queda de reserva pero no se usa por ahora, ya que el
@@ -126,6 +126,13 @@ async function boot() {
 
   async function loadLevel(name, carry, arrive) {
     const level = await getLevel(name);
+    // Antes de dejar la zona actual (si había una, y es de verdad distinta a
+    // la nueva), le hacemos una foto: enemigos vivos/muertos, niebla
+    // explorada, cofres/palancas usados, combate en curso... Sin esto, cada
+    // cambio de zona (p.ej. entrar/salir de un mausoleo) recargaba la zona
+    // de destino de fábrica y la que se dejaba atrás perdía todo el
+    // progreso hecho en ella en cuanto se volvía.
+    if (currentLevelName && currentLevelName !== name) savegame.snapshotZone(currentLevelName);
     // Reinicio de VERDAD, no solo el mapa: cooldowns de habilidades, buffs de
     // combate en marcha (Grito de Guerra, Forma Salvaje...), bendiciones de
     // altar, zonas de Círculo de Renacer y la música de combate de élite si
@@ -134,6 +141,11 @@ async function boot() {
     resetRunState();
     audio.stopEliteMusic();
     initGame(level, events);
+    // Si ya se había visitado esta zona antes en la partida en curso, se
+    // restaura tal cual se dejó (en vez de quedarse con lo recién puesto por
+    // initGame(), que es siempre el estado de fábrica del nivel).
+    const zoneSnap = savegame.getZoneSnapshot(name);
+    if (zoneSnap) savegame.applyZoneSnapshot(zoneSnap);
     if (carry) Object.assign(state.hero, carry);        // arrastra vida/oro entre niveles (bajar de nivel)
     else {
       resetInventory(); state.hero.gold = savegame.getPersistedGold(); state.hero.totalKills = 0;
@@ -156,6 +168,7 @@ async function boot() {
     currentLevelName = name;
     logEvent('level_start', { level: name, fresh: !carry, gold: state.hero.gold });
     anim.reset();
+    recomputeFog();   // la niebla restaurada (o de fábrica) se recalcula ya con la posición final del héroe
     centerOnHero(true);
     hideVeil();
     startHeroTurn();
@@ -200,7 +213,11 @@ async function boot() {
     }
   }
 
-  function newGame() { loadLevel('level1').then(openSkillShop); }
+  function newGame() {
+    currentLevelName = null;   // que loadLevel no intente hacerle una foto a la zona anterior
+    savegame.clearZoneSnapshots();
+    loadLevel('level1').then(openSkillShop);
+  }
   async function descend(to, arrive) {
     const c = { hp: state.hero.hp, maxHp: state.hero.maxHp, atk: state.hero.atk, gold: state.hero.gold, totalKills: state.hero.totalKills || 0, runStartedAt: state.hero.runStartedAt };
     try {

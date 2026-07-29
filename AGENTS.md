@@ -211,6 +211,90 @@ imagen tiene el hueco en otro sitio, hay que reajustar esos porcentajes a
 ojo (o medir con Python/PIL dónde termina el dibujo, como se hizo para la
 palanca del cementerio).
 
+## Novedades V0.32.1 — IA enemiga y foto por zona
+
+**Camino real generalizado (`stepToward`, `rules.js`)**: `approachStep` (que
+antes solo sabía ir hacia el héroe) se dividió en `stepToward(foe, ap, tx,
+ty)` — genérico, con cualquier destino — y `approachStep(foe, ap)` como
+envoltorio fino que llama a `stepToward` con las coordenadas del héroe. El
+espectro (`spectreTurn`) usaba en su lugar un cálculo propio y más simple
+(solo miraba la casilla vecina inmediata, sin rodear obstáculos de verdad),
+lo que le hacía quedarse plantado en cuanto acercarse de verdad exigía un
+rodeo. Ahora usa `stepToward` igual que el resto, tanto para ir al héroe
+como para ir hacia un aliado (cuando está aislado y busca compañía).
+
+**Nunca pisar la casilla del héroe (`stepToward`)**: fallo real confirmado
+con prueba de regresión (se reproducía 10/10 veces con el código viejo). Si
+el primer paso del camino calculado cae justo sobre la casilla del héroe
+—típicamente porque el enemigo ya está adyacente pero le faltan PA para
+atacar/disparar ese turno, y le sobran para "otro paso"— `stepToward`
+devuelve `null` en vez de ese paso. Afecta a los 4 usos de `approachStep`
+(mago, arquero, golem, cuerpo a cuerpo genérico) de una vez, al estar
+centralizado en un único punto.
+
+**Velocidad de IA adaptativa a la cantidad de enemigos activos**:
+`crowdSpeedFactor()` (rules.js) mira `state.combat.order` (solo los ya
+metidos en la escaramuza, no los dormidos en otra punta del mapa) y aplica
+un multiplicador extra a `enemySleep` por debajo del ajuste manual de
+velocidad de los Ajustes: 6+ activos → ×0.65, 10+ → ×0.4, 16+ → ×0.25. Pensado
+para que Llamada Sepulcral (que reúne a todo lo que pueda del nivel, alcance
+sin tocar a petición del usuario) no deje un turno enemigo eterno. No toca
+`moveDurationMs()` (eso es la animación de movimiento en sí, compartida con
+el héroe) — solo las pausas entre acciones/turnos de la IA.
+
+**Foto por zona (`savegame.js`: `snapshotZone`/`getZoneSnapshot`/
+`applyZoneSnapshot`/`clearZoneSnapshots`)**: hueco de arquitectura real, no
+un detalle — antes solo existía UN hueco de partida guardada (`SAVE_KEY`,
+para la zona activa), así que cambiar de zona (entrar/salir de un
+mausoleo) sobrescribía ese hueco y la zona que se dejaba atrás no tenía
+dónde quedar guardada; al volver, se recargaba de fábrica (initGame). Ahora
+`loadLevel` (main.js) hace lo siguiente en cada cambio de zona:
+1. Si había una zona activa distinta de la nueva, `snapshotZone(nombre)` le
+   hace una foto (enemigos, triggers, exit/exits, explored, combat,
+   targetFoe — todo salvo el héroe, que viaja aparte vía `carry`).
+2. Tras `initGame(level, events)` (que deja el nivel de fábrica), si
+   `getZoneSnapshot(name)` encuentra una foto previa de esa zona, se aplica
+   con `applyZoneSnapshot` — sobrescribiendo lo de fábrica con lo que había
+   de verdad.
+3. Se llama a `recomputeFog()` otra vez tras posicionar al héroe (por
+   `arrive` o por defecto), porque la que hace `initGame()` internamente usa
+   la posición de partida del nivel, no la posición final tras `arrive`.
+
+Las fotos se persisten en `localStorage` (`cripta.zoneSnapshots`), separado
+de `SAVE_KEY`, así que sobreviven a cerrar la app. `newGame()` (botón
+Reiniciar / "reiniciar progreso" de la tienda) llama a
+`clearZoneSnapshots()` y pone `currentLevelName = null` antes de cargar
+`level1`, para que una partida nueva de verdad no arrastre fotos de zona de
+la partida anterior.
+
+**Velo azul en PC (reportado, sin cambios)**: investigado a fondo (color
+medio de `void_underground.jpg` comprobado por píxel: es marrón oscuro, no
+azul) y descartado por el propio usuario tras pedirle una captura de
+pantalla real — la foto que mandó era una foto de móvil a la pantalla del
+PC, y el tono azulado era un artefacto de la cámara sobre la niebla de
+guerra normal, no un fallo del juego. Sin cambios de código.
+
+**Héroe atascado del todo en terreno difícil/con desnivel, fuera de combate
+(`ui.js`, `syncHUD`)**: el botón `#endTurn` (y el contador `#apPips`) se
+escondían con `!state.combat.active` a secas — la idea original era que
+fuera de combate no hacen falta (el PA se refresca solo al llegar a 0, ver
+`walkTo`/`endHeroTurn` en `rules.js`). El hueco: terreno difícil
+(`DIFFICULT_EXTRA`) o subir un escalón (`CLIMB_COST`) pueden dejar un resto
+de PA que NO es 0 pero tampoco alcanza para ningún paso más (p.ej. 1 PA con
+el siguiente paso costando 2) — ese resto nunca dispara el auto-refresco
+(que solo mira `ap<=0`), y sin el botón visible no hay ninguna otra forma de
+saltar el turno a mano. Root cause puramente de interfaz, no del cálculo de
+terreno en sí (revisado a fondo antes de encontrar esto: sin desconexiones
+reales en los 4 niveles, ni casillas matemáticamente aisladas). Arreglo:
+ambos elementos ahora también se muestran fuera de combate mientras
+`hero.ap < hero.apMax` (no solo con combate activo) — `skipTurn()` (main.js)
+ya llamaba a `endHeroTurn()` sin mirar el combate, así que solo hacía falta
+arreglar la visibilidad, no la lógica de refresco en sí. Probado con una
+prueba de extremo a extremo: entrar en una casilla difícil que deja 1 PA de
+resto (fuera de combate), confirmar que el botón aparece, confirmar que NO
+se puede seguir moviendo con ese resto, pulsar Fin de turno y confirmar que
+el PA se refresca y el héroe puede seguir jugando con normalidad.
+
 ## Protocolo de pruebas antes de empaquetar (obligatorio)
 
 Antes de dar cualquier cambio de nivel, mapa o lógica de juego por bueno,

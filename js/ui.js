@@ -1,16 +1,16 @@
 // Capa DOM: HUD (con PA), cartas de evento, registro, fin de partida y ajustes.
 // Todo el texto visible pasa por t() (multiidioma). No dibuja en el canvas.
 
-import { state } from './state.js?v=0.32';
-import { t, tRandom } from './i18n.js?v=0.32';
-import * as anim from './anim.js?v=0.32';
-import { IDLE_NAME } from './anim.js?v=0.32';
-import * as audio from './audio.js?v=0.32';
-import { VERSION } from './config.js?v=0.32';
-import { images, SPRITE_TILE } from './assets.js?v=0.32';
-import { pushHistory, getHistory, clearHistory, CATEGORIES } from './eventlog.js?v=0.32';
-import { submitScore, rankWithinTop10, fetchTop10, formatTime } from './leaderboard.js?v=0.32';
-import { logEvent } from './telemetry.js?v=0.32';
+import { state } from './state.js?v=0.32.1';
+import { t, tRandom } from './i18n.js?v=0.32.1';
+import * as anim from './anim.js?v=0.32.1';
+import { IDLE_NAME } from './anim.js?v=0.32.1';
+import * as audio from './audio.js?v=0.32.1';
+import { VERSION } from './config.js?v=0.32.1';
+import { images, SPRITE_TILE } from './assets.js?v=0.32.1';
+import { pushHistory, getHistory, clearHistory, CATEGORIES } from './eventlog.js?v=0.32.1';
+import { submitScore, rankWithinTop10, fetchTop10, formatTime } from './leaderboard.js?v=0.32.1';
+import { logEvent } from './telemetry.js?v=0.32.1';
 
 let afterInteract = () => {};
 let restart = () => {};
@@ -214,11 +214,19 @@ export function syncHUD() {
   $('manaText').textContent = `${mana}/${manaMax}`;
   // Puntos de acción: un solo dígito grande en vez de puntos, con color según
   // lo que quede (2 o más: blanco · 1: amarillo, aviso · 0: rojo, sin nada).
-  // Fuera de combate no hay turnos que saltar ni PA que gastar (movimiento
-  // libre), así que se esconden los dos.
+  // Fuera de combate el movimiento es libre y el PA se refresca solo en
+  // cuanto llega a 0 — pero un resto de PA que no da ni para un paso más
+  // (p.ej. 1 PA, con terreno difícil o un desnivel que cuesta 2+) NO llega a
+  // 0 y se queda ahí sin refrescarse solo. Antes, en ese caso, los dos se
+  // escondían siempre fuera de combate y no había ninguna forma de saltar el
+  // turno a mano — el héroe se quedaba completamente atascado (sin poder
+  // moverse ni usar nada que costara más de ese resto). Ahora también se
+  // muestran fuera de combate mientras el PA no esté al máximo, para que
+  // siempre haya un botón con el que refrescarlo.
+  const partialAP = hero.ap < hero.apMax;
   const pips = $('apPips');
-  pips.classList.toggle('hidden', !state.combat.active);
-  $('endTurn').classList.toggle('hidden', !state.combat.active);
+  pips.classList.toggle('hidden', !state.combat.active && !partialAP);
+  $('endTurn').classList.toggle('hidden', !state.combat.active && !partialAP);
   pips.textContent = hero.ap;
   pips.classList.remove('ap-white', 'ap-warn', 'ap-empty');
   pips.classList.add(hero.ap <= 0 ? 'ap-empty' : hero.ap === 1 ? 'ap-warn' : 'ap-white');
