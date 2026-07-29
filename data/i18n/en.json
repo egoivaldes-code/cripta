@@ -64,7 +64,6 @@
   "loghist.loot": "Loot",
   "loghist.event": "Events",
   "loghist.empty": "Nothing has happened here yet.",
-
   "log.hitFoe.1": "You strike {name}. <span class=\"dmg\">−{dmg}</span>",
   "log.hitFoe.2": "Your attack lands on {name}: <span class=\"dmg\">−{dmg}</span>.",
   "log.hitFoe.3": "You wound {name} for <span class=\"dmg\">{dmg}</span> damage.",
@@ -257,7 +256,6 @@
   "leaderboard.empty": "No times recorded yet. Be the first!",
   "btn.repositionUI": "Reposition interface",
   "btn.applyLayout": "Apply and close",
-
   "skillshop.title": "Choose your skills",
   "skillshop.subtitle": "Test system — spend your gold on the skills available.",
   "skillshop.reset": "Reset progress",
@@ -274,7 +272,6 @@
   "confirm.finishShop.text": "You won't be able to return to the skill shop until you restart the run.",
   "confirm.resetShop.title": "Reset skill progress?",
   "confirm.resetShop.text": "You'll lose every skill bought and gold will go back to 1000.",
-
   "dmgtype.none": "No damage",
   "dmgtype.physical": "Physical",
   "dmgtype.fire": "Fire",
@@ -285,7 +282,6 @@
   "dmgtype.nature": "Nature",
   "dmgtype.arcane": "Arcane",
   "dmgtype.heal": "Healing",
-
   "class.warrior": "Warrior",
   "class.paladin": "Paladin",
   "class.assassin": "Rogue",
@@ -295,7 +291,6 @@
   "class.druid": "Druid",
   "class.necromancer": "Necromancer",
   "class.hunter": "Hunter",
-
   "skillshop.duration.permanent": "Permanent",
   "skillshop.duration.instant": "Instant",
   "skillshop.duration.percombat": "Lasts the fight",
@@ -306,141 +301,117 @@
   "skillshop.areaNone": "Single target",
   "skillshop.cooldown": "Cooldown: {n} fights (not turns)",
   "skillshop.cooldownNone": "No cooldown",
-
   "skill.butcher_precision.name": "Butcher's Precision",
   "skill.butcher_precision.desc": "Increases critical hit chance.",
   "skill.butcher_precision.tier1": "+10% crit chance.",
   "skill.butcher_precision.tier2": "+20% crit chance.",
   "skill.butcher_precision.tier3": "+30% crit chance.",
-
   "skill.faith_strikes.name": "Faith Strikes",
   "skill.faith_strikes.desc": "Melee physical damage has a chance to heal you for part of it.",
   "skill.faith_strikes.tier1": "15% chance to heal 25% of melee damage dealt.",
   "skill.faith_strikes.tier2": "30% chance to heal 25% of melee damage dealt.",
   "skill.faith_strikes.tier3": "45% chance to heal 25% of melee damage dealt.",
-
   "skill.flame_slash.name": "Flame Slash",
   "skill.flame_slash.desc": "A weapon strike wrapped in fire that burns the enemy for a few turns after the hit.",
   "skill.flame_slash.tier1": "Low fire damage, brief burn.",
   "skill.flame_slash.tier2": "More fire damage, longer burn.",
   "skill.flame_slash.tier3": "High fire damage, long burn, and some area around the target.",
-
   "skill.iron_skin.name": "Iron Skin",
   "skill.iron_skin.desc": "Permanently hardens the hero's skin, reducing physical damage taken.",
   "skill.iron_skin.tier1": "+ light armor.",
   "skill.iron_skin.tier2": "+ moderate armor.",
   "skill.iron_skin.tier3": "+ high armor.",
-
   "skill.frost_arrow.name": "Frost Arrow",
   "skill.frost_arrow.desc": "Fires a chilling arrow at range that briefly slows the enemy.",
   "skill.frost_arrow.tier1": "Low ice damage; slows for 1 turn.",
   "skill.frost_arrow.tier2": "More ice damage; slows for 2 turns.",
   "skill.frost_arrow.tier3": "High ice damage; slows for 2 turns and may fully freeze the target.",
-
   "skill.poison_cloud.name": "Poison Cloud",
   "skill.poison_cloud.desc": "Throws a vial that bursts into a toxic cloud, poisoning everything caught inside.",
   "skill.poison_cloud.tier1": "Light poison over a small area.",
   "skill.poison_cloud.tier2": "More poison and a bit more area.",
   "skill.poison_cloud.tier3": "Heavy poison over a large area, lasting more turns.",
-
   "skill.holy_smite.name": "Holy Smite",
   "skill.holy_smite.desc": "A melee strike charged with holy light, especially damaging to the undead.",
   "skill.holy_smite.tier1": "Low holy damage.",
   "skill.holy_smite.tier2": "Moderate holy damage.",
   "skill.holy_smite.tier3": "High holy damage, with a chance to briefly stun.",
-
   "skill.war_cry.name": "War Cry",
   "skill.war_cry.desc": "A roar that inspires courage: increases your own damage for a few turns.",
   "skill.war_cry.tier1": "+ light damage for 2 turns.",
   "skill.war_cry.tier2": "+ moderate damage for 2 turns.",
   "skill.war_cry.tier3": "+ high damage for 3 turns.",
-
   "skill.cat_reflexes.name": "Cat Reflexes",
   "skill.cat_reflexes.desc": "Sharpens the hero's reflexes, increasing the chance to dodge attacks.",
   "skill.cat_reflexes.tier1": "+ light dodge.",
   "skill.cat_reflexes.tier2": "+ moderate dodge.",
   "skill.cat_reflexes.tier3": "+ high dodge.",
-
   "skill.bloodlust.name": "Bloodlust",
   "skill.bloodlust.desc": "Every enemy defeated feeds the hero's fury, increasing damage for the rest of the fight.",
   "skill.bloodlust.tier1": "+ light damage per kill (doesn't carry between fights).",
   "skill.bloodlust.tier2": "+ moderate damage per kill.",
   "skill.bloodlust.tier3": "+ high damage per kill.",
-
   "skill.shadow_strike.name": "Shadow Strike",
   "skill.shadow_strike.desc": "The rogue blinks next to the target and strikes before they can react.",
   "skill.shadow_strike.tier1": "+30% critical chance on the strike.",
   "skill.shadow_strike.tier2": "+50% critical chance and a bit more damage.",
   "skill.shadow_strike.tier3": "Guaranteed critical the first time it's used each fight.",
-
   "skill.lethal_instinct.name": "Lethal Instinct",
   "skill.lethal_instinct.desc": "The weaker the prey, the deadlier the rogue's strike.",
   "skill.lethal_instinct.tier1": "+15% damage against enemies below 30% health.",
   "skill.lethal_instinct.tier2": "+25% damage against enemies below 40% health.",
   "skill.lethal_instinct.tier3": "+35% damage against enemies below 50% health.",
-
   "skill.arcane_chain.name": "Arcane Chain",
   "skill.arcane_chain.desc": "A bolt of energy that jumps from enemy to enemy, losing some strength with each jump.",
   "skill.arcane_chain.tier1": "Hits the target and jumps to 1 nearby enemy at reduced damage.",
   "skill.arcane_chain.tier2": "Jumps to 2 enemies, less damage loss per jump.",
   "skill.arcane_chain.tier3": "Jumps to 3 enemies, almost no damage loss.",
-
   "skill.arcane_overload.name": "Arcane Overload",
   "skill.arcane_overload.desc": "Every so often, the mage's spell is free: it doesn't consume its cooldown.",
   "skill.arcane_overload.tier1": "10% chance to not spend cooldown when casting an active.",
   "skill.arcane_overload.tier2": "18% chance.",
   "skill.arcane_overload.tier3": "28% chance, and if it happens twice in a row it heals you a little.",
-
   "skill.blood_pact.name": "Blood Pact",
   "skill.blood_pact.desc": "The warlock pays with their own life to unleash a far more damaging attack than usual.",
   "skill.blood_pact.tier1": "Lose 10% of your current health, deal high shadow damage.",
   "skill.blood_pact.tier2": "Lose 8% of your current health, higher damage.",
   "skill.blood_pact.tier3": "Lose 6% of your current health, very high damage, and steal back some of that health if the blow kills.",
-
   "skill.circle_of_rebirth.name": "Circle of Rebirth",
   "skill.circle_of_rebirth.desc": "A ring of light that stabilizes whoever stands within its radius.",
   "skill.circle_of_rebirth.tier1": "Heals a moderate amount on cast.",
   "skill.circle_of_rebirth.tier2": "Heals more and keeps healing a little each round for 1 turn.",
   "skill.circle_of_rebirth.tier3": "Heals a lot, keeps healing for 2 turns, and prevents dying to a single hit once while it's active.",
-
   "skill.watchful_grace.name": "Watchful Grace",
   "skill.watchful_grace.desc": "A small shield rebuilds itself every turn as long as it doesn't fully break.",
   "skill.watchful_grace.tier1": "+5% of a shield that absorbs damage, renews every turn.",
   "skill.watchful_grace.tier2": "+10% shield.",
   "skill.watchful_grace.tier3": "+15% shield, and if it survives a full turn without breaking, heals a bit extra.",
-
   "skill.wild_shape.name": "Wild Shape",
   "skill.wild_shape.desc": "The druid transforms into a beast for several turns, changing how they fight.",
   "skill.wild_shape.tier1": "2 turns as a beast: +melee physical damage.",
   "skill.wild_shape.tier2": "3 turns, +more physical damage and some armor.",
   "skill.wild_shape.tier3": "4 turns, +high physical damage, armor, and heals a bit on hit.",
-
   "skill.natural_symbiosis.name": "Natural Symbiosis",
   "skill.natural_symbiosis.desc": "The druid recovers from the living environment of the dungeon.",
   "skill.natural_symbiosis.tier1": "Heals a small amount at the end of each turn if you took no damage that turn.",
   "skill.natural_symbiosis.tier2": "Heals more, and also if you took little damage.",
   "skill.natural_symbiosis.tier3": "Heals even more, and grants a small armor bonus while at full health.",
-
   "skill.soul_harvest.name": "Soul Harvest",
   "skill.soul_harvest.desc": "Every enemy that dies near the necromancer feeds their power, stacking through the fight.",
   "skill.soul_harvest.tier1": "+4% damage per nearby kill (doesn't carry between fights).",
   "skill.soul_harvest.tier2": "+7% per nearby kill.",
   "skill.soul_harvest.tier3": "+10% per nearby kill, and at 5 stacks the next spell doesn't spend its cooldown.",
-
   "skill.multi_shot.name": "Multi Shot",
   "skill.multi_shot.desc": "Fires a volley of arrows that pierces through everything in a straight line in front of the hunter.",
   "skill.multi_shot.tier1": "Hits up to 2 enemies in a line, moderate damage.",
   "skill.multi_shot.tier2": "Up to 3 enemies, more damage.",
   "skill.multi_shot.tier3": "Up to 4 enemies, high damage, and slows everyone it hits for a turn.",
-
   "stat.group.skills": "Skills",
   "stat.group.skillsEmpty": "None yet",
-
   "altar.kicker": "Ancient altar",
   "altar.title": "A candle-lit altar",
   "altar.hint": "A stone altar, ringed with lit candles.",
   "altar.question": "Do you want to bow before the altar?",
-
   "altar.ev1.title": "Healing light",
   "altar.ev1.result": "A warm light wraps around your body and closes every wound.",
   "altar.ev2.title": "Rain of gold",
@@ -461,15 +432,12 @@
   "altar.ev9.result": "A dark crack opens beside the altar. Something has come out of it.",
   "altar.ev10.title": "Curse of frailty",
   "altar.ev10.result": "A brittle aura clings to your skin. The next hits will sting more.",
-
   "log.altarSpent": "The altar shows no power anymore.",
   "log.chestSpent": "The chest is already empty.",
-
   "chest.kicker": "Chest",
   "chest.hint": "A closed chest, covered in dust.",
   "chest.title": "A closed chest",
   "chest.question": "You approach the chest... do you try to open it?",
-
   "chest.ev1.title": "Abundant treasure",
   "chest.ev1.result": "More coins glimmer inside than you expected.",
   "chest.ev2.title": "Bag of coins",
@@ -483,5 +451,13 @@
   "chest.ev6.title": "Noise in the dark",
   "chest.ev6.result": "The creak of the lid wakes something nearby.",
   "log.golemExecute": "The {name} finishes off the badly wounded victim in one blow and grows stronger from it.",
-  "log.golemStun": "The {name} lands a heavy blow and leaves you stunned."
+  "log.golemStun": "The {name} lands a heavy blow and leaves you stunned.",
+  "set.autoloot": "Auto-loot (pick up everything automatically)",
+  "set.autoskipzeroap": "Auto-skip turn at 0 AP in combat",
+  "skillshop.filter.owned.all": "All",
+  "skillshop.filter.owned.owned": "Owned",
+  "skillshop.filter.kind.all": "All",
+  "skillshop.filter.kind.active": "Active",
+  "skillshop.filter.kind.passive": "Passive",
+  "skillshop.filter.allclasses": "All classes"
 }

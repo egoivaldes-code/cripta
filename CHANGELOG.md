@@ -2,6 +2,101 @@
 
 Esquema: `0.X` = cambio grande · `0.X.Y` = cambio pequeño / fix.
 
+## 0.33 — PA fuera de combate, niebla, combate instantáneo, pathfinding a
+objetos, ajustes de comodidad, arquero, tienda reordenada+filtrada, barra de
+acción dinámica, aviso de PA y altares consistentes
+
+**PA fuera de combate ya no se ve ni se queda a medias**: antes, el refresco
+automático solo saltaba con PA exactamente en 0; un resto que no llegaba
+para ningún paso más (terreno difícil, un desnivel) podía dejar al héroe
+atascado sin más aviso que nada — ya arreglado en la V0.32.1 escondiendo el
+contador y el botón de turno. Esta vez se fue a la raíz: fuera de combate,
+CUALQUIER acción (moverse, interactuar, usar una habilidad) refresca el PA
+entero de golpe al terminar, sin mirar cuánto quedaba — así nunca hay nada
+que "ver" ni en lo que quedarse atascado. El contador y el botón de turno
+solo se muestran ya en combate de verdad.
+
+**Niebla de guerra — negro sin explorar recuperado**: el bucle de dibujo
+pintaba el suelo de cualquier casilla dentro del radio de memoria aunque
+nunca se hubiera visto, tratándola igual que la niebla (explorada, pero
+fuera de la vista actual). Ahora lo nunca explorado es negro sólido de
+verdad, distinto de la niebla. Radio de memoria (`SIGHT_DIM`) puesto a 15
+casillas.
+
+**Combate instantáneo al aparecer un enemigo nuevo**: el cofre y el altar
+"malos" que invocan un monstruo, y el Esqueleto Mago jefe de la Cripta (2
+palancas), metían al enemigo ya despierto sin avisar al sistema de
+combate — se podía mover e incluso pegar cuerpo a cuerpo fuera de combate
+antes de que "saltara" de verdad. Los 3 puntos ahora comprueban el combate
+al instante tras invocar.
+
+**Pathfinding a objetos, generalizado**: cofres, altares, urnas/
+contenedores, palancas/eventos genéricos y salidas ahora se acercan solos
+con un único toque (igual que ya hacían los cadáveres) en vez de exigir
+caminar manualmente hasta quedar pegado.
+
+**Ajustes nuevos (Ajustes → dos casillas)**: Autolootear (coge todo de
+golpe sin abrir la ventana de botín) y Autopasar turno con 0 PA en combate
+(el turno pasa solo al quedarte sin PA en pleno combate, en vez de esperar
+a que se toque "Terminar turno" a mano). Ambos persistidos, apagados por
+defecto.
+
+**Arquero — ya no malgasta el turno huyendo dos veces**: `fleeAt` estaba en
+2 casillas, así que tras alejarse un solo paso (de 1 a 2) todavía se
+consideraba "demasiado cerca" y huía una segunda vez, gastando el PA que
+necesitaba para disparar ese mismo turno. Bajado a 1 (huir solo cuando está
+pegado): ahora huye un paso y dispara en el mismo turno, tal como debía.
+
+**Tienda de habilidades — orden y filtros**: las tarjetas se ordenan por
+tier YA POSEÍDO (descendente) y, dentro del mismo tier, por el precio del
+PRÓXIMO nivel (ascendente). Filtros nuevos: Obtenidas/Todas, Activas/
+Pasivas/Todas, y por Clase (con todas las clases reales del catálogo).
+
+**Barra de acción dinámica**: de 10 huecos fijos a filas que crecen solas —
+4 de serie, hasta 8 según se compran más habilidades activas; al comprar la
+9ª aparece una 2ª fila (mismo tope de 8), y así sucesivamente. Atajos de
+teclado: 1-8 la primera fila, Shift+1-8 la segunda, Ctrl+1-8 la tercera.
+
+**Aviso central de PA insuficiente (estilo "mensaje de error" de WoW)**:
+texto rojo grande en medio de la pantalla, un instante, al intentar
+moverse/atacar/interactuar/usar una habilidad sin PA suficiente —
+complementa al registro de texto, no lo sustituye.
+
+**Botón de turno renombrado**: "Saltar turno" → "Terminar turno" (español).
+
+**Altares — tamaño consistente**: estaban descuadrados entre niveles sin
+que hubiera ningún criterio (cementerio +50% a mano, cripta sin ajustar,
+mausoleo1 +200% a mano). Ahora los 4 (donde los hay) miden exactamente lo
+mismo: el doble del tamaño base de un objeto pequeño.
+
+**README.md puesto al día** (llevaba desde la V0.8 desactualizado) y se
+mantiene junto con `AGENTS.md` en cada versión con cambios de arquitectura.
+
+**Objetivo/habilidades conectados**: si ya hay un enemigo marcado como
+objetivo (fila de objetivos del HUD) y se pulsa una habilidad, se lanza
+directo sobre él sin armar y esperar otro toque; y si se arma una
+habilidad primero, tocar el marco de un enemigo la usa sobre él (antes solo
+marcaba/desmarcaba objetivo).
+
+**Pruebas hechas esta versión**: batería headless propia (stubs de
+localStorage/DOM/fetch — el fetch ahora sirve los JSON reales del repo,
+para poder probar con datos de verdad como `skills.json`) para cada punto:
+refresco de PA fuera de combate en los 6 puntos donde se gasta; niebla
+(negro vs explorado, radio 15); combate instantáneo confirmado en cofre,
+altar y jefe de la Cripta con invocación forzada; pathfinding a cofre,
+altar, urna, palanca y salida (con un fallo de la propia prueba detectado y
+corregido por el camino); autolootear (oro cobrado sin abrir ventana);
+autopasar turno (reproducido el atasco real con y sin el ajuste, con
+apMax real de 4); arquero huyendo y disparando en el mismo turno, en sala
+abierta y en pasillo con esquina; orden de la tienda por tier+precio con
+compras forzadas variadas; los 3 filtros de la tienda (incluyendo
+combinados) vía los nuevos setters expuestos; barra de acción con conteo
+de filas/huecos para 0,3,4,5,7,8,9,10 habilidades poseídas (matemática
+válida más allá de las 11 habilidades activas reales del catálogo actual);
+aviso rojo de PA insuficiente disparado y con la clase CSS puesta.
+Regresión general (los 4 tipos de IA enemiga actuando varias rondas
+seguidas) repetida tras cada bloque de cambios, sin errores.
+
 ## 0.32.1 — 5 fixes de IA enemiga y una reparación grande de zonas
 - **Espectros atascados sin razón aparente**: se movían mirando solo la
   casilla vecina inmediata (no un camino real), así que en cuanto acercarse

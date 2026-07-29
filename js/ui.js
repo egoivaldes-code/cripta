@@ -1,16 +1,16 @@
 // Capa DOM: HUD (con PA), cartas de evento, registro, fin de partida y ajustes.
 // Todo el texto visible pasa por t() (multiidioma). No dibuja en el canvas.
 
-import { state } from './state.js?v=0.32.1';
-import { t, tRandom } from './i18n.js?v=0.32.1';
-import * as anim from './anim.js?v=0.32.1';
-import { IDLE_NAME } from './anim.js?v=0.32.1';
-import * as audio from './audio.js?v=0.32.1';
-import { VERSION } from './config.js?v=0.32.1';
-import { images, SPRITE_TILE } from './assets.js?v=0.32.1';
-import { pushHistory, getHistory, clearHistory, CATEGORIES } from './eventlog.js?v=0.32.1';
-import { submitScore, rankWithinTop10, fetchTop10, formatTime } from './leaderboard.js?v=0.32.1';
-import { logEvent } from './telemetry.js?v=0.32.1';
+import { state } from './state.js?v=0.33';
+import { t, tRandom } from './i18n.js?v=0.33';
+import * as anim from './anim.js?v=0.33';
+import { IDLE_NAME } from './anim.js?v=0.33';
+import * as audio from './audio.js?v=0.33';
+import { VERSION, getAutoLoot, setAutoLoot, getAutoSkipZeroAP, setAutoSkipZeroAP } from './config.js?v=0.33';
+import { images, SPRITE_TILE } from './assets.js?v=0.33';
+import { pushHistory, getHistory, clearHistory, CATEGORIES } from './eventlog.js?v=0.33';
+import { submitScore, rankWithinTop10, fetchTop10, formatTime } from './leaderboard.js?v=0.33';
+import { logEvent } from './telemetry.js?v=0.33';
 
 let afterInteract = () => {};
 let restart = () => {};
@@ -18,6 +18,13 @@ let onAttemptDisarm = () => {};
 let resolveAltar = () => null;
 let resolveChest = () => null;
 let applyChest = () => {};
+// skills.js no se puede importar aquí (import circular: skills.js ya
+// importa showConfirm de este archivo) — igual que el resto de binds de
+// esta zona, se conecta desde main.js. Devuelve true si había una
+// habilidad armada y se ha usado sobre el enemigo tocado (ver el toque en
+// la caja de objetivo, más abajo en syncFoeRow); false si no había ninguna.
+let onFoeBoxTap = () => false;
+export function bindFoeBoxTap(fn) { onFoeBoxTap = fn; }
 export function bindAfterInteract(fn) { afterInteract = fn; }
 export function bindRestart(fn) { restart = fn; }
 export function bindAttemptDisarm(fn) { onAttemptDisarm = fn; }
@@ -35,6 +42,23 @@ const $ = id => document.getElementById(id);
 let open = null; // { type:'event', trig } | { type:'over', kind } | null
 
 export function log(html, category = 'event') { $('log').innerHTML = html; pushHistory(html, category); if (logHistoryOpen()) renderLogHistory(); }
+
+// Aviso central de acción bloqueada (estilo "mensaje de error" de WoW):
+// texto rojo grande en medio de la pantalla, un instante — para los momentos
+// confusos de "¿por qué no pasa nada?" al intentar moverse/atacar/usar algo
+// sin PA suficiente. Complementa al registro de texto (log), no lo sustituye.
+// Si se llama varias veces seguidas (varios toques fallidos rápidos),
+// reinicia la animación en vez de amontonarse.
+let actionErrorTimer = null;
+export function showActionError(msg) {
+  const el = $('actionError');
+  el.textContent = msg;
+  el.classList.remove('show');
+  void el.offsetWidth;   // fuerza el reflow: si no, quitar y volver a poner la clase no reinicia la animación CSS
+  el.classList.add('show');
+  clearTimeout(actionErrorTimer);
+  actionErrorTimer = setTimeout(() => el.classList.remove('show'), 1200);
+}
 
 // --- Historial completo de eventos (combate/loot/eventos) ------------------
 const LOG_FILTERS = ['all', 'combat', 'loot', 'event'];
@@ -160,8 +184,9 @@ export function lootAllNow() {
 // pendiente. `source.type === 'container'` distingue un contenedor del mapa
 // (título genérico) de un cadáver de enemigo (título = nombre del enemigo).
 export function showLootWindow(source) {
-  lootCorpse = source;
   anim.loot('hero', 'hero');
+  if (getAutoLoot()) { lootCorpse = source; lootAllNow(); return; }   // ajuste "Autolootear": coge todo sin abrir la ventana
+  lootCorpse = source;
   $('lootTitle').textContent = source.type === 'container' ? t('loot.container') : t('enemy.' + source.sprite);
   $('lootAllBtn').textContent = t('loot.takeAll');
   renderLootList();
@@ -214,19 +239,14 @@ export function syncHUD() {
   $('manaText').textContent = `${mana}/${manaMax}`;
   // Puntos de acción: un solo dígito grande en vez de puntos, con color según
   // lo que quede (2 o más: blanco · 1: amarillo, aviso · 0: rojo, sin nada).
-  // Fuera de combate el movimiento es libre y el PA se refresca solo en
-  // cuanto llega a 0 — pero un resto de PA que no da ni para un paso más
-  // (p.ej. 1 PA, con terreno difícil o un desnivel que cuesta 2+) NO llega a
-  // 0 y se queda ahí sin refrescarse solo. Antes, en ese caso, los dos se
-  // escondían siempre fuera de combate y no había ninguna forma de saltar el
-  // turno a mano — el héroe se quedaba completamente atascado (sin poder
-  // moverse ni usar nada que costara más de ese resto). Ahora también se
-  // muestran fuera de combate mientras el PA no esté al máximo, para que
-  // siempre haya un botón con el que refrescarlo.
-  const partialAP = hero.ap < hero.apMax;
+  // Fuera de combate no hay turnos que saltar ni PA que gastar de cara al
+  // jugador: cada acción (mover, interactuar...) se refresca sola al
+  // terminar, sea cual sea el resto que quedara (ver rules.js: el antiguo
+  // "solo si ap<=0" se quitó — ahora siempre se refresca fuera de combate),
+  // así que el PA nunca "se ve" acumulado ni atascado fuera de combate.
   const pips = $('apPips');
-  pips.classList.toggle('hidden', !state.combat.active && !partialAP);
-  $('endTurn').classList.toggle('hidden', !state.combat.active && !partialAP);
+  pips.classList.toggle('hidden', !state.combat.active);
+  $('endTurn').classList.toggle('hidden', !state.combat.active);
   pips.textContent = hero.ap;
   pips.classList.remove('ap-white', 'ap-warn', 'ap-empty');
   pips.classList.add(hero.ap <= 0 ? 'ap-empty' : hero.ap === 1 ? 'ap-warn' : 'ap-white');
@@ -269,6 +289,7 @@ export function syncFoeRow() {
     box.innerHTML = `<div class="fe-row1"><span class="fname">${name}</span><span class="status"></span></div><div class="fe-row2"><div class="bar foe"><span style="width:${Math.max(0, (1 - foe.hp / foe.maxHp) * 100)}%"></span></div></div>`;
     renderStatusIcons(box.querySelector('.status'), foe.statuses || []);
     box.onclick = () => {
+      if (onFoeBoxTap(foe)) return;   // había una habilidad armada: ya se ha usado sobre este enemigo
       state.targetFoe = state.targetFoe === foe ? null : foe;
       syncFoeRow();
     };
@@ -802,6 +823,8 @@ export function applyStaticText() {
   $('speedSlow').textContent = t('set.speed.slow');
   $('speedNormal').textContent = t('set.speed.normal');
   $('speedFast').textContent = t('set.speed.fast');
+  $('setAutoLootLabel').textContent = t('set.autoloot');
+  $('setAutoSkipZeroAPLabel').textContent = t('set.autoskipzeroap');
   $('quitBtn').textContent = t('btn.quit');
   $('confirmYes').textContent = t('confirm.yes');
   $('confirmNo').textContent = t('confirm.no');

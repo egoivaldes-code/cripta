@@ -760,7 +760,7 @@
       "id": "altar_1",
       "type": "altar",
       "sprite": "altar",
-      "tall": 1.725,
+      "tall": 1.15,
       "offsetX": 0.5
     }
   ],

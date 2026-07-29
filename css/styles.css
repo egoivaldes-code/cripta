@@ -277,6 +277,8 @@ body.layout-edit .layoutApplyBtn{ display:block; }
   font:inherit; font-size:13px; padding:9px; cursor:pointer; }
 .langbtn.on{ border-color:var(--ember); color:var(--ember); }
 .panel input[type=range]{ width:100%; accent-color:var(--ember); }
+.panel .checkrow{ display:flex; align-items:center; gap:10px; text-transform:none; letter-spacing:normal; font-size:14px; color:var(--bone); margin:12px 0; cursor:pointer; }
+.panel .checkrow input[type=checkbox]{ width:18px; height:18px; accent-color:var(--ember); flex-shrink:0; }
 .panel .primary{ width:100%; margin-top:18px; }
 .panel .ver{ text-align:center; color:#565b66; font-size:11px; margin-top:12px; }
 
@@ -559,8 +561,9 @@ body.layout-edit .layoutApplyBtn{ display:block; }
    ===================================================================== */
 .actionbar{ bottom:calc(max(12px,env(safe-area-inset-bottom)) + 78px); left:12px;
   transform:translate(var(--dragX,0px),var(--dragY,0px)) scale(var(--ui)); transform-origin:bottom left;
-  display:flex; gap:6px; padding:6px; background:rgba(26,30,39,.82);
+  display:flex; flex-direction:column; gap:6px; padding:6px; background:rgba(26,30,39,.82);
   border:1px solid var(--steel); border-radius:6px; backdrop-filter:blur(3px); }
+.actionbar-row{ display:flex; gap:6px; }
 .actionbar-slot{ width:44px; height:44px; border-radius:5px; flex:none; position:relative;
   background:rgba(10,12,17,.6); border:1px solid var(--steel); }
 .actionbar-slot.actionbar-filled{ border-color:var(--ember); cursor:pointer; }
@@ -645,4 +648,39 @@ body.layout-edit .layoutApplyBtn{ display:block; }
   .skillshop-title{ font-size:16px; }
   .skill-name{ font-size:18px; }
   .skill-desc,.skill-tierdesc{ font-size:14px; }
+}
+
+/* Aviso central de acción bloqueada (estilo WoW: "Not enough energy") — ver
+   showActionError() en ui.js, usado cuando falta PA para moverse/atacar/usar
+   algo. Encima de todo salvo las cartas modales; nunca bloquea toques. */
+.actionError{
+  position:absolute; top:38%; left:50%; z-index:60; pointer-events:none;
+  font-family:Georgia,"Times New Roman",serif; font-weight:700; font-size:26px;
+  letter-spacing:.04em; text-transform:uppercase; color:#ff3b30; text-align:center;
+  text-shadow:0 0 10px rgba(0,0,0,.85), 0 0 22px rgba(255,40,30,.55), 2px 2px 0 #1a0000;
+  opacity:0; white-space:nowrap;
+  transform:translate(-50%,-50%) scale(.85);
+}
+.actionError.show{ animation:actionErrorPop 1.15s ease-out forwards; }
+@keyframes actionErrorPop{
+  0%   { opacity:0;   transform:translate(-50%,-50%) scale(.8); }
+  12%  { opacity:1;   transform:translate(-50%,-50%) scale(1.1); }
+  22%  { opacity:1;   transform:translate(-50%,-50%) scale(1); }
+  78%  { opacity:1;   transform:translate(-50%,-56%) scale(1); }
+  100% { opacity:0;   transform:translate(-50%,-62%) scale(1); }
+}
+@media (pointer: coarse) { .actionError{ font-size:20px; } }
+
+/* Filtros de la tienda de habilidades: obtenidas/todas, activas/pasivas y
+   clase. Reutiliza .langbtn (mismo estilo que los botones de idioma). */
+.skillshop-filters{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin:0 0 10px; }
+.skillshop-filter-group{ display:flex; gap:4px; }
+.skillshop-filter-group .langbtn{ flex:none; padding:6px 12px; font-size:12px; }
+.skillshop-classfilter{ background:var(--stone-900); color:var(--bone); border:1px solid var(--steel);
+  border-radius:4px; padding:6px 10px; font:inherit; font-size:12px; margin-left:auto; }
+@media (pointer: coarse) {
+  .skillshop-filter-group .langbtn{ padding:8px 10px; font-size:13px; }
+  .skillshop-classfilter{ font-size:13px; padding:8px 10px; }
+  .skillshop-filters{ width:100%; }
+  .skillshop-classfilter{ margin-left:0; width:100%; }
 }

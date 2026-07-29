@@ -1,6 +1,43 @@
 {
   "versions": [
     {
+      "v": "0.33",
+      "es": {
+        "title": "PA en paz, niebla, tienda mejorada y barra de acción dinámica",
+        "notes": [
+          "Fuera de combate ya no ves ni te quedas atascado con el PA: se refresca solo con cada acción.",
+          "Recuperado el negro sólido para las zonas nunca exploradas (antes se confundía con la niebla).",
+          "Los enemigos invocados (cofre/altar malos, jefe de la Cripta) ya entran en combate al instante.",
+          "Ahora te acercas solo con un toque a cofres, altares, urnas, palancas y salidas lejanas.",
+          "Nuevos ajustes: Autolootear y Autopasar turno con 0 PA en combate.",
+          "El arquero ya no malgasta el turno huyendo dos veces: huye un paso y dispara.",
+          "Tienda de habilidades: ahora se puede ordenar y filtrar (obtenidas, activas/pasivas, clase).",
+          "Barra de acción dinámica: crece de 4 a 8 huecos y añade filas nuevas según aprendes habilidades.",
+          "Aviso rojo en el centro de la pantalla cuando intentas algo sin PA suficiente.",
+          "El botón de turno ahora se llama \"Terminar turno\".",
+          "Los altares ya tienen el mismo tamaño (el doble de antes) en todos los niveles.",
+          "Si marcas un objetivo, tus habilidades se lanzan directo sobre él."
+        ]
+      },
+      "en": {
+        "title": "Peacetime AP, fog, improved shop and dynamic action bar",
+        "notes": [
+          "Outside combat you no longer see or get stuck with leftover AP: it refreshes after every action.",
+          "Solid black restored for never-explored areas (used to look the same as fog).",
+          "Summoned enemies (bad chest/altar events, the Crypt boss) now trigger combat instantly.",
+          "You now walk up automatically with a single tap to distant chests, altars, urns, levers and exits.",
+          "New settings: Auto-loot and Auto-skip turn at 0 AP in combat.",
+          "The archer no longer wastes its turn fleeing twice: it flees one step and shoots.",
+          "Skill shop: now sortable and filterable (owned, active/passive, class).",
+          "Dynamic action bar: grows from 4 to 8 slots and adds new rows as you learn skills.",
+          "Red on-screen warning when you try something without enough AP.",
+          "The turn button is now called \"End turn\".",
+          "Altars are now the same size (twice as big as before) across every level.",
+          "If you have a target selected, your skills now cast straight onto it."
+        ]
+      }
+    },
+    {
       "v": "0.32.1",
       "es": {
         "title": "IA enemiga más lista y zonas que ya recuerdan",

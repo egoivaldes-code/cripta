@@ -295,7 +295,141 @@ resto (fuera de combate), confirmar que el botón aparece, confirmar que NO
 se puede seguir moviendo con ese resto, pulsar Fin de turno y confirmar que
 el PA se refresca y el héroe puede seguir jugando con normalidad.
 
+## Novedades V0.33
+
+**Refresco de PA fuera de combate, incondicional (`rules.js`)**: el criterio
+`hero.ap<=0 && !state.combat.active` que decidía si tocaba `endHeroTurn()`
+se simplificó a solo `!state.combat.active` en los 6 puntos donde se gasta
+PA (moverse, atacar, interactuar, usar habilidad, emboscada, desarmar
+trampa) — fuera de combate se refresca SIEMPRE, sin mirar cuánto quedaba.
+Elimina de raíz el hueco que la V0.32.1 había tapado solo a medias
+(mostrando el botón de turno cuando quedaba un resto atascado): ahora ese
+resto nunca llega a persistir entre toques. El contador de PA y el botón de
+turno (`ui.js`, `syncHUD`) volvieron a esconderse siempre fuera de combate
+(`!state.combat.active` a secas), ya no hace falta el escape manual.
+
+**Autopasar turno con 0 PA EN combate (opuesto al punto anterior,
+`config.js`: `getAutoSkipZeroAP`/`setAutoSkipZeroAP`, ajuste apagado por
+defecto)**: `maybeAutoSkipZeroAP()` en rules.js, llamada en los mismos 6
+puntos que gastan PA, comprueba `state.combat.active && hero.ap<=0` y llama
+a `endHeroTurn()` si el jugador activó el ajuste — mismo mecanismo que
+antes, pero ahora opcional y solo EN combate (el de fuera de combate ya no
+necesita ajuste, es incondicional).
+
+**Niebla de guerra — negro sólido recuperado (`render.js`)**: el bucle
+principal de dibujo de casillas dibujaba el suelo (loseta o fondo pintado)
+de CUALQUIER casilla dentro de cámara, aplicando el velo de penumbra
+(`rgba(6,8,13,.62)`) solo si no estaba `visible` — sin mirar `explored` en
+ningún momento. Efecto: lo nunca visto se pintaba igual que lo ya
+explorado-pero-en-penumbra. Ahora el bucle comprueba `state.explored[y][x]`
+primero: si es falso, negro sólido y `continue` (ni loseta ni tinte de
+altura ni rejilla); si es true, sigue el dibujo de siempre. `SIGHT_DIM`
+(radio de memoria) pasó de `SIGHT+4` (≈10.5) a un valor fijo de 15.
+
+**Combate instantáneo al invocar (`rules.js`: `rollAltar`,
+`applyChestEvent`, `checkLeverBossSpawn`)**: los 3 puntos que meten un
+enemigo nuevo ya despierto (`dormant:false`) directamente en `state.foes`
+ahora llaman a `computeReach(); if (scanForNewCombatants())
+endHeroTurn(true);` justo después de invocar — mismo patrón que ya usaba
+`triggerAmbush`. `scanForNewCombatants()` activa `state.combat.active` de
+forma SÍNCRONA (antes de que la parte async de `endHeroTurn` — el respiro,
+el sonido — siquiera arranque), así que el hueco donde se podía mover o
+pegar cuerpo a cuerpo fuera de combate a un recién invocado queda cerrado
+de raíz, no por casualidad de timing.
+
+**Pathfinding a objetos, generalizado (`rules.js`: `walkAdjacentThenAct`)**:
+nueva función compartida — si ya está adyacente actúa al momento; si está
+dentro de alcance este turno, usa `bestApproachTile`+`pathTo`+`walkTo` (lo
+mismo que ya tenían los cadáveres) y actúa al llegar; si no llega, aviso/
+pista de siempre. Sustituye la lógica repetida "adyacente=actuar,
+lejos=pista" que tenían por separado cofres, altares, contenedores,
+objetos/palancas genéricos y salidas.
+
+**Ajustes de comodidad persistidos (`config.js`)**: `getAutoLoot`/
+`setAutoLoot` (Autolootear: `ui.js`'s `showLootWindow` llama a
+`lootAllNow()` directo sin abrir la ventana si está activado) y
+`getAutoSkipZeroAP`/`setAutoSkipZeroAP` (ver arriba). Ambos con su propio
+`localStorage` (`cripta.autoLoot`/`cripta.autoSkipZeroAP`), apagados por
+defecto. Casillas nuevas en el panel de Ajustes (`.checkrow`).
+
+**Arquero — `fleeAt` de 2 a 1 (`rules.js`: `RANGED_CFG.enemy4`)**: con
+`fleeAt:2`, tras huir un paso (de distancia 1 a 2) seguía estando "dentro"
+del umbral de huida y huía una SEGUNDA vez, gastando el PA que necesitaba
+para el disparo (coste 3) ese mismo turno. Bajado a 1 (huir solo cuando
+está pegado, que es cuando de verdad hay riesgo de cuerpo a cuerpo): ahora
+huye un paso y dispara en el mismo turno, con PA de sobra (1+3=4=apMax).
+
+**Tienda — orden y filtros (`skills.js`)**: `sortedFilteredSkills()`
+ordena por `getOwnedTier(id)` descendente y, dentro del mismo tier, por el
+precio del PRÓXIMO nivel ascendente (`nextTierPrice`; al máximo, `Infinity`,
+va al final de su grupo). Filtros con estado en el módulo (`filterOwned`/
+`filterKind`/`filterClass`, con setters exportados `setShopFilterX` —
+útiles también para pruebas, ya que el simulador headless no interpreta
+selectores CSS reales) aplicados antes de ordenar. HTML nuevo en
+`index.html` (`.skillshop-filters`, dos grupos de botones tipo `.langbtn` +
+un `<select>` de clase poblado dinámicamente desde `def.skills` en
+`markShopFilters()`).
+
+**Barra de acción dinámica (`skills.js`)**: `ACTIONBAR_SLOTS` fijo (10) se
+sustituyó por `actionBarRowCounts(n)` — la 1ª fila tiene un mínimo de 4
+huecos de serie y crece hasta 8 según se compran más habilidades activas;
+en cuanto hace falta un 9º hueco aparece una 2ª fila (mismo tope de 8, SIN
+mínimo), y así sucesivamente. `renderActionBar()` construye una
+`.actionbar-row` por fila (CSS: `.actionbar` ahora es
+`flex-direction:column`, cada fila es su propio `display:flex` interno).
+Atajos de teclado: `slotIndexForKey('1'-'8')` da el índice LOCAL dentro de
+la fila; el modificador (ninguno/Shift/Ctrl) decide la fila (0/1/2); índice
+final = `fila*8 + local`. Los códigos de tecla 9/0 (que antes cubrían el
+hueco 9º/10º de una sola fila de 10) ya no existen — con el tope de 8 por
+fila no hacían falta.
+
+**Aviso central de PA insuficiente (`ui.js`: `showActionError`,
+`index.html`/`css/styles.css`: `#actionError`)**: texto rojo grande,
+centrado, con animación CSS de entrada/salida (`actionErrorPop`,
+~1.15s) — estilo "mensaje de error" de WoW. Se llama junto a (no en vez de)
+cada `log(t('log.noAP'))` ya existente (ataque, altar/cofre/objeto
+genérico, uso de habilidad) y, nuevo, en el intento de MOVERSE sin PA (el
+toque a una casilla fuera de alcance por `hero.ap<=0` antes era
+completamente silencioso). `pointer-events:none` — nunca bloquea toques.
+
+**Altares — tamaño consistente (`data/levels/*.json`)**: estaban
+descuadrados sin ningún criterio: cementerio con `tall:0.8625` (+50% a
+mano), cripta sin campo `tall` (tamaño base, `PROP_TALL=0.575`), mausoleo1
+con `tall:1.725` (+200% a mano). Los 4 (donde hay altar) se pusieron a
+`tall:1.15` — exactamente el doble del tamaño base, consistente en todos
+los niveles.
+
+**Objetivo + habilidades conectados (`skills.js`: `toggleArm`,
+`tryUseArmedOnFoe`; `ui.js`: `bindFoeBoxTap`, `syncFoeRow`)**: si
+`state.targetFoe` ya está puesto al pulsar una habilidad, se lanza directo
+sobre él (sin armar); si se arma una habilidad primero y se toca la caja de
+un enemigo en la fila de objetivos del HUD, se usa sobre él en vez de
+marcar/desmarcar objetivo. Conectado vía bind (sin import circular:
+`skills.js` ya importa `showConfirm` de `ui.js`).
+
+**Convención de pruebas headless ampliada**: el `fetch()` simulado del
+arnés de pruebas (fuera del repo, en el entorno de trabajo) ahora sirve los
+JSON reales del proyecto en vez de fallar siempre — necesario para poder
+cargar `skills.json` de verdad al probar la tienda/barra de acción. También
+se añadió soporte real de `addEventListener`/`click`/`dispatchEvent` a los
+elementos simulados (antes eran no-op), aunque sigue sin haber un
+`querySelectorAll` real por selector CSS — el cableado de clics que
+depende de eso (filtros de la tienda) se revisó a mano en vez de con una
+prueba automática.
+
 ## Protocolo de pruebas antes de empaquetar (obligatorio)
+
+**`README.md` también se mantiene al día en cada versión** (igual que
+`CHANGELOG.md`/`data/changelog.json`): descripción general del proyecto,
+arquitectura de los 10 módulos, mapas activos, economía de PA, sistemas
+reales (habilidades, guardado, foto por zona, Supabase...). Se quedó
+desactualizado desde la V0.8 (seguía hablando de `level1.json`/
+`level2.json` y sprites de 4 fotogramas) hasta que se puso al día de golpe;
+a partir de ahí, se actualiza junto con `AGENTS.md` cada vez que haya
+cambios de arquitectura o de sistemas relevantes — no hace falta tocarlo en
+fixes puramente internos que no cambian nada de cara a quien lea el README
+(p.ej. un ajuste de IA enemiga que no añade ni quita ningún sistema descrito
+ahí).
 
 Antes de dar cualquier cambio de nivel, mapa o lógica de juego por bueno,
 verificar con un script de Node (no hace falta navegador para esto) copiando

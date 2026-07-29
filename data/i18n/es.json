@@ -64,7 +64,6 @@
   "loghist.loot": "Loot",
   "loghist.event": "Eventos",
   "loghist.empty": "Todavía no ha pasado nada por aquí.",
-
   "log.hitFoe.1": "Golpeas a {name}. <span class=\"dmg\">−{dmg}</span>",
   "log.hitFoe.2": "Tu ataque alcanza a {name}: <span class=\"dmg\">−{dmg}</span>.",
   "log.hitFoe.3": "Hieres a {name} por <span class=\"dmg\">{dmg}</span> de daño.",
@@ -116,7 +115,7 @@
   "set.music": "Música",
   "set.fx": "Efectos",
   "hud.ap": "Acciones",
-  "btn.endturn": "Saltar turno",
+  "btn.endturn": "Terminar turno",
   "log.noAP": "No te quedan acciones suficientes.",
   "log.skillCooldown": "{name} todavía está enfriándose.",
   "log.skillCastSelf": "Usas {name}.",
@@ -257,7 +256,6 @@
   "leaderboard.empty": "Todavía no hay tiempos registrados. ¡Sé el primero!",
   "btn.repositionUI": "Reposicionar interfaz",
   "btn.applyLayout": "Aplicar y cerrar",
-
   "skillshop.title": "Elige tus habilidades",
   "skillshop.subtitle": "Sistema de pruebas — reparte tu oro entre las habilidades disponibles.",
   "skillshop.reset": "Reiniciar progreso",
@@ -274,7 +272,6 @@
   "confirm.finishShop.text": "No podrás volver a la tienda de habilidades hasta la próxima vez que reinicies la partida.",
   "confirm.resetShop.title": "¿Reiniciar el progreso de habilidades?",
   "confirm.resetShop.text": "Perderás todas las habilidades compradas y el oro volverá a 1000.",
-
   "dmgtype.none": "Sin daño",
   "dmgtype.physical": "Físico",
   "dmgtype.fire": "Fuego",
@@ -285,7 +282,6 @@
   "dmgtype.nature": "Naturaleza",
   "dmgtype.heal": "Curación",
   "dmgtype.arcane": "Arcano",
-
   "class.warrior": "Guerrero",
   "class.paladin": "Paladín",
   "class.assassin": "Asesino",
@@ -295,7 +291,6 @@
   "class.druid": "Druida",
   "class.necromancer": "Nigromante",
   "class.hunter": "Cazador",
-
   "skillshop.duration.permanent": "Permanente",
   "skillshop.duration.instant": "Instantánea",
   "skillshop.duration.percombat": "Dura el combate",
@@ -306,141 +301,117 @@
   "skillshop.areaNone": "Objetivo único",
   "skillshop.cooldown": "Enfriamiento: {n} combates (no turnos)",
   "skillshop.cooldownNone": "Sin enfriamiento",
-
   "skill.butcher_precision.name": "Precisión carnicera",
   "skill.butcher_precision.desc": "Aumenta la probabilidad de golpe crítico.",
   "skill.butcher_precision.tier1": "+10% de probabilidad crítica.",
   "skill.butcher_precision.tier2": "+20% de probabilidad crítica.",
   "skill.butcher_precision.tier3": "+30% de probabilidad crítica.",
-
   "skill.faith_strikes.name": "Golpes de fe",
   "skill.faith_strikes.desc": "El daño físico cuerpo a cuerpo tiene una probabilidad de curarte parte de lo infligido.",
   "skill.faith_strikes.tier1": "15% de probabilidad de sanarte el 25% del daño infligido cuerpo a cuerpo.",
   "skill.faith_strikes.tier2": "30% de probabilidad de sanarte el 25% del daño infligido cuerpo a cuerpo.",
   "skill.faith_strikes.tier3": "45% de probabilidad de sanarte el 25% del daño infligido cuerpo a cuerpo.",
-
   "skill.flame_slash.name": "Tajo llameante",
   "skill.flame_slash.desc": "Un golpe de arma envuelto en fuego que quema al enemigo unos turnos tras el impacto.",
   "skill.flame_slash.tier1": "Daño de fuego bajo, quemadura breve.",
   "skill.flame_slash.tier2": "Más daño de fuego y la quemadura dura más turnos.",
   "skill.flame_slash.tier3": "Daño de fuego alto, quemadura larga y algo de área alrededor del objetivo.",
-
   "skill.iron_skin.name": "Piel de hierro",
   "skill.iron_skin.desc": "Endurece la piel del héroe de forma permanente, reduciendo el daño físico recibido.",
   "skill.iron_skin.tier1": "+ armadura leve.",
   "skill.iron_skin.tier2": "+ armadura moderada.",
   "skill.iron_skin.tier3": "+ armadura alta.",
-
   "skill.frost_arrow.name": "Flecha de escarcha",
   "skill.frost_arrow.desc": "Dispara una flecha helada a distancia que ralentiza al enemigo un instante.",
   "skill.frost_arrow.tier1": "Daño de hielo bajo; ralentiza 1 turno.",
   "skill.frost_arrow.tier2": "Más daño de hielo; ralentiza 2 turnos.",
   "skill.frost_arrow.tier3": "Daño de hielo alto; ralentiza 2 turnos y puede llegar a congelar del todo.",
-
   "skill.poison_cloud.name": "Nube de veneno",
   "skill.poison_cloud.desc": "Lanza un frasco que estalla en una nube tóxica, envenenando todo lo que quede dentro del área.",
   "skill.poison_cloud.tier1": "Veneno leve en un área pequeña.",
   "skill.poison_cloud.tier2": "Más veneno y algo más de área.",
   "skill.poison_cloud.tier3": "Veneno intenso en un área grande, con más turnos de efecto.",
-
   "skill.holy_smite.name": "Golpe sagrado",
   "skill.holy_smite.desc": "Un golpe cuerpo a cuerpo cargado de luz sagrada, especialmente dañino contra los no-muertos.",
   "skill.holy_smite.tier1": "Daño sagrado bajo.",
   "skill.holy_smite.tier2": "Daño sagrado moderado.",
   "skill.holy_smite.tier3": "Daño sagrado alto, con posibilidad de aturdir un instante.",
-
   "skill.war_cry.name": "Grito de guerra",
   "skill.war_cry.desc": "Un rugido que infunde valor: aumenta el daño propio durante unos turnos.",
   "skill.war_cry.tier1": "+ daño leve durante 2 turnos.",
   "skill.war_cry.tier2": "+ daño moderado durante 2 turnos.",
   "skill.war_cry.tier3": "+ daño alto durante 3 turnos.",
-
   "skill.cat_reflexes.name": "Reflejos felinos",
   "skill.cat_reflexes.desc": "Agudiza los reflejos del héroe, aumentando la probabilidad de esquivar ataques.",
   "skill.cat_reflexes.tier1": "+ esquiva leve.",
   "skill.cat_reflexes.tier2": "+ esquiva moderada.",
   "skill.cat_reflexes.tier3": "+ esquiva alta.",
-
   "skill.bloodlust.name": "Sed de sangre",
   "skill.bloodlust.desc": "Cada enemigo derrotado alimenta la furia del héroe, aumentando su daño el resto del combate.",
   "skill.bloodlust.tier1": "+ daño leve por cada muerte (no acumulable entre combates).",
   "skill.bloodlust.tier2": "+ daño moderado por cada muerte.",
   "skill.bloodlust.tier3": "+ daño alto por cada muerte.",
-
   "skill.shadow_strike.name": "Golpe desde las Sombras",
   "skill.shadow_strike.desc": "El asesino se desplaza junto al enemigo objetivo de un parpadeo y ataca antes de que pueda reaccionar.",
   "skill.shadow_strike.tier1": "+30% de probabilidad de crítico en el golpe.",
   "skill.shadow_strike.tier2": "+50% de probabilidad de crítico y algo más de daño.",
   "skill.shadow_strike.tier3": "Crítico garantizado la primera vez que se usa en cada combate.",
-
   "skill.lethal_instinct.name": "Instinto Letal",
   "skill.lethal_instinct.desc": "Cuanto más débil está la presa, más letal es el golpe del asesino.",
   "skill.lethal_instinct.tier1": "+15% daño contra enemigos por debajo del 30% de vida.",
   "skill.lethal_instinct.tier2": "+25% daño contra enemigos por debajo del 40% de vida.",
   "skill.lethal_instinct.tier3": "+35% daño contra enemigos por debajo del 50% de vida.",
-
   "skill.arcane_chain.name": "Cadena Arcana",
   "skill.arcane_chain.desc": "Un rayo de energía que salta de enemigo en enemigo, perdiendo algo de fuerza en cada salto.",
   "skill.arcane_chain.tier1": "Golpea al objetivo y salta a 1 enemigo cercano con daño reducido.",
   "skill.arcane_chain.tier2": "Salta a 2 enemigos, menos pérdida de daño por salto.",
   "skill.arcane_chain.tier3": "Salta a 3 enemigos, casi sin pérdida de daño.",
-
   "skill.arcane_overload.name": "Sobrecarga Arcana",
   "skill.arcane_overload.desc": "Cada tanto, el hechizo del mago sale gratis: no consume su enfriamiento.",
   "skill.arcane_overload.tier1": "10% de probabilidad de no gastar enfriamiento al lanzar una activa.",
   "skill.arcane_overload.tier2": "18% de probabilidad.",
   "skill.arcane_overload.tier3": "28% de probabilidad, y si ocurre dos veces seguidas cura un poco de vida.",
-
   "skill.blood_pact.name": "Pacto de Sangre",
   "skill.blood_pact.desc": "El brujo paga con su propia vida para lanzar un ataque mucho más dañino de lo normal.",
   "skill.blood_pact.tier1": "Pierde 10% de tu vida actual, inflige daño de sombra alto.",
   "skill.blood_pact.tier2": "Pierde 8% de tu vida actual, daño mayor.",
   "skill.blood_pact.tier3": "Pierde 6% de tu vida actual, daño muy alto, y roba parte de esa vida de vuelta si el golpe mata.",
-
   "skill.circle_of_rebirth.name": "Círculo de Renacer",
   "skill.circle_of_rebirth.desc": "Un anillo de luz que estabiliza a quien esté dentro de su radio.",
   "skill.circle_of_rebirth.tier1": "Cura una cantidad moderada al lanzarla.",
   "skill.circle_of_rebirth.tier2": "Cura más y además queda 1 turno curando algo cada ronda.",
   "skill.circle_of_rebirth.tier3": "Cura mucho, queda 2 turnos curando, y evita morir de un golpe una vez mientras esté activo.",
-
   "skill.watchful_grace.name": "Gracia Vigilante",
   "skill.watchful_grace.desc": "Un pequeño escudo se reconstruye solo cada turno mientras no se rompe del todo.",
   "skill.watchful_grace.tier1": "+5% de un escudo que absorbe daño, se renueva cada turno.",
   "skill.watchful_grace.tier2": "+10% de escudo.",
   "skill.watchful_grace.tier3": "+15% de escudo, y si aguanta un turno entero sin romperse, cura un poco extra.",
-
   "skill.wild_shape.name": "Forma Salvaje",
   "skill.wild_shape.desc": "El druida se transforma en una bestia varios turnos, cambiando su forma de luchar.",
   "skill.wild_shape.tier1": "2 turnos como fiera: +daño físico cuerpo a cuerpo.",
   "skill.wild_shape.tier2": "3 turnos, +más daño físico y algo de armadura.",
   "skill.wild_shape.tier3": "4 turnos, +daño físico alto, armadura, y cura un poco al golpear.",
-
   "skill.natural_symbiosis.name": "Simbiosis Natural",
   "skill.natural_symbiosis.desc": "El druida se recupera con el entorno vivo del nivel.",
   "skill.natural_symbiosis.tier1": "Cura una pequeña cantidad al final de cada turno si no ha recibido daño ese turno.",
   "skill.natural_symbiosis.tier2": "Cura más, y también si ha recibido poco daño.",
   "skill.natural_symbiosis.tier3": "Cura aún más, y da un pequeño extra de armadura mientras está a vida completa.",
-
   "skill.soul_harvest.name": "Cosecha de Almas",
   "skill.soul_harvest.desc": "Cada enemigo que muere cerca del nigromante alimenta su poder, acumulándose durante el combate.",
   "skill.soul_harvest.tier1": "+4% daño por cada muerte cercana (no acumulable entre combates).",
   "skill.soul_harvest.tier2": "+7% por muerte cercana.",
   "skill.soul_harvest.tier3": "+10% por muerte cercana, y al llegar a 5 stacks el próximo hechizo no gasta enfriamiento.",
-
   "skill.multi_shot.name": "Disparo Múltiple",
   "skill.multi_shot.desc": "Dispara una andanada de flechas que atraviesa a todo lo que haya en línea recta frente al cazador.",
   "skill.multi_shot.tier1": "Golpea hasta 2 enemigos en línea, daño moderado.",
   "skill.multi_shot.tier2": "Hasta 3 enemigos, más daño.",
   "skill.multi_shot.tier3": "Hasta 4 enemigos, daño alto, y ralentiza un turno a todos los que golpea.",
-
   "stat.group.skills": "Habilidades",
   "stat.group.skillsEmpty": "Ninguna todavía",
-
   "altar.kicker": "Altar antiguo",
   "altar.title": "Un altar cubierto de velas",
   "altar.hint": "Un altar de piedra, rodeado de velas encendidas.",
   "altar.question": "¿Quieres inclinarte ante el altar?",
-
   "altar.ev1.title": "Luz sanadora",
   "altar.ev1.result": "Una luz cálida envuelve tu cuerpo y cierra cada herida.",
   "altar.ev2.title": "Lluvia de oro",
@@ -461,15 +432,12 @@
   "altar.ev9.result": "Una grieta oscura se abre junto al altar. Algo ha salido de ella.",
   "altar.ev10.title": "Maldición de fragilidad",
   "altar.ev10.result": "Un aura quebradiza se pega a tu piel. Los próximos golpes te dolerán más.",
-
   "log.altarSpent": "El altar ya no muestra ningún poder.",
   "log.chestSpent": "El cofre ya está vacío.",
-
   "chest.kicker": "Cofre",
   "chest.hint": "Un cofre cerrado, cubierto de polvo.",
   "chest.title": "Un cofre cerrado",
   "chest.question": "Te acercas al cofre... ¿lo intentas abrir?",
-
   "chest.ev1.title": "Tesoro abundante",
   "chest.ev1.result": "Dentro brillan más monedas de las que esperabas.",
   "chest.ev2.title": "Bolsa de monedas",
@@ -483,5 +451,13 @@
   "chest.ev6.title": "Ruido en la oscuridad",
   "chest.ev6.result": "El chirrido de la tapa despierta a algo cerca.",
   "log.golemExecute": "El {name} remata a la víctima malherida de un solo golpe y se fortalece con ello.",
-  "log.golemStun": "El {name} golpea con fuerza y te deja aturdido."
+  "log.golemStun": "El {name} golpea con fuerza y te deja aturdido.",
+  "set.autoloot": "Autolootear (coger todo automáticamente)",
+  "set.autoskipzeroap": "Autopasar turno con 0 PA en combate",
+  "skillshop.filter.owned.all": "Todas",
+  "skillshop.filter.owned.owned": "Obtenidas",
+  "skillshop.filter.kind.all": "Todas",
+  "skillshop.filter.kind.active": "Activas",
+  "skillshop.filter.kind.passive": "Pasivas",
+  "skillshop.filter.allclasses": "Todas las clases"
 }

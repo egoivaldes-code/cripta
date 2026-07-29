@@ -13254,7 +13254,8 @@
       "y": 43,
       "id": "altar_1",
       "type": "altar",
-      "sprite": "altar"
+      "sprite": "altar",
+      "tall": 1.15
     },
     {
       "x": 6,
@@ -13352,7 +13353,8 @@
       "y": 6,
       "id": "altar_2",
       "type": "altar",
-      "sprite": "altar"
+      "sprite": "altar",
+      "tall": 1.15
     },
     {
       "x": 47,

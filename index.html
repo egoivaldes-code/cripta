@@ -14,7 +14,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Cripta</title>
-<link rel="stylesheet" href="./css/styles.css?v=0.32.1">
+<link rel="stylesheet" href="./css/styles.css?v=0.33">
 </head>
 <body>
 <div id="game">
@@ -115,6 +115,9 @@
         <button class="langbtn" id="speedFast" data-speed="fast"></button>
       </div>
 
+      <label class="checkrow"><input type="checkbox" id="autoLootCheck"><span id="setAutoLootLabel"></span></label>
+      <label class="checkrow"><input type="checkbox" id="autoSkipZeroAPCheck"><span id="setAutoSkipZeroAPLabel"></span></label>
+
       <button class="primary" id="repositionBtn"></button>
 
       <button class="primary" id="reset" aria-label="Reiniciar"></button>
@@ -128,6 +131,12 @@
 
   <!-- Botón flotante que ancla la interfaz en su sitio al reposicionarla. -->
   <button class="layoutApplyBtn" id="layoutApplyBtn"></button>
+
+  <!-- Aviso central de acción bloqueada (estilo "mensaje de error" de WoW):
+       texto rojo grande en medio de la pantalla, un instante, cuando se
+       intenta mover/atacar/usar algo sin PA suficiente. No bloquea toques
+       (pointer-events:none) — ver showActionError() en ui.js. -->
+  <div class="actionError" id="actionError"></div>
 
   <!-- Carta de evento -->
   <div class="veil" id="veil"><div class="card" id="card"></div></div>
@@ -188,6 +197,18 @@
     </div>
     <div class="skillshop-subtitle" id="skillShopSubtitle"></div>
     <div class="skillshop-notice" id="shopNotice"></div>
+    <div class="skillshop-filters" id="skillShopFilters">
+      <div class="skillshop-filter-group" id="filterOwnedGroup" data-filter="owned">
+        <button class="langbtn" data-value="all"></button>
+        <button class="langbtn" data-value="owned"></button>
+      </div>
+      <div class="skillshop-filter-group" id="filterKindGroup" data-filter="kind">
+        <button class="langbtn" data-value="all"></button>
+        <button class="langbtn" data-value="active"></button>
+        <button class="langbtn" data-value="passive"></button>
+      </div>
+      <select class="skillshop-classfilter" id="filterClassSelect"></select>
+    </div>
     <div class="skillshop-body" id="skillShopBody"></div>
     <div class="skillshop-foot">
       <button class="primary skillshop-finish" id="shopFinishBtn"></button>
@@ -195,6 +216,6 @@
   </div>
 </div>
 
-<script type="module" src="./js/main.js?v=0.32.1"></script>
+<script type="module" src="./js/main.js?v=0.33"></script>
 </body>
 </html>

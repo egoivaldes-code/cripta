@@ -7,11 +7,11 @@
 // La altura de cada casilla se pinta con un tinte y, en los escalones, un
 // borde de color: VERDE en el lado alto, ROJO en el lado bajo (estilo Descent).
 
-import { state, elevAt, pathTo, foeAt, blockingTriggerAt, exitAt, adjacent } from './state.js?v=0.32.1';
-import { isAITurnActive } from './rules.js?v=0.32.1';
-import { TILE, CAMERA_MARGIN, ZOOM_MIN, ZOOM_MAX, ZOOM_DEFAULT, TOKEN_TALL, HERO_TALL, PROP_TALL } from './config.js?v=0.32.1';
-import { images, ATLAS_TILE, SPRITE_TILE } from './assets.js?v=0.32.1';
-import * as anim from './anim.js?v=0.32.1';
+import { state, elevAt, pathTo, foeAt, blockingTriggerAt, exitAt, adjacent } from './state.js?v=0.33';
+import { isAITurnActive } from './rules.js?v=0.33';
+import { TILE, CAMERA_MARGIN, ZOOM_MIN, ZOOM_MAX, ZOOM_DEFAULT, TOKEN_TALL, HERO_TALL, PROP_TALL } from './config.js?v=0.33';
+import { images, ATLAS_TILE, SPRITE_TILE } from './assets.js?v=0.33';
+import * as anim from './anim.js?v=0.33';
 
 // Algunos artes vienen dibujados mirando a la izquierda de serie (en vez de a
 // la derecha, que es lo que se asume en el resto del código al calcular hacia
@@ -372,6 +372,13 @@ function draw(ts) {
 
   for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
     const s = worldToScreen(x * TILE, y * TILE);
+    const explored = state.explored[y] && state.explored[y][x];
+    if (!explored) {
+      // Nunca visto: negro sólido, sin dibujar suelo/arte debajo (si no, se
+      // confunde con la niebla de las casillas YA exploradas).
+      ctx.fillStyle = '#000'; ctx.fillRect(s.x - SEAM, s.y - SEAM, T + SEAM*2, T + SEAM*2);
+      continue;
+    }
     const value = tiles[y][x];
     if (!bgImg) {
       if (atlas) ctx.drawImage(atlas, atlasCol(value, x, y) * ATLAS_TILE, 0, ATLAS_TILE, ATLAS_TILE, s.x, s.y, T, T);

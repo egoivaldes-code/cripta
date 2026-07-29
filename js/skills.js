@@ -18,12 +18,12 @@
 // estado + render + interacción para toda esta pantalla, ya que es un bloque
 // autocontenido de la interfaz.
 
-import { state } from './state.js?v=0.32.1';
-import { t } from './i18n.js?v=0.32.1';
-import { VERSION, ATTACK_COST } from './config.js?v=0.32.1';
-import { showConfirm } from './ui.js?v=0.32.1';
-import { getPersistedGold, persistGold } from './savegame.js?v=0.32.1';
-import { logEvent } from './telemetry.js?v=0.32.1';
+import { state } from './state.js?v=0.33';
+import { t } from './i18n.js?v=0.33';
+import { VERSION, ATTACK_COST } from './config.js?v=0.33';
+import { showConfirm } from './ui.js?v=0.33';
+import { getPersistedGold, persistGold } from './savegame.js?v=0.33';
+import { logEvent } from './telemetry.js?v=0.33';
 
 // rules.js no se puede importar aquí (import circular: rules.js ya importa
 // getOwnedTier/getSkillDef de aquí) — el enfriamiento restante se conecta
@@ -33,7 +33,23 @@ export function bindGetSkillCooldownLeft(fn) { cooldownLeftFn = fn; }
 
 const STORAGE_KEY = 'cripta.skills';
 const TIER_COUNT = 3;
-const ACTIONBAR_SLOTS = 10;
+const ACTIONBAR_ROW_MAX = 8;    // tope de huecos por fila
+const ACTIONBAR_ROW1_MIN = 4;   // la primera fila siempre muestra al menos estos, de serie
+
+// Cuántos huecos se ven en cada fila para `n` habilidades activas compradas.
+// La 1ª fila siempre existe, con un mínimo de 4 huecos de serie, y va
+// creciendo hasta 8 según se compran más; en cuanto hace falta un 9º hueco
+// aparece una 2ª fila (mismo tope de 8, pero SIN mínimo — no se adelantan
+// huecos vacíos de más), luego una 3ª a partir del 17º, y así sucesivamente.
+function actionBarRowCounts(n) {
+  const rows = Math.max(1, Math.ceil(n / ACTIONBAR_ROW_MAX));
+  const out = [];
+  for (let r = 0; r < rows; r++) {
+    const ownedHere = Math.max(0, Math.min(ACTIONBAR_ROW_MAX, n - r * ACTIONBAR_ROW_MAX));
+    out.push(r === 0 ? Math.max(ACTIONBAR_ROW1_MIN, ownedHere) : ownedHere);
+  }
+  return out;
+}
 
 // Letras/colores de icono provisional mientras no haya arte de verdad para
 // una habilidad (ver assets/ui/skills/<id>.png). En cuanto ese archivo exista
@@ -72,7 +88,7 @@ export function bindUseActiveSkill(fn) { useSkillFn = fn; }
 let armedSkillId = null;
 export function getArmedSkill() { return armedSkillId; }
 
-function toggleArm(id) {
+export function toggleArm(id) {
   const s = skillDef(id);
   if (!s || getOwnedTier(id) <= 0) return;
   if (s.range === 0) {                 // auto-lanzamiento: no hace falta objetivo
@@ -80,30 +96,45 @@ function toggleArm(id) {
     renderActionBar();
     return;
   }
+  // Si ya hay un enemigo marcado como objetivo (marco de objetivo — ver
+  // syncFoeRow en ui.js), lanzarla directo sobre él en vez de armar y
+  // esperar a que se vuelva a tocar algo: da igual el orden en que se
+  // toquen las dos cosas (objetivo primero y habilidad después, o al
+  // revés — ver también tryUseArmedOnFoe más abajo para el otro sentido).
+  // Si falla (fuera de alcance, sin línea de visión...), useSkillFn ya
+  // deja su propio aviso en el registro; no se arma nada en ese caso.
+  if (state.targetFoe && state.targetFoe.alive) {
+    useSkillFn(id, state.targetFoe.x, state.targetFoe.y);
+    renderActionBar();
+    return;
+  }
   armedSkillId = (armedSkillId === id) ? null : id;
   renderActionBar();
 }
 
-// Atajos de teclado para PC: 1-9 arman el hueco 1-9 de la barra de acción,
-// 0 arma el 10º (último) hueco — igual que si se tocara directamente. Solo
-// tiene sentido con teclado de verdad, así que no hace nada especial en
-// móvil (simplemente no hay tecla que pulsar). Se ignora si el foco está en
-// un campo de texto (el nombre del leaderboard, por ejemplo) para no robarle
-// las teclas mientras se escribe, y si hay algún modificador (Ctrl/Alt/Meta)
-// por si el navegador quiere usarlas para otra cosa.
+// Atajos de teclado para PC: 1-8 arman el hueco 1-8 de la PRIMERA fila de la
+// barra de acción, Shift+1-8 los de la segunda fila, Ctrl+1-8 los de la
+// tercera — igual que si se tocara directamente. Solo tiene sentido con
+// teclado de verdad, así que no hace nada especial en móvil (no hay tecla
+// que pulsar). Se ignora si el foco está en un campo de texto (el nombre del
+// leaderboard, por ejemplo) para no robarle las teclas mientras se escribe,
+// y con Alt/Meta por si el navegador quiere usarlas para otra cosa (Ctrl y
+// Shift sí se usan aquí, a propósito, para elegir la fila).
 function slotIndexForKey(key) {
-  if (key >= '1' && key <= '9') return key.charCodeAt(0) - '1'.charCodeAt(0);
-  if (key === '0') return 9;
+  if (key >= '1' && key <= '8') return key.charCodeAt(0) - '1'.charCodeAt(0);
   return -1;
 }
 function initActionBarHotkeys() {
   document.addEventListener('keydown', (e) => {
-    if (e.ctrlKey || e.altKey || e.metaKey) return;
+    if (e.altKey || e.metaKey) return;
+    if (e.shiftKey && e.ctrlKey) return;   // sin fila para los dos modificadores a la vez
     const tag = document.activeElement && document.activeElement.tagName;
     if (tag === 'INPUT' || tag === 'TEXTAREA') return;
-    const idx = slotIndexForKey(e.key);
-    if (idx < 0 || idx >= ACTIONBAR_SLOTS) return;
-    const s = getActiveOwnedSkills()[idx];
+    const localIdx = slotIndexForKey(e.key);
+    if (localIdx < 0) return;
+    const row = e.ctrlKey ? 2 : (e.shiftKey ? 1 : 0);
+    const flatIdx = row * ACTIONBAR_ROW_MAX + localIdx;
+    const s = getActiveOwnedSkills()[flatIdx];
     if (!s) return;
     const cdLeft = cooldownLeftFn(s.id);
     const noAP = !!(state.hero && state.hero.ap < ATTACK_COST);
@@ -122,6 +153,17 @@ export function tryUseArmedOnTile(gx, gy) {
   if (used) armedSkillId = null;
   renderActionBar();
   return used;
+}
+
+// Igual que tryUseArmedOnTile, pero para cuando el toque cae en el marco/
+// caja de un enemigo (fila de objetivos del HUD, ver syncFoeRow en ui.js)
+// en vez de su casilla en el mapa — mismo resultado, da igual dónde se toque
+// al enemigo. Devuelve false sin hacer nada si no hay ninguna habilidad
+// armada, para que quien llama siga con su comportamiento normal (marcar/
+// desmarcar objetivo).
+export function tryUseArmedOnFoe(foe) {
+  if (!armedSkillId || !foe) return false;
+  return tryUseArmedOnTile(foe.x, foe.y);
 }
 
 // --- persistencia (solo los tiers comprados; el oro va aparte, ver arriba) --
@@ -302,9 +344,43 @@ function cardHTML(s) {
 
 function renderGold() { if (goldEl) goldEl.textContent = getGoldNow(); }
 
+// --- filtros y orden de la tienda ------------------------------------------
+// Orden: primero por tier YA POSEÍDO, descendente (lo más avanzado arriba);
+// dentro del mismo tier poseído, por precio del PRÓXIMO nivel, ascendente
+// (lo más barato de mejorar primero). Al máximo (sin precio siguiente) va al
+// final de su grupo de tier.
+let filterOwned = 'all';    // 'all' | 'owned'
+let filterKind = 'all';     // 'all' | 'active' | 'passive'
+let filterClass = 'all';    // 'all' | <id de clase>
+
+function nextTierPrice(s) {
+  const tier = getOwnedTier(s.id);
+  return tier >= TIER_COUNT ? Infinity : s.tiers[tier].price;
+}
+
+function classList() {
+  return [...new Set(def.skills.map(s => s.class).filter(Boolean))].sort();
+}
+
+export function setShopFilterOwned(v) { filterOwned = v; renderCards(); }
+export function setShopFilterKind(v) { filterKind = v; renderCards(); }
+export function setShopFilterClass(v) { filterClass = v; renderCards(); }
+
+function sortedFilteredSkills() {
+  return def.skills
+    .filter(s => filterOwned === 'all' || getOwnedTier(s.id) > 0)
+    .filter(s => filterKind === 'all' || s.kind === filterKind)
+    .filter(s => filterClass === 'all' || s.class === filterClass)
+    .sort((a, b) => {
+      const ta = getOwnedTier(a.id), tb = getOwnedTier(b.id);
+      if (tb !== ta) return tb - ta;
+      return nextTierPrice(a) - nextTierPrice(b);
+    });
+}
+
 function renderCards() {
   if (!bodyEl) return;
-  bodyEl.innerHTML = def.skills.map(cardHTML).join('');
+  bodyEl.innerHTML = sortedFilteredSkills().map(cardHTML).join('');
   bodyEl.querySelectorAll('[data-buy]').forEach(btn => {
     btn.addEventListener('click', () => {
       if (buy(btn.dataset.buy)) {
@@ -319,25 +395,30 @@ function renderCards() {
 
 function renderAll() { renderGold(); renderCards(); }
 
-// --- barra de acción (10 slots, abajo, movible por separado) --------------
+// --- barra de acción (filas dinámicas: 4→8 huecos en la 1ª, filas nuevas
+// cada 8 habilidades activas más — ver actionBarRowCounts) -----------------
 
 let actionBarEl = null;
 
 export function renderActionBar() {
   if (!actionBarEl) return;
   const actives = getActiveOwnedSkills();
-  const slots = [];
-  for (let i = 0; i < ACTIONBAR_SLOTS; i++) {
-    const s = actives[i];
-    if (!s) { slots.push(`<div class="actionbar-slot"></div>`); continue; }
-    const cdLeft = cooldownLeftFn(s.id);
-    const noAP = !!(state.hero && state.hero.ap < ATTACK_COST);
-    const locked = cdLeft > 0 || noAP;
-    slots.push(
-      `<div class="actionbar-slot actionbar-filled${armedSkillId === s.id ? ' actionbar-armed' : ''}${locked ? ' actionbar-locked' : ''}" data-skill="${s.id}" data-locked="${locked ? '1' : '0'}" title="${t(`skill.${s.id}.name`)}">${iconHTML(s)}${cdLeft > 0 ? `<div class="actionbar-cd">${cdLeft}</div>` : ''}</div>`
-    );
-  }
-  actionBarEl.innerHTML = slots.join('');
+  const rowCounts = actionBarRowCounts(actives.length);
+  const rowsHTML = rowCounts.map((count, r) => {
+    const slots = [];
+    for (let i = 0; i < count; i++) {
+      const s = actives[r * ACTIONBAR_ROW_MAX + i];
+      if (!s) { slots.push(`<div class="actionbar-slot"></div>`); continue; }
+      const cdLeft = cooldownLeftFn(s.id);
+      const noAP = !!(state.hero && state.hero.ap < ATTACK_COST);
+      const locked = cdLeft > 0 || noAP;
+      slots.push(
+        `<div class="actionbar-slot actionbar-filled${armedSkillId === s.id ? ' actionbar-armed' : ''}${locked ? ' actionbar-locked' : ''}" data-skill="${s.id}" data-locked="${locked ? '1' : '0'}" title="${t(`skill.${s.id}.name`)}">${iconHTML(s)}${cdLeft > 0 ? `<div class="actionbar-cd">${cdLeft}</div>` : ''}</div>`
+      );
+    }
+    return `<div class="actionbar-row" data-row="${r}">${slots.join('')}</div>`;
+  }).join('');
+  actionBarEl.innerHTML = rowsHTML;
   actionBarEl.querySelectorAll('[data-skill]').forEach(el => {
     el.addEventListener('click', () => { if (el.dataset.locked === '1') return; toggleArm(el.dataset.skill); });
   });
@@ -356,9 +437,47 @@ export function initSkillShop() {
     showConfirm(t('confirm.resetShop.title'), t('confirm.resetShop.text'), resetProgress);
   });
 
+  document.querySelectorAll('.skillshop-filter-group[data-filter]').forEach(group => {
+    const key = group.dataset.filter;   // 'owned' | 'kind'
+    group.querySelectorAll('button[data-value]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (key === 'owned') filterOwned = btn.dataset.value;
+        else filterKind = btn.dataset.value;
+        markShopFilters();
+        renderCards();
+      });
+    });
+  });
+  document.getElementById('filterClassSelect').addEventListener('change', e => {
+    filterClass = e.target.value;
+    renderCards();
+  });
+
+  markShopFilters();
   renderAll();
   renderActionBar();
   initActionBarHotkeys();
+}
+
+// Textos + opción seleccionada de los 3 filtros (se llama al iniciar y cada
+// vez que cambia el idioma, igual que el resto de refreshSkillTexts).
+function markShopFilters() {
+  document.querySelectorAll('#filterOwnedGroup button[data-value]').forEach(b => {
+    b.textContent = t(`skillshop.filter.owned.${b.dataset.value}`);
+    b.classList.toggle('on', b.dataset.value === filterOwned);
+  });
+  document.querySelectorAll('#filterKindGroup button[data-value]').forEach(b => {
+    b.textContent = t(`skillshop.filter.kind.${b.dataset.value}`);
+    b.classList.toggle('on', b.dataset.value === filterKind);
+  });
+  const sel = document.getElementById('filterClassSelect');
+  if (sel) {
+    const classes = classList();
+    sel.innerHTML = `<option value="all">${t('skillshop.filter.allclasses')}</option>` +
+      classes.map(c => `<option value="${c}">${t(`class.${c}`)}</option>`).join('');
+    sel.value = classes.includes(filterClass) ? filterClass : 'all';
+    if (sel.value !== filterClass) filterClass = sel.value;
+  }
 }
 
 export function openSkillShop() {
@@ -375,6 +494,7 @@ export function closeSkillShop() {
 // Si cambia el idioma con la tienda abierta o la barra de acción visible,
 // hay que repintar (los textos y el título de cada slot dependen de t()).
 export function refreshSkillTexts() {
+  markShopFilters();
   if (shopEl && shopEl.classList.contains('show')) renderAll();
   renderActionBar();
 }

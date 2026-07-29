@@ -1,15 +1,15 @@
 // Reglas del juego: economía de Puntos de Acción (PA), interacción a distancia
 // y adyacente, trampas, niebla y salida de nivel. Agnóstico del dibujo.
 
-import { state, walkable, isWall, adjacent, distTo, isVisible, recomputeFog, computeReach, pathTo, findPath, findApproachPath, reachCost, blockingTriggerAt, trapAt, walkTriggerAt, exitAt, stepNeighbors, foeAt, corpseAt, livingFoes, losClear, revealAllExplored } from './state.js?v=0.32.1';
-import { openEvent, openLeverCard, openAltarCard, openChestCard, openTrapCard, openStoryCard, syncHUD, syncInitiativeUI, showCombatBadge, showLootWindow, showConfirm, log, gameOver } from './ui.js?v=0.32.1';
-import { t, tRandom } from './i18n.js?v=0.32.1';
-import { MOVE_COST, ATTACK_COST, INITIATIVE_BASE, INITIATIVE_DIE, TURN_DELAY, COMBAT_ENTER_DELAY, getGameSpeed, setGameSpeed, speedMult, moveDurationMs, ARMOR_CONSTANT } from './config.js?v=0.32.1';
-import * as anim from './anim.js?v=0.32.1';
-import { ANIM_CLIPS } from './anim.js?v=0.32.1';
-import * as audio from './audio.js?v=0.32.1';
-import { centerOnTile } from './render.js?v=0.32.1';
-import { getOwnedTier, getSkillDef } from './skills.js?v=0.32.1';
+import { state, walkable, isWall, adjacent, distTo, isVisible, recomputeFog, computeReach, pathTo, findPath, findApproachPath, reachCost, blockingTriggerAt, trapAt, walkTriggerAt, exitAt, stepNeighbors, foeAt, corpseAt, livingFoes, losClear, revealAllExplored } from './state.js?v=0.33';
+import { openEvent, openLeverCard, openAltarCard, openChestCard, openTrapCard, openStoryCard, syncHUD, syncInitiativeUI, showCombatBadge, showLootWindow, showConfirm, log, gameOver, showActionError } from './ui.js?v=0.33';
+import { t, tRandom } from './i18n.js?v=0.33';
+import { MOVE_COST, ATTACK_COST, INITIATIVE_BASE, INITIATIVE_DIE, TURN_DELAY, COMBAT_ENTER_DELAY, getGameSpeed, setGameSpeed, speedMult, moveDurationMs, ARMOR_CONSTANT, getAutoSkipZeroAP } from './config.js?v=0.33';
+import * as anim from './anim.js?v=0.33';
+import { ANIM_CLIPS } from './anim.js?v=0.33';
+import * as audio from './audio.js?v=0.33';
+import { centerOnTile } from './render.js?v=0.33';
+import { getOwnedTier, getSkillDef } from './skills.js?v=0.33';
 
 const sign = (n) => Math.sign(n);
 
@@ -340,6 +340,14 @@ function scanForNewCombatants() {
   return !wasActive && state.combat.active;
 }
 
+// Ajuste de comodidad "Autopasar turno con 0 PA en combate" (Ajustes): si
+// está activado, quedarte sin PA en pleno combate pasa el turno solo, en vez
+// de esperar a que se toque "Fin de turno" a mano. Se llama justo después de
+// cada acción que gasta PA, igual que ya se hacía a mano en cada sitio.
+function maybeAutoSkipZeroAP() {
+  if (state.combat.active && state.hero.ap <= 0 && getAutoSkipZeroAP()) endHeroTurn();
+}
+
 // Si ya no queda ningún enemigo vivo, se acaba el combate (oculta la barra de
 // iniciativa). No afecta a la victoria/derrota, que ya se gestiona aparte.
 // Sale de combate en cuanto no quede ningún enemigo VIVO de los que ya
@@ -573,7 +581,7 @@ export function attemptDisarm(trap) {
   const { hero } = state;
   const ev = state.events[trap.id];
   const cost = (ev && ev.actionCost) || 1;
-  if (hero.ap < cost) { log(t('log.noAP')); state.busy = false; return; }
+  if (hero.ap < cost) { log(t('log.noAP')); showActionError(t('log.noAP')); state.busy = false; return; }
   hero.ap -= cost; syncHUD();
   anim.activateAnim('hero', 'hero');
   if (Math.random() < 0.5) {
@@ -592,7 +600,8 @@ export function attemptDisarm(trap) {
   state.busy = false;
   if (hero.hp <= 0) return gameOver('lose');
   computeReach();
-  if (hero.ap <= 0 && !state.combat.active) endHeroTurn();
+  if (!state.combat.active) endHeroTurn();
+  else maybeAutoSkipZeroAP();
 }
 
 // Cooldown entre ataques del héroe: sin esto, tocar dos veces rápido (o dos
@@ -641,7 +650,8 @@ function finishActiveSkillUse(id, def) {
   computeReach();
   if (checkFullVictory()) { gameOver('win'); return; }
   const justEnteredCombat = scanForNewCombatants();
-  if (justEnteredCombat || (hero.ap <= 0 && !state.combat.active)) endHeroTurn(justEnteredCombat);
+  if (justEnteredCombat || !state.combat.active) endHeroTurn(justEnteredCombat);
+  else maybeAutoSkipZeroAP();
 }
 
 // Busca una casilla libre adyacente a (tx,ty) lo más cercana posible al héroe
@@ -753,6 +763,12 @@ export function rollAltar(tr) {
   tr.used = true;
   chosen.apply(tr);
   syncHUD();
+  // Si el evento sorteado invocó un enemigo (n:9 más arriba), entra en
+  // combate YA — antes se quedaba "despierto" sin combate activo, dejando
+  // moverse e incluso pegarle cuerpo a cuerpo fuera de combate, que es justo
+  // lo que no debe pasar (mismo criterio que triggerAmbush más abajo).
+  computeReach();
+  if (scanForNewCombatants()) endHeroTurn(true);
   return chosen;
 }
 
@@ -838,6 +854,10 @@ export function pickChestEvent(tr) {
 export function applyChestEvent(tr, chosen) {
   chosen.apply(tr);
   syncHUD();
+  // Igual que rollAltar: si el evento sorteado invocó un enemigo (n:6 más
+  // arriba), entra en combate YA, no lo deja "despierto" sin combate activo.
+  computeReach();
+  if (scanForNewCombatants()) endHeroTurn(true);
 }
 
 // Traza una línea recta (8 direcciones) desde el héroe hacia (tx,ty) y
@@ -865,7 +885,7 @@ export function useActiveSkill(id, gx, gy) {
   if (!tier || !def || def.kind !== 'active') return false;
   const skillName = t(`skill.${id}.name`);
   if (!isSkillReady(id)) { log(t('log.skillCooldown', { name: skillName })); return false; }
-  if (hero.ap < ATTACK_COST) { log(t('log.noAP')); return false; }
+  if (hero.ap < ATTACK_COST) { log(t('log.noAP')); showActionError(t('log.noAP')); return false; }
   const power = def.tiers[tier - 1].power;
   if (!power) return false;
 
@@ -1115,7 +1135,8 @@ async function walkPath(path) {
 // puede seguir con lo que tuviera pensado hacer al llegar: lootear, abrir...).
 async function walkTo(path) {
   const completed = await walkPath(path);
-  if (completed && state.hero.hp > 0 && state.hero.ap <= 0 && !state.combat.active) endHeroTurn();
+  if (completed && state.hero.hp > 0 && !state.combat.active) endHeroTurn();
+  else if (completed && state.hero.hp > 0) maybeAutoSkipZeroAP();
   return completed;
 }
 
@@ -1133,6 +1154,29 @@ function bestApproachTile(tx, ty) {
   return best;
 }
 
+// Acercarse solo con un toque a un objeto "mueble" que no se puede pisar
+// (cofre, altar, urna, palanca/evento genérico, salida...) — mismo sistema
+// que ya tenían los cadáveres (bestApproachTile + el camino animado de
+// siempre). Si ya está adyacente, actúa al momento; si está dentro del
+// alcance de movimiento de este turno, se acerca solo y actúa nada más
+// llegar; si está fuera de alcance del todo, se comporta igual que
+// siempre (aviso/pista si es visible, y nada si no). `act` es lo que pasa
+// al llegar (o si ya se estaba adyacente); `hint`, lo que pasa a distancia
+// si no se puede llegar este turno.
+async function walkAdjacentThenAct(gx, gy, act, hint) {
+  const { hero } = state;
+  if (distTo(hero, gx, gy) <= 1) { act(); return true; }
+  const spot = bestApproachTile(gx, gy);
+  const approachPath = spot ? pathTo(spot.x, spot.y) : null;
+  if (approachPath) {
+    const completed = await walkTo(approachPath);
+    if (completed) { act(); return true; }
+    return false;
+  }
+  if (hint && isVisible(gx, gy)) hint();
+  return false;
+}
+
 export async function onTapTile(gx, gy) {
   const { hero } = state;
   if (heroMoving) return;   // ya está andando; ignora el toque hasta que termine (o se corte por combate/carta)
@@ -1141,7 +1185,7 @@ export async function onTapTile(gx, gy) {
   const target = foeAt(gx, gy);
   if (target) {
     if (!adjacent(hero, gx, gy)) return;
-    if (hero.ap < ATTACK_COST) { log(t('log.noAP')); return; }
+    if (hero.ap < ATTACK_COST) { log(t('log.noAP')); showActionError(t('log.noAP')); return; }
     const now = performance.now();
     if (now - lastHeroAttackAt < HERO_ATTACK_COOLDOWN) return;   // demasiado seguido: se ignora este toque
     lastHeroAttackAt = now;
@@ -1168,6 +1212,7 @@ export async function onTapTile(gx, gy) {
     computeReach();
     const justEnteredCombat = scanForNewCombatants();
     if (justEnteredCombat || (hero.ap <= 0 && !state.combat.active)) return endHeroTurn(justEnteredCombat);
+    maybeAutoSkipZeroAP();
     return;
   }
 
@@ -1198,14 +1243,11 @@ export async function onTapTile(gx, gy) {
   // todo desaparece del mapa para siempre (no se puede volver a saquear). ---
   const tr = blockingTriggerAt(gx, gy);
   if (tr && tr.type === 'container') {
-    const d = distTo(hero, gx, gy);
-    if (d <= 1) {
+    await walkAdjacentThenAct(gx, gy, () => {
       anim.loot('hero', 'hero');
       if (!tr.loot) tr.loot = generateLoot();
       showLootWindow(tr);
-    } else if (isVisible(gx, gy)) {
-      showHint(tr);
-    }
+    }, () => showHint(tr));
     return;
   }
 
@@ -1216,18 +1258,14 @@ export async function onTapTile(gx, gy) {
   // como un contenedor). No pasa por events.json: el contenido es el mismo
   // pool para cualquier altar, en cualquier nivel. ---
   if (tr && tr.type === 'altar') {
-    const d = distTo(hero, gx, gy);
-    if (d <= 1) {
+    await walkAdjacentThenAct(gx, gy, () => {
       if (tr.used) { log(t('log.altarSpent')); return; }
       const cost = 1;
-      if (hero.ap < cost) { log(t('log.noAP')); return; }
+      if (hero.ap < cost) { log(t('log.noAP')); showActionError(t('log.noAP')); return; }
       hero.ap -= cost; syncHUD();
       anim.activateAnim('hero', 'hero');
       openAltarCard(tr);
-    } else if (isVisible(gx, gy) && !tr.used) {
-      log(`<b>${t('altar.kicker')}</b> — ${t('altar.hint')}`);
-      audio.fx('ui');
-    }
+    }, () => { if (!tr.used) { log(`<b>${t('altar.kicker')}</b> — ${t('altar.hint')}`); audio.fx('ui'); } });
     return;
   }
 
@@ -1239,18 +1277,14 @@ export async function onTapTile(gx, gy) {
   // state.js). No pasa por events.json: el contenido es el mismo pool para
   // cualquier cofre, en cualquier nivel (ver CHEST_EVENTS más arriba). ---
   if (tr && tr.type === 'chest') {
-    const d = distTo(hero, gx, gy);
-    if (d <= 1) {
+    await walkAdjacentThenAct(gx, gy, () => {
       if (tr.used) { log(t('log.chestSpent')); return; }
       const cost = 1;
-      if (hero.ap < cost) { log(t('log.noAP')); return; }
+      if (hero.ap < cost) { log(t('log.noAP')); showActionError(t('log.noAP')); return; }
       hero.ap -= cost; syncHUD();
       anim.activateAnim('hero', 'hero');
       openChestCard(tr);
-    } else if (isVisible(gx, gy) && !tr.used) {
-      log(`<b>${t('chest.kicker')}</b> — ${t('chest.hint')}`);
-      audio.fx('ui');
-    }
+    }, () => { if (!tr.used) { log(`<b>${t('chest.kicker')}</b> — ${t('chest.hint')}`); audio.fx('ui'); } });
     return;
   }
 
@@ -1259,12 +1293,11 @@ export async function onTapTile(gx, gy) {
   // en events.json (p.ej. un "Evento" recién colocado en el editor, sin
   // enlazar aún), no revienta: se avisa con un mensaje neutro y no pasa nada más. ---
   if (tr) {
-    const d = distTo(hero, gx, gy);
-    if (d <= 1) {
+    await walkAdjacentThenAct(gx, gy, () => {
       const ev = state.events[tr.id];
       if (!ev) { log(t('log.noEventYet')); anim.activateAnim('hero', 'hero'); return; }
       const cost = ev.actionCost || 1;
-      if (hero.ap < cost) { log(t('log.noAP')); return; }
+      if (hero.ap < cost) { log(t('log.noAP')); showActionError(t('log.noAP')); return; }
       hero.ap -= cost; syncHUD();
       if (tr.type === 'grave') {
         anim.loot('hero', 'hero');
@@ -1273,9 +1306,7 @@ export async function onTapTile(gx, gy) {
       }
       if (tr.type === 'lever') openLeverCard(tr);
       else openEvent(tr);
-    } else if (isVisible(gx, gy)) {
-      showHint(tr);
-    }
+    }, () => showHint(tr));
     return;
   }
 
@@ -1285,9 +1316,8 @@ export async function onTapTile(gx, gy) {
   // es solo una transición, no una acción de combate. ---
   const ex = exitAt(gx, gy);
   if (ex) {
-    const d = distTo(hero, gx, gy);
-    const ev = state.events[ex.id];
-    if (d <= 1) {
+    await walkAdjacentThenAct(gx, gy, () => {
+      const ev = state.events[ex.id];
       if (ex.blocked) {
         if (ev) log(`<b>${t(ev.i18n + '.kicker')}</b> — ${t(ev.i18n + '.blockedHint')}`);
         else log(t('log.exitBlocked'));
@@ -1298,9 +1328,7 @@ export async function onTapTile(gx, gy) {
         // sin enlazar): mismo criterio que el resto de objetos sin conectar.
         log(t('log.noEventYet'));
       }
-    } else if (isVisible(gx, gy)) {
-      showHint(ex);
-    }
+    }, () => showHint(ex));
     return;
   }
 
@@ -1324,7 +1352,10 @@ export async function onTapTile(gx, gy) {
   // héroe se para justo ahí y NO completa el resto del trayecto ya elegido,
   // aunque le quedaran más pasos o PA para llegar más lejos. ---
   const path = pathTo(gx, gy);
-  if (!path) return;
+  if (!path) {
+    if (hero.ap <= 0) showActionError(t('log.noAP'));   // el toque "no hace nada" se sentía confuso sin PA
+    return;
+  }
   await walkTo(path);
 }
 
@@ -1367,6 +1398,11 @@ export function checkLeverBossSpawn(trig) {
   });
   log(t('log.cryptBossWakes'), 'event');
   syncHUD();
+  // El jefe aparece ya despierto (dormant:false): entra en combate YA,
+  // igual que cualquier otra invocación — si no, se puede mover e incluso
+  // pegarle cuerpo a cuerpo fuera de combate antes de que salte.
+  computeReach();
+  if (scanForNewCombatants()) endHeroTurn(true);
 }
 
 // Se llama al CERRAR la ventana de botín de un cadáver/contenedor cualquiera
@@ -1403,7 +1439,8 @@ export function afterInteract(trig) {
   // pregunta (openChestCard, ui.js); al cerrar la carta de resultado solo
   // se aplica la recompensa (applyChestEvent) — ver rules.js/ui.js.
   computeReach();
-  if (state.hero.hp > 0 && state.hero.ap <= 0 && !state.combat.active) endHeroTurn();
+  if (state.hero.hp > 0 && !state.combat.active) endHeroTurn();
+  else if (state.hero.hp > 0) maybeAutoSkipZeroAP();
 }
 
 // Sonido ambiental de monstruos grandes: por ahora solo el Golem de hueso
@@ -1443,7 +1480,7 @@ function triggerAmbush(trig) {
   else spawnAmbushSpectres(group);
   const justEntered = scanForNewCombatants();
   if (justEntered) endHeroTurn(true);   // igual que despertar a un enemigo dormido a mitad de camino
-  else { computeReach(); if (state.hero.ap <= 0 && !state.combat.active) endHeroTurn(); }
+  else { computeReach(); if (!state.combat.active) endHeroTurn(); else maybeAutoSkipZeroAP(); }
 }
 
 // Guardia del Golem de hueso (Mausoleo 1): al activar el marcador aparecen el
@@ -1818,7 +1855,7 @@ async function mageTurn(foe) {
 // Config por tipo de sprite: alcance de tiro y a qué distancia el héroe se
 // considera "demasiado cerca" y toca huir. Un sprite que no esté aquí pelea
 // cuerpo a cuerpo (comportamiento de siempre).
-const RANGED_CFG = { enemy4: { range: 4, fleeAt: 2, shootCost: 3 } };
+const RANGED_CFG = { enemy4: { range: 4, fleeAt: 1, shootCost: 3 } };
 
 // Cuántos OTROS esqueletos vivos tiene a 2 casillas o menos (para el bonus de
 // daño "más fuerte cuanto más rodeado").

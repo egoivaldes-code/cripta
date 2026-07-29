@@ -2,7 +2,7 @@
 
 export const TILE = 56;        // píxeles por casilla A ZOOM 1x (tamaño base de referencia)
 export const SIGHT = 6.5;      // radio de visión iluminada del héroe (antes 4.5, +2 casillas)
-export const SIGHT_DIM = SIGHT + 4;  // más allá, hasta aquí se ve en penumbra (niebla); más lejos, negro sin explorar
+export const SIGHT_DIM = 15;  // más allá, hasta aquí se ve en penumbra (niebla); más lejos, negro sin explorar
 export const CAMERA_MARGIN = 360; // margen extra (px) para que la cámara no se quede pegada al borde del mapa
 
 // --- cámara / zoom ---
@@ -66,5 +66,26 @@ export function speedMult() { return SPEED_MULT[gameSpeedKey] || 1; }
 // mínimo de 60ms para que a velocidad "rápida" se vea fluido en vez de un salto.
 export function moveDurationMs() { return Math.max(60, Math.round(MOVE_STEP_BASE_MS * speedMult())); }
 
+// --- ajustes de comodidad (persistidos, apagados por defecto) --------------
+// Autolootear: al tocar un cadáver/contenedor con botín pendiente, se coge
+// todo de golpe (mismo resultado que el botón "coger todo") sin abrir la
+// ventana de botín a esperar un toque más.
+function loadBoolSetting(key) {
+  try { return localStorage.getItem(key) === '1'; } catch { return false; }
+}
+function saveBoolSetting(key, v) {
+  try { localStorage.setItem(key, v ? '1' : '0'); } catch {}
+}
+let autoLoot = loadBoolSetting('cripta.autoLoot');
+export function getAutoLoot() { return autoLoot; }
+export function setAutoLoot(v) { autoLoot = !!v; saveBoolSetting('cripta.autoLoot', autoLoot); }
+
+// Autopasar turno con 0 PA en combate: al quedarte sin PA en pleno combate,
+// el turno pasa solo (como ya pasa siempre fuera de combate) en vez de
+// esperar a que toques "Fin de turno" a mano.
+let autoSkipZeroAP = loadBoolSetting('cripta.autoSkipZeroAP');
+export function getAutoSkipZeroAP() { return autoSkipZeroAP; }
+export function setAutoSkipZeroAP(v) { autoSkipZeroAP = !!v; saveBoolSetting('cripta.autoSkipZeroAP', autoSkipZeroAP); }
+
 // --- versión (fuente única; también se usa para el cache-busting de assets) ---
-export const VERSION = '0.32.1';
+export const VERSION = '0.33';
