@@ -1,6 +1,21 @@
 {
   "versions": [
     {
+      "v": "0.33.2",
+      "es": {
+        "title": "Arreglo urgente de arranque",
+        "notes": [
+          "La versión anterior no arrancaba (pantalla en blanco). Ya está arreglado."
+        ]
+      },
+      "en": {
+        "title": "Urgent startup fix",
+        "notes": [
+          "The previous version failed to start (blank screen). This is now fixed."
+        ]
+      }
+    },
+    {
       "v": "0.33.1",
       "es": {
         "title": "El jefe ya no fuerza combate y nueva forma de ganar",

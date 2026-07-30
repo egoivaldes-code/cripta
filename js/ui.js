@@ -1,16 +1,16 @@
 // Capa DOM: HUD (con PA), cartas de evento, registro, fin de partida y ajustes.
 // Todo el texto visible pasa por t() (multiidioma). No dibuja en el canvas.
 
-import { state } from './state.js?v=0.33.1';
-import { t, tRandom } from './i18n.js?v=0.33.1';
-import * as anim from './anim.js?v=0.33.1';
-import { IDLE_NAME } from './anim.js?v=0.33.1';
-import * as audio from './audio.js?v=0.33.1';
-import { VERSION, getAutoLoot, setAutoLoot, getAutoSkipZeroAP, setAutoSkipZeroAP } from './config.js?v=0.33.1';
-import { images, SPRITE_TILE } from './assets.js?v=0.33.1';
-import { pushHistory, getHistory, clearHistory, CATEGORIES } from './eventlog.js?v=0.33.1';
-import { submitScore, rankWithinTop10, fetchTop10, formatTime } from './leaderboard.js?v=0.33.1';
-import { logEvent } from './telemetry.js?v=0.33.1';
+import { state } from './state.js?v=0.33.2';
+import { t, tRandom } from './i18n.js?v=0.33.2';
+import * as anim from './anim.js?v=0.33.2';
+import { IDLE_NAME } from './anim.js?v=0.33.2';
+import * as audio from './audio.js?v=0.33.2';
+import { VERSION, getAutoLoot, setAutoLoot, getAutoSkipZeroAP, setAutoSkipZeroAP } from './config.js?v=0.33.2';
+import { images, SPRITE_TILE } from './assets.js?v=0.33.2';
+import { pushHistory, getHistory, clearHistory, CATEGORIES } from './eventlog.js?v=0.33.2';
+import { submitScore, rankWithinTop10, fetchTop10, formatTime } from './leaderboard.js?v=0.33.2';
+import { logEvent } from './telemetry.js?v=0.33.2';
 
 let afterInteract = () => {};
 let restart = () => {};

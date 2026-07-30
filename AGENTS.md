@@ -452,6 +452,28 @@ fixes puramente internos que no cambian nada de cara a quien lea el README
 (p.ej. un ajuste de IA enemiga que no añade ni quita ningún sistema descrito
 ahí).
 
+**Verificación de imports/exports cruzados + arranque completo — PASO
+OBLIGATORIO, siempre, en cualquier versión que toque más de un archivo
+`.js`** (añadido tras la V0.33.1, que dejó el juego con pantalla en blanco:
+se quitaron dos funciones de `rules.js` — restos de la vieja condición de
+victoria — pero `main.js` se quedó importándolas; un import roto en un
+módulo ES es un error fatal en el navegador, silencioso salvo por la
+consola, y ni `node --check` archivo por archivo ni la batería de
+regresión de comportamiento lo detectan por sí solos). Dos comprobaciones,
+las dos rápidas y sin necesidad de navegador:
+1. Un script que recorre TODOS los `js/*.js`, saca los `export function/
+   const/let` y los `export { ... }` de cada uno, y comprueba que cada
+   `import { X, Y } from './modulo.js'` de cualquier otro archivo tiene
+   esos nombres realmente exportados ahí — cualquier desajuste (función
+   quitada/renombrada y olvidada en algún import) sale listado al momento.
+2. Una prueba que importa `main.js` tal cual (con los stubs de DOM/
+   localStorage/fetch de siempre), esperando un margen tras el `await
+   import(...)` por si hay algún rechazo asíncrono tardío — esto ejercita
+   la cadena de arranque REAL, igual que hace `index.html` en el
+   navegador, y habría cazado el fallo de la V0.33.1 al instante (el
+   import roto lanza en cuanto se carga el módulo, antes de que arranque
+   nada del juego).
+
 Antes de dar cualquier cambio de nivel, mapa o lógica de juego por bueno,
 verificar con un script de Node (no hace falta navegador para esto) copiando
 el módulo relevante y quitando los `?v=X.X` de los imports:

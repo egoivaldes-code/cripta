@@ -2,6 +2,30 @@
 
 Esquema: `0.X` = cambio grande · `0.X.Y` = cambio pequeño / fix.
 
+## 0.33.2 — Arreglo urgente: la V0.33.1 no arrancaba
+
+**Fallo grave, mío**: en la V0.33.1 se quitaron de `rules.js` dos funciones
+que ya no hacían falta (`setTotalFoeCount`, `checkBossLooted` — restos de
+la vieja condición de victoria), pero `main.js` se quedó importándolas de
+todas formas. Un import roto en un módulo ES (`import { X } from...` donde
+`X` ya no existe) es un error fatal en el navegador: para la carga de
+TODA la página en seco, sin más aviso visible que una pantalla en blanco
+con el marco vacío del primer botón — exactamente lo que reportó el
+usuario. Arreglado quitando esas dos referencias de `main.js` (y el bloque
+que calculaba el total de enemigos de la mazmorra, que dependía de ellas y
+ya no tenía sentido tras el cambio de condición de victoria).
+
+**Cómo se evita que se repita**: además de la regresión headless de
+siempre (que no habría pillado esto — solo prueba comportamiento, no la
+carga de módulos), se añadió una verificación nueva a la rutina de antes
+de empaquetar: comprobar por script que CADA import con nombre entre
+`{ }` de un módulo a otro corresponde a un export que existe de verdad, y
+una prueba que importa `main.js` tal cual (el punto de entrada real, igual
+que hace `index.html`) para ejercitar toda la cadena de arranque de
+verdad y confirmar que no lanza ninguna excepción — ni al importar, ni
+durante el arranque, ni de forma asíncrona tardía. Las dos, incorporadas
+al protocolo de pruebas de aquí en adelante (ver AGENTS.md).
+
 ## 0.33.1 — Jefe de la Cripta sin combate forzado, nueva condición de
 victoria y conectores arreglados
 

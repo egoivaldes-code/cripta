@@ -1,20 +1,20 @@
 // Punto de entrada. Carga idioma y datos, cablea módulos y arranca el bucle.
 
-import { state, initGame, recomputeFog, computeReach, walkable } from './state.js?v=0.33.1';
-import { initRenderer, startLoop, centerOnHero, toggleGrid, isGridOn } from './render.js?v=0.33.1';
-import { onTapTile, bindDescend, startHeroTurn, endHeroTurn, afterInteract, attemptDisarm, isAITurnActive, getEnemySpeed, setEnemySpeed, setTotalFoeCount, useActiveSkill, rollAltar, pickChestEvent, applyChestEvent, checkLeverBossSpawn, checkBossLooted, resetRunState, getSkillCooldownLeft } from './rules.js?v=0.33.1';
-import { syncHUD, log, hideVeil, bindAfterInteract, bindRestart, bindAttemptDisarm, bindResolveAltar, bindResolveChest, bindApplyChest, bindOnLeverPulled, bindOnCorpseLooted, applyStaticText, syncInitiativeUI, showConfirm, showLogHistory, hideLogHistory, logHistoryOpen, bindRefreshActionBar, isLootOpen, lootAllNow, bindFoeBoxTap } from './ui.js?v=0.33.1';
-import { loadAssets } from './assets.js?v=0.33.1';
-import { initialLang, loadLang, onLangChange, getLang, t } from './i18n.js?v=0.33.1';
-import * as anim from './anim.js?v=0.33.1';
-import * as audio from './audio.js?v=0.33.1';
-import { VERSION, getAutoLoot, setAutoLoot, getAutoSkipZeroAP, setAutoSkipZeroAP } from './config.js?v=0.33.1';
-import { assemble } from './mapgen.js?v=0.33.1';
-import { initInventory, openInventory, closeInventory, isInventoryOpen, resetInventory, refreshInventoryTexts } from './inventory.js?v=0.33.1';
-import { loadSkillsData, initSkillShop, openSkillShop, closeSkillShop, refreshSkillTexts, bindFullReset, applySkillBonuses, bindUseActiveSkill, tryUseArmedOnTile, tryUseArmedOnFoe, bindGetSkillCooldownLeft, renderActionBar } from './skills.js?v=0.33.1';
-import * as savegame from './savegame.js?v=0.33.1';
-import { fetchTop10, formatTime } from './leaderboard.js?v=0.33.1';
-import { logEvent, initErrorCapture, setTelemetryVersion } from './telemetry.js?v=0.33.1';
+import { state, initGame, recomputeFog, computeReach, walkable } from './state.js?v=0.33.2';
+import { initRenderer, startLoop, centerOnHero, toggleGrid, isGridOn } from './render.js?v=0.33.2';
+import { onTapTile, bindDescend, startHeroTurn, endHeroTurn, afterInteract, attemptDisarm, isAITurnActive, getEnemySpeed, setEnemySpeed, useActiveSkill, rollAltar, pickChestEvent, applyChestEvent, checkLeverBossSpawn, resetRunState, getSkillCooldownLeft } from './rules.js?v=0.33.2';
+import { syncHUD, log, hideVeil, bindAfterInteract, bindRestart, bindAttemptDisarm, bindResolveAltar, bindResolveChest, bindApplyChest, bindOnLeverPulled, applyStaticText, syncInitiativeUI, showConfirm, showLogHistory, hideLogHistory, logHistoryOpen, bindRefreshActionBar, isLootOpen, lootAllNow, bindFoeBoxTap } from './ui.js?v=0.33.2';
+import { loadAssets } from './assets.js?v=0.33.2';
+import { initialLang, loadLang, onLangChange, getLang, t } from './i18n.js?v=0.33.2';
+import * as anim from './anim.js?v=0.33.2';
+import * as audio from './audio.js?v=0.33.2';
+import { VERSION, getAutoLoot, setAutoLoot, getAutoSkipZeroAP, setAutoSkipZeroAP } from './config.js?v=0.33.2';
+import { assemble } from './mapgen.js?v=0.33.2';
+import { initInventory, openInventory, closeInventory, isInventoryOpen, resetInventory, refreshInventoryTexts } from './inventory.js?v=0.33.2';
+import { loadSkillsData, initSkillShop, openSkillShop, closeSkillShop, refreshSkillTexts, bindFullReset, applySkillBonuses, bindUseActiveSkill, tryUseArmedOnTile, tryUseArmedOnFoe, bindGetSkillCooldownLeft, renderActionBar } from './skills.js?v=0.33.2';
+import * as savegame from './savegame.js?v=0.33.2';
+import { fetchTop10, formatTime } from './leaderboard.js?v=0.33.2';
+import { logEvent, initErrorCapture, setTelemetryVersion } from './telemetry.js?v=0.33.2';
 
 // El ensamblador de losetas (mapgen.js) sigue disponible para niveles ALEATORIOS
 // futuros; esta función queda de reserva pero no se usa por ahora, ya que el
@@ -245,28 +245,11 @@ async function boot() {
   bindResolveChest(pickChestEvent);
   bindApplyChest(applyChestEvent);
   bindOnLeverPulled(checkLeverBossSpawn);
-  bindOnCorpseLooted(checkBossLooted);
   bindFullReset(newGame);   // "reiniciar progreso" en la tienda de habilidades también reinicia la mazmorra
   bindUseActiveSkill(useActiveSkill);
   bindGetSkillCooldownLeft(getSkillCooldownLeft);
   bindRefreshActionBar(renderActionBar);
   bindFoeBoxTap(tryUseArmedOnFoe);
-
-  // Total de enemigos de TODAS las zonas conectadas (cementerio + cripta +
-  // mausoleos), para que la victoria dependa de limpiar la mazmorra entera y
-  // no de vaciar un único tramo (antes, entrar en el Mausoleo 1 y matar a
-  // sus 2 esqueletos daba la partida entera por terminada).
-  try {
-    const zoneNames = ['level1', 'cripta', 'mausoleo1', 'mausoleo2'];
-    let total = 0;
-    for (const n of zoneNames) {
-      const lvl = await getLevel(n);
-      const foes = lvl.start.foes || (lvl.start.foe ? [lvl.start.foe] : []);
-      total += foes.length;
-    }
-    total += 1;
-    setTotalFoeCount(total);
-  } catch (err) { console.warn('No se pudo calcular el total de enemigos de la mazmorra:', err); }
 
   initRenderer(document.getElementById('map'), (gx, gy) => {
     if (tryUseArmedOnTile(gx, gy)) return;   // había una habilidad activa armada esperando objetivo

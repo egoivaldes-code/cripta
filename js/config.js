@@ -88,4 +88,4 @@ export function getAutoSkipZeroAP() { return autoSkipZeroAP; }
 export function setAutoSkipZeroAP(v) { autoSkipZeroAP = !!v; saveBoolSetting('cripta.autoSkipZeroAP', autoSkipZeroAP); }
 
 // --- versión (fuente única; también se usa para el cache-busting de assets) ---
-export const VERSION = '0.33.1';
+export const VERSION = '0.33.2';
