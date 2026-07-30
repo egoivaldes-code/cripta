@@ -91,6 +91,27 @@ casilla, se interactúa desde al lado, opcionalmente `blocked`), además del
 formato antiguo de una sola salida (`level.exit`, que Cripta/Mausoleo1/
 Mausoleo2/level2 siguen usando sin problema — el motor acepta los dos).
 
+**Terminología fijada: "conectores"** — a partir de ahora, cualquier
+entrada/salida que enlaza dos zonas del calabozo (cementerio↔cripta,
+cementerio↔mausoleo1, cementerio↔mausoleo2) se llama "conector", tanto si
+usa el formato nuevo (`state.exits[]`) como el antiguo (`level.exit`). Cada
+conector es de un solo sentido en los datos (una entrada `{x,y,to}` en el
+nivel de origen), pero para que el jugador aparezca junto a la puerta real
+al llegar (no en el spawn de fábrica del nivel) hace falta además
+`arriveX`/`arriveY` apuntando a las coordenadas de la puerta EN EL OTRO
+LADO — sin eso, `arrive` llega `null` a `loadLevel()` (main.js) y el
+jugador aparece en `level.start.hero`, el punto de partida de fábrica.
+Verificado y confirmado tras un aviso del usuario: los conectores de
+Mausoleo1 y Mausoleo2 hacia el cementerio ya tenían `arriveX/arriveY` bien
+puestos; al de Cripta (`{x:39,y:49,to:'cemetery'}`) le faltaban del todo —
+volver de la Cripta dejaba al héroe en el spawn de fábrica del cementerio
+en vez de junto a su entrada real (14,5)/(15,5). Arreglado añadiendo
+`arriveX:14, arriveY:5` a `data/levels/cripta.json`. Los 4 conectores
+(cripta, mausoleo1, mausoleo2 — en ambos sentidos cada uno) quedaron
+verificados con una prueba headless que reconstruye la lista completa
+desde los JSON reales y comprueba que cada llegada cae a 1-2 casillas de
+la puerta correspondiente.
+
 **Objetos sin evento conectado**: el motor real (`rules.js`) comprueba si
 existe `state.events[tr.id]` antes de abrir la tarjeta; si un objeto (p.ej.
 un "Evento" recién colocado, o un cofre al que aún no le has puesto datos en

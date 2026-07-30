@@ -14,7 +14,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Cripta</title>
-<link rel="stylesheet" href="./css/styles.css?v=0.33">
+<link rel="stylesheet" href="./css/styles.css?v=0.33.1">
 </head>
 <body>
 <div id="game">
@@ -38,7 +38,10 @@
       </div>
       <div class="stat"><img class="goldIcon" src="./assets/ui/gold_icon.png" alt=""> <b id="gold">0</b></div>
     </div>
-    <button class="skipturn" id="endTurn"></button>
+    <div class="turnbuttons" id="turnButtons">
+      <button class="skipturn" id="endTurn"></button>
+      <button class="skipturn restartlevel hidden" id="restartLevelBtn"></button>
+    </div>
     <div class="foeRow" id="foeRow"></div>
   </div>
 
@@ -216,6 +219,6 @@
   </div>
 </div>
 
-<script type="module" src="./js/main.js?v=0.33"></script>
+<script type="module" src="./js/main.js?v=0.33.1"></script>
 </body>
 </html>

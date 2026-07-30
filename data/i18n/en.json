@@ -206,7 +206,7 @@
   "ev.exit4.question": "Enter the mausoleum?",
   "ev.exit4.blockedHint": "It's sealed. Some nearby mechanism might open it.",
   "log.leverActivated": "You pull the lever.",
-  "log.cryptBossWakes": "A tremor runs through the crypt… something ancient awakens.",
+  "log.cryptBossWakes": "As you pull the lever, you feel dark magic rising… The sounds from the nearby corridors and rooms fall silent, but bone-chilling, deafening noises now echo from the crypt's central chamber…",
   "log.exitBlocked": "It's locked.",
   "ev.trampa.kicker": "Trap",
   "ev.trampa.title": "Unstable slab",
@@ -459,5 +459,8 @@
   "skillshop.filter.kind.all": "All",
   "skillshop.filter.kind.active": "Active",
   "skillshop.filter.kind.passive": "Passive",
-  "skillshop.filter.allclasses": "All classes"
+  "skillshop.filter.allclasses": "All classes",
+  "btn.restartlevel": "Restart level",
+  "bossvictory.kicker": "Victory",
+  "bossvictory.title": "The Skeleton Mage falls"
 }

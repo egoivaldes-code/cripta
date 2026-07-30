@@ -90,6 +90,15 @@ body{
   color:#d9b878; text-shadow:0 1px 0 #6b4a1a, 0 -1px 1px #000, 0 2px 3px rgba(0,0,0,.7); }
 .skipturn:hover{ color:#eccb8f; }
 
+/* Fila que aloja "Terminar turno" y, cuando ya se mató al jefe, "Reiniciar
+   nivel" justo al lado (mismo marco, ver .restartlevel más abajo). Con un
+   solo botón visible se ve exactamente igual que antes (ancho al 50% de
+   siempre); con los dos, se reparten el mismo hueco a partes iguales. */
+.turnbuttons{ display:flex; gap:6px; align-self:flex-start; width:50%; }
+.turnbuttons .skipturn{ align-self:auto; }
+.turnbuttons.two-buttons{ width:78%; }
+.turnbuttons.two-buttons .skipturn{ width:50%; font-size:8px; }
+
 /* Cajas individuales de vida de enemigo, una por enemigo vivo, bajo "Fin de turno".
    Apiladas verticalmente (una debajo de otra), ancho a juego con el panel del
    héroe. Marco de 2 filas (assets/ui/foe_panel.png, 1810×369): fila 1 = nombre

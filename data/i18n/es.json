@@ -206,7 +206,7 @@
   "ev.exit4.question": "¿Entrar en el mausoleo?",
   "ev.exit4.blockedHint": "Está sellada. Quizá algún mecanismo cercano la abra.",
   "log.leverActivated": "Activas la palanca.",
-  "log.cryptBossWakes": "Un temblor recorre la cripta… algo antiguo despierta.",
+  "log.cryptBossWakes": "Al activar la palanca, sientes magia oscura ascender… Los ruidos de los pasillos y salas cercanas cesan, pero llegan ruidos ensordecedores que congelan la sangre desde la sala central de la cripta…",
   "log.exitBlocked": "Está cerrado.",
   "ev.trampa.kicker": "Trampa",
   "ev.trampa.title": "Losa inestable",
@@ -459,5 +459,8 @@
   "skillshop.filter.kind.all": "Todas",
   "skillshop.filter.kind.active": "Activas",
   "skillshop.filter.kind.passive": "Pasivas",
-  "skillshop.filter.allclasses": "Todas las clases"
+  "skillshop.filter.allclasses": "Todas las clases",
+  "btn.restartlevel": "Reiniciar nivel",
+  "bossvictory.kicker": "Victoria",
+  "bossvictory.title": "El Esqueleto Mago cae"
 }

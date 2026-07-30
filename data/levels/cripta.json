@@ -13550,7 +13550,9 @@
     "x": 39,
     "y": 49,
     "to": "cemetery",
-    "id": "exit_1"
+    "id": "exit_1",
+    "arriveX": 14,
+    "arriveY": 5
   },
   "background": {
     "key": "bg_cripta"

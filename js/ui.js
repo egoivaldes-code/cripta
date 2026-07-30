@@ -1,16 +1,16 @@
 // Capa DOM: HUD (con PA), cartas de evento, registro, fin de partida y ajustes.
 // Todo el texto visible pasa por t() (multiidioma). No dibuja en el canvas.
 
-import { state } from './state.js?v=0.33';
-import { t, tRandom } from './i18n.js?v=0.33';
-import * as anim from './anim.js?v=0.33';
-import { IDLE_NAME } from './anim.js?v=0.33';
-import * as audio from './audio.js?v=0.33';
-import { VERSION, getAutoLoot, setAutoLoot, getAutoSkipZeroAP, setAutoSkipZeroAP } from './config.js?v=0.33';
-import { images, SPRITE_TILE } from './assets.js?v=0.33';
-import { pushHistory, getHistory, clearHistory, CATEGORIES } from './eventlog.js?v=0.33';
-import { submitScore, rankWithinTop10, fetchTop10, formatTime } from './leaderboard.js?v=0.33';
-import { logEvent } from './telemetry.js?v=0.33';
+import { state } from './state.js?v=0.33.1';
+import { t, tRandom } from './i18n.js?v=0.33.1';
+import * as anim from './anim.js?v=0.33.1';
+import { IDLE_NAME } from './anim.js?v=0.33.1';
+import * as audio from './audio.js?v=0.33.1';
+import { VERSION, getAutoLoot, setAutoLoot, getAutoSkipZeroAP, setAutoSkipZeroAP } from './config.js?v=0.33.1';
+import { images, SPRITE_TILE } from './assets.js?v=0.33.1';
+import { pushHistory, getHistory, clearHistory, CATEGORIES } from './eventlog.js?v=0.33.1';
+import { submitScore, rankWithinTop10, fetchTop10, formatTime } from './leaderboard.js?v=0.33.1';
+import { logEvent } from './telemetry.js?v=0.33.1';
 
 let afterInteract = () => {};
 let restart = () => {};
@@ -247,6 +247,14 @@ export function syncHUD() {
   const pips = $('apPips');
   pips.classList.toggle('hidden', !state.combat.active);
   $('endTurn').classList.toggle('hidden', !state.combat.active);
+  // Botón de Reiniciar nivel: aparece junto a Terminar turno en cuanto se
+  // mata al jefe (ver onBossKilled, rules.js) — a partir de ahí es la única
+  // forma de dar el nivel por terminado, y es el jugador quien decide
+  // cuándo (mismo efecto que "Reiniciar" en Ajustes). `.two-buttons` en el
+  // contenedor reparte el hueco entre los dos en vez de dejarle todo a uno.
+  const restartBtn = $('restartLevelBtn');
+  restartBtn.classList.toggle('hidden', !hero.bossDefeated);
+  $('turnButtons').classList.toggle('two-buttons', !!hero.bossDefeated);
   pips.textContent = hero.ap;
   pips.classList.remove('ap-white', 'ap-warn', 'ap-empty');
   pips.classList.add(hero.ap <= 0 ? 'ap-empty' : hero.ap === 1 ? 'ap-warn' : 'ap-white');
@@ -414,6 +422,7 @@ function renderCard() {
   if (!open) return;
   const card = $('card');
   if (open.type === 'over') { renderOver(card, open.kind, open.extra); return; }
+  if (open.type === 'bossVictory') { renderBossVictoryCard(card, open.timeMs); return; }
   if (open.type === 'trap') { renderTrapCard(card, open.trap); return; }
   if (open.type === 'story') { renderStoryCard(card, open.ev); return; }
   if (open.type === 'lever') { renderLeverCard(card, open); return; }
@@ -765,6 +774,48 @@ export function gameOver(kind, extra) {
 // rules.js), se ofrece mandarlo al leaderboard global (Supabase) con un
 // nombre a elegir. `submitted` evita que se pueda enviar dos veces la misma
 // pantalla (el botón desaparece en cuanto se manda, con éxito o sin él).
+// Al matar al Esqueleto Mago (ver onBossKilled, rules.js): YA NO se acaba la
+// partida ni se muestra la pantalla de fin de nivel — solo se ofrece
+// registrar el tiempo en el leaderboard con una ventana pequeña, y la
+// partida sigue con total normalidad en cuanto se cierra (con nombre
+// mandado o sin él). El botón de Reiniciar nivel (ver syncHUD) es la única
+// forma de dar el nivel por terminado a partir de aquí, y es el jugador
+// quien decide cuándo.
+export function showBossVictoryPopup(timeMs) {
+  state.busy = true;
+  open = { type: 'bossVictory', timeMs };
+  renderCard();
+  $('veil').classList.add('show');
+}
+
+function renderBossVictoryCard(card, timeMs) {
+  card.innerHTML =
+    `<div class="banner">
+       <div class="kicker">${t('bossvictory.kicker')}</div>
+       <h2>${t('bossvictory.title')}</h2>
+       <p class="over-time">${t('over.yourTime', { time: formatTime(timeMs) })}</p>
+       <div class="over-score">
+         <input type="text" id="bossScoreName" maxlength="20" placeholder="${t('over.namePlaceholder')}">
+         <button class="choice" id="bossScoreSend">${t('over.sendScore')}</button>
+       </div>
+     </div>`;
+  const input = document.getElementById('bossScoreName');
+  const btn = document.getElementById('bossScoreSend');
+  input.focus();
+  // Se cierra al momento al pulsar — el envío de verdad va en segundo plano
+  // (nunca bloquea ni deja al jugador esperando una respuesta de red para
+  // poder seguir jugando). Si falla (sin conexión, Supabase caído...), es
+  // un extra que se pierde en silencio, no un error que deba interrumpir
+  // la partida — mismo criterio que el resto del leaderboard.
+  btn.onclick = () => {
+    const name = input.value.trim();
+    if (name.length < 2) { input.focus(); return; }
+    submitScore(name, Math.round(timeMs), VERSION).catch(() => {});
+    state.busy = false;
+    hideVeil();
+  };
+}
+
 function renderOver(card, kind, extra) {
   const win = kind === 'win';
   const timeMs = win ? extra.timeMs : null;
@@ -811,6 +862,7 @@ export function applyStaticText() {
   $('reset').textContent = t('btn.reset');
   $('gridBtn').title = t('btn.grid');
   $('endTurn').textContent = t('btn.endturn');
+  $('restartLevelBtn').textContent = t('btn.restartlevel');
   $('settingsBtn').title = t('btn.settings');
   $('recenter').title = t('btn.recenter');
   $('apPips').setAttribute('aria-label', t('hud.ap'));

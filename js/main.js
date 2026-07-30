@@ -1,20 +1,20 @@
 // Punto de entrada. Carga idioma y datos, cablea módulos y arranca el bucle.
 
-import { state, initGame, recomputeFog, computeReach, walkable } from './state.js?v=0.33';
-import { initRenderer, startLoop, centerOnHero, toggleGrid, isGridOn } from './render.js?v=0.33';
-import { onTapTile, bindDescend, startHeroTurn, endHeroTurn, afterInteract, attemptDisarm, isAITurnActive, getEnemySpeed, setEnemySpeed, setTotalFoeCount, useActiveSkill, rollAltar, pickChestEvent, applyChestEvent, checkLeverBossSpawn, checkBossLooted, resetRunState, getSkillCooldownLeft } from './rules.js?v=0.33';
-import { syncHUD, log, hideVeil, bindAfterInteract, bindRestart, bindAttemptDisarm, bindResolveAltar, bindResolveChest, bindApplyChest, bindOnLeverPulled, bindOnCorpseLooted, applyStaticText, syncInitiativeUI, showConfirm, showLogHistory, hideLogHistory, logHistoryOpen, bindRefreshActionBar, isLootOpen, lootAllNow, bindFoeBoxTap } from './ui.js?v=0.33';
-import { loadAssets } from './assets.js?v=0.33';
-import { initialLang, loadLang, onLangChange, getLang, t } from './i18n.js?v=0.33';
-import * as anim from './anim.js?v=0.33';
-import * as audio from './audio.js?v=0.33';
-import { VERSION, getAutoLoot, setAutoLoot, getAutoSkipZeroAP, setAutoSkipZeroAP } from './config.js?v=0.33';
-import { assemble } from './mapgen.js?v=0.33';
-import { initInventory, openInventory, closeInventory, isInventoryOpen, resetInventory, refreshInventoryTexts } from './inventory.js?v=0.33';
-import { loadSkillsData, initSkillShop, openSkillShop, closeSkillShop, refreshSkillTexts, bindFullReset, applySkillBonuses, bindUseActiveSkill, tryUseArmedOnTile, tryUseArmedOnFoe, bindGetSkillCooldownLeft, renderActionBar } from './skills.js?v=0.33';
-import * as savegame from './savegame.js?v=0.33';
-import { fetchTop10, formatTime } from './leaderboard.js?v=0.33';
-import { logEvent, initErrorCapture, setTelemetryVersion } from './telemetry.js?v=0.33';
+import { state, initGame, recomputeFog, computeReach, walkable } from './state.js?v=0.33.1';
+import { initRenderer, startLoop, centerOnHero, toggleGrid, isGridOn } from './render.js?v=0.33.1';
+import { onTapTile, bindDescend, startHeroTurn, endHeroTurn, afterInteract, attemptDisarm, isAITurnActive, getEnemySpeed, setEnemySpeed, setTotalFoeCount, useActiveSkill, rollAltar, pickChestEvent, applyChestEvent, checkLeverBossSpawn, checkBossLooted, resetRunState, getSkillCooldownLeft } from './rules.js?v=0.33.1';
+import { syncHUD, log, hideVeil, bindAfterInteract, bindRestart, bindAttemptDisarm, bindResolveAltar, bindResolveChest, bindApplyChest, bindOnLeverPulled, bindOnCorpseLooted, applyStaticText, syncInitiativeUI, showConfirm, showLogHistory, hideLogHistory, logHistoryOpen, bindRefreshActionBar, isLootOpen, lootAllNow, bindFoeBoxTap } from './ui.js?v=0.33.1';
+import { loadAssets } from './assets.js?v=0.33.1';
+import { initialLang, loadLang, onLangChange, getLang, t } from './i18n.js?v=0.33.1';
+import * as anim from './anim.js?v=0.33.1';
+import * as audio from './audio.js?v=0.33.1';
+import { VERSION, getAutoLoot, setAutoLoot, getAutoSkipZeroAP, setAutoSkipZeroAP } from './config.js?v=0.33.1';
+import { assemble } from './mapgen.js?v=0.33.1';
+import { initInventory, openInventory, closeInventory, isInventoryOpen, resetInventory, refreshInventoryTexts } from './inventory.js?v=0.33.1';
+import { loadSkillsData, initSkillShop, openSkillShop, closeSkillShop, refreshSkillTexts, bindFullReset, applySkillBonuses, bindUseActiveSkill, tryUseArmedOnTile, tryUseArmedOnFoe, bindGetSkillCooldownLeft, renderActionBar } from './skills.js?v=0.33.1';
+import * as savegame from './savegame.js?v=0.33.1';
+import { fetchTop10, formatTime } from './leaderboard.js?v=0.33.1';
+import { logEvent, initErrorCapture, setTelemetryVersion } from './telemetry.js?v=0.33.1';
 
 // El ensamblador de losetas (mapgen.js) sigue disponible para niveles ALEATORIOS
 // futuros; esta función queda de reserva pero no se usa por ahora, ya que el
@@ -219,7 +219,7 @@ async function boot() {
     loadLevel('level1').then(openSkillShop);
   }
   async function descend(to, arrive) {
-    const c = { hp: state.hero.hp, maxHp: state.hero.maxHp, atk: state.hero.atk, gold: state.hero.gold, totalKills: state.hero.totalKills || 0, runStartedAt: state.hero.runStartedAt };
+    const c = { hp: state.hero.hp, maxHp: state.hero.maxHp, atk: state.hero.atk, gold: state.hero.gold, totalKills: state.hero.totalKills || 0, runStartedAt: state.hero.runStartedAt, bossDefeated: state.hero.bossDefeated || false };
     try {
       audio.fx('descend');
       await loadLevel(to, c, arrive);
@@ -293,6 +293,12 @@ async function boot() {
       document.getElementById('settingsVeil').classList.remove('show');
       newGame();
     });
+  });
+  // Botón "Reiniciar nivel" (junto a Terminar turno, visible solo tras matar
+  // al jefe — ver syncHUD en ui.js): mismo efecto exacto que el de Ajustes,
+  // solo que accesible sin tener que abrir el panel.
+  document.getElementById('restartLevelBtn').addEventListener('click', () => {
+    showConfirm(t('confirm.reset.title'), t('confirm.reset.text'), newGame);
   });
   // Cerrar el juego: como es una página web (no una app nativa), el navegador
   // solo deja cerrar la pestaña sola si él mismo la abrió por script — en

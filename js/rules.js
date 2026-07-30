@@ -1,15 +1,15 @@
 // Reglas del juego: economía de Puntos de Acción (PA), interacción a distancia
 // y adyacente, trampas, niebla y salida de nivel. Agnóstico del dibujo.
 
-import { state, walkable, isWall, adjacent, distTo, isVisible, recomputeFog, computeReach, pathTo, findPath, findApproachPath, reachCost, blockingTriggerAt, trapAt, walkTriggerAt, exitAt, stepNeighbors, foeAt, corpseAt, livingFoes, losClear, revealAllExplored } from './state.js?v=0.33';
-import { openEvent, openLeverCard, openAltarCard, openChestCard, openTrapCard, openStoryCard, syncHUD, syncInitiativeUI, showCombatBadge, showLootWindow, showConfirm, log, gameOver, showActionError } from './ui.js?v=0.33';
-import { t, tRandom } from './i18n.js?v=0.33';
-import { MOVE_COST, ATTACK_COST, INITIATIVE_BASE, INITIATIVE_DIE, TURN_DELAY, COMBAT_ENTER_DELAY, getGameSpeed, setGameSpeed, speedMult, moveDurationMs, ARMOR_CONSTANT, getAutoSkipZeroAP } from './config.js?v=0.33';
-import * as anim from './anim.js?v=0.33';
-import { ANIM_CLIPS } from './anim.js?v=0.33';
-import * as audio from './audio.js?v=0.33';
-import { centerOnTile } from './render.js?v=0.33';
-import { getOwnedTier, getSkillDef } from './skills.js?v=0.33';
+import { state, walkable, isWall, adjacent, distTo, isVisible, recomputeFog, computeReach, pathTo, findPath, findApproachPath, reachCost, blockingTriggerAt, trapAt, walkTriggerAt, exitAt, stepNeighbors, foeAt, corpseAt, livingFoes, losClear, revealAllExplored } from './state.js?v=0.33.1';
+import { openEvent, openLeverCard, openAltarCard, openChestCard, openTrapCard, openStoryCard, syncHUD, syncInitiativeUI, showCombatBadge, showLootWindow, showConfirm, log, gameOver, showActionError, showBossVictoryPopup } from './ui.js?v=0.33.1';
+import { t, tRandom } from './i18n.js?v=0.33.1';
+import { MOVE_COST, ATTACK_COST, INITIATIVE_BASE, INITIATIVE_DIE, TURN_DELAY, COMBAT_ENTER_DELAY, getGameSpeed, setGameSpeed, speedMult, moveDurationMs, ARMOR_CONSTANT, getAutoSkipZeroAP } from './config.js?v=0.33.1';
+import * as anim from './anim.js?v=0.33.1';
+import { ANIM_CLIPS } from './anim.js?v=0.33.1';
+import * as audio from './audio.js?v=0.33.1';
+import { centerOnTile } from './render.js?v=0.33.1';
+import { getOwnedTier, getSkillDef } from './skills.js?v=0.33.1';
 
 const sign = (n) => Math.sign(n);
 
@@ -124,7 +124,6 @@ export function resetRunState() {
   altarStonehideCombats = 0;
   altarWeaknessCombats = 0;
   altarFragileCombats = 0;
-  cryptBossLooted = false;
   lastHeroAttackAt = 0;
   aiTurnActive = false;
   heroMoving = false;
@@ -142,12 +141,6 @@ function altarIncomingMult() {
 
 const DMG_COLORS = { fire: '#e08a3c', ice: '#6ec3d8', poison: '#8a5fc9', holy: '#e8d27a', physical: '#e86a5c', none: '#e0b34a', shadow: '#8a5fc9', nature: '#7fc06a', arcane: '#6a8fe8' };
 function dmgColor(type) { return DMG_COLORS[type] || '#e86a5c'; }
-
-// Total de enemigos de TODA la mazmorra (cementerio + cripta + mausoleos),
-// para que la victoria dependa de limpiarla entera y no de vaciar un único
-// tramo (ver setTotalFoeCount, llamado una vez desde main.js al arrancar).
-let totalFoeCount = null;
-export function setTotalFoeCount(n) { totalFoeCount = n; }
 
 // --- Resolución de combate (esquivar → bloquear → crítico → armadura/resistencia) ---
 // Ver combat_stats_v0.11.md para el diseño. Los monstruos NUNCA critean al
@@ -401,26 +394,27 @@ function killFoe(target, foeName) {
   registerBloodlustKill();
   registerSoulHarvestKill(target);
   log(tRandom('log.killFoe', 5, { name: foeName }), 'combat');
+  if (target.id === CRYPT_BOSS_ID) onBossKilled();
   checkCombatEnd();
 }
 
-// Victoria: matar al Esqueleto Mago de la cripta (checkLeverBossSpawn, más
-// abajo) BASTA por sí solo — única y exclusivamente esa condición, sin
-// depender de limpiar nada más (ni el resto de enemigos de la cripta, ni los
-// mausoleos, ni el cementerio). Decisión explícita del usuario, revisando lo
-// que se había dicho antes (que también exigía limpiar los 2 mausoleos).
-// Aparte, se conserva el recuento de "mazmorra entera limpia" de siempre
-// (útil para quien prefiera explorarlo todo sin usar el jefe como atajo).
-//
-// OJO: la victoria por el jefe no se dispara al morir, sino al CERRAR la
-// ventana de botín de su cadáver (looteas y cierras → termina el nivel, tal
-// como se pidió) — por eso se mira `cryptBossLooted`, no `foe.alive`. Lo
-// pone a `true` `checkBossLooted()`, más abajo, enganchado al cerrar el
-// botín (ver bindOnCorpseLooted en ui.js/main.js).
-let cryptBossLooted = false;
-function checkFullVictory() {
-  if (cryptBossLooted) return true;
-  return totalFoeCount != null && (state.hero.totalKills || 0) >= totalFoeCount;
+// El mapa YA NO "termina" al matar al jefe (decisión explícita, revisando lo
+// que se había dicho antes: ni looteas su cadáver para que cuente, ni hay
+// que limpiar nada más de la mazmorra) — solo dispara el registro en el
+// leaderboard, con el tiempo de la partida CONGELADO en este instante (no
+// en el momento en que se manda el nombre, que puede tardar en escribirse).
+// El jugador sigue explorando con total normalidad; lo único que cambia es
+// que aparece el botón de Reiniciar nivel junto al de Terminar turno (ver
+// syncHUD en ui.js), para cuando decida dar la partida por acabada de
+// verdad. `state.hero.bossDefeated` viaja con el héroe entre zonas (ver
+// `carry` en descend(), main.js) y se guarda con la partida como cualquier
+// otro campo suyo — un solo disparo por partida, no se repite.
+function onBossKilled() {
+  if (state.hero.bossDefeated) return;
+  state.hero.bossDefeated = true;
+  const timeMs = Date.now() - (state.hero.runStartedAt || Date.now());
+  syncHUD();
+  showBossVictoryPopup(timeMs);
 }
 
 // Probabilidad de Golpes de fe (Paladín): un golpe cuerpo a cuerpo tiene
@@ -648,7 +642,6 @@ function finishActiveSkillUse(id, def) {
   syncHUD();
   syncInitiativeUI();
   computeReach();
-  if (checkFullVictory()) { gameOver('win'); return; }
   const justEnteredCombat = scanForNewCombatants();
   if (justEnteredCombat || !state.combat.active) endHeroTurn(justEnteredCombat);
   else maybeAutoSkipZeroAP();
@@ -1205,13 +1198,12 @@ export async function onTapTile(gx, gy) {
       killFoe(target, foeName);
       syncHUD();
       syncInitiativeUI();
-      if (checkFullVictory()) return gameOver('win');
     } else {
       audio.fx('attack'); syncHUD();
     }
     computeReach();
     const justEnteredCombat = scanForNewCombatants();
-    if (justEnteredCombat || (hero.ap <= 0 && !state.combat.active)) return endHeroTurn(justEnteredCombat);
+    if (justEnteredCombat || !state.combat.active) return endHeroTurn(justEnteredCombat);
     maybeAutoSkipZeroAP();
     return;
   }
@@ -1394,30 +1386,17 @@ export function checkLeverBossSpawn(trig) {
   state.foes.push({
     id: CRYPT_BOSS_ID, x: marker.x, y: marker.y, alive: true,
     hp: 80, maxHp: 80, atk: 8, sprite: 'enemy6', apMax: 4,
-    anim: 'foe' + state.foes.length, dormant: false, wakeR: 0,
+    anim: 'foe' + state.foes.length,
+    // A propósito, "dormido" con el mismo radio de aviso que el resto de
+    // enemigos de la Cripta (no despierto de golpe): el jugador es quien
+    // decide acercarse y entrar en contacto, no al revés. Antes se ponía
+    // dormant:false + se forzaba el combate al instante, y el jefe (y
+    // cualquier otro enemigo ya despierto de la sala) atacaban sin dar
+    // tiempo a reaccionar.
+    dormant: true, wakeR: 3,
   });
   log(t('log.cryptBossWakes'), 'event');
   syncHUD();
-  // El jefe aparece ya despierto (dormant:false): entra en combate YA,
-  // igual que cualquier otra invocación — si no, se puede mover e incluso
-  // pegarle cuerpo a cuerpo fuera de combate antes de que salte.
-  computeReach();
-  if (scanForNewCombatants()) endHeroTurn(true);
-}
-
-// Se llama al CERRAR la ventana de botín de un cadáver/contenedor cualquiera
-// (bindOnCorpseLooted, ui.js → main.js) — aquí solo nos importa si era el
-// cadáver del jefe. Si es así, calcula cuánto ha tardado la partida desde que
-// empezó (state.hero.runStartedAt, puesto en main.js/loadLevel) y dispara la
-// victoria con ese tiempo — gameOver('win', {...}) se encarga de mostrar la
-// pantalla y, si toca, ofrecer mandar el tiempo al leaderboard.
-export function checkBossLooted(source) {
-  if (!source || source.id !== CRYPT_BOSS_ID) return;
-  cryptBossLooted = true;
-  if (!checkFullVictory()) return;   // por si acaso; en la práctica siempre es true aquí
-  const startedAt = state.hero.runStartedAt;
-  const timeMs = startedAt ? Date.now() - startedAt : null;
-  gameOver('win', { timeMs });
 }
 
 // Se llama tras resolver la carta de un objeto (ui.js). El coste ya se

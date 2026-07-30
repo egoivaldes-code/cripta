@@ -1,6 +1,31 @@
 {
   "versions": [
     {
+      "v": "0.33.1",
+      "es": {
+        "title": "El jefe ya no fuerza combate y nueva forma de ganar",
+        "notes": [
+          "El Esqueleto Mago ya no te mete en combate al aparecer: puedes acercarte con calma, tú decides cuándo entrar en contacto.",
+          "Nuevo mensaje al activar la segunda palanca de la Cripta.",
+          "Arreglado: matar una de sus invocaciones ya no termina la partida por error.",
+          "Ahora basta con matar al Esqueleto Mago (sin lootear ni limpiar nada más): se registra tu tiempo en la clasificación y sigues jugando con normalidad.",
+          "Nuevo botón \"Reiniciar nivel\" junto a \"Terminar turno\" para cuando quieras dar la partida por acabada.",
+          "Arreglado: volver de la Cripta al cementerio ya te deja junto a la puerta, no en el punto de partida."
+        ]
+      },
+      "en": {
+        "title": "The boss no longer forces combat, and a new way to win",
+        "notes": [
+          "The Skeleton Mage no longer pulls you into combat the moment it appears: approach at your own pace, you decide when to engage.",
+          "New message when activating the Crypt's second lever.",
+          "Fixed: killing one of its summons no longer wrongly ended the run.",
+          "Killing the Skeleton Mage is now enough on its own (no looting or clearing required): your time gets submitted to the leaderboard and you keep playing normally.",
+          "New \"Restart level\" button next to \"End turn\" for whenever you want to call the run finished.",
+          "Fixed: leaving the Crypt back to the cemetery now drops you by the door, not at the starting point."
+        ]
+      }
+    },
+    {
       "v": "0.33",
       "es": {
         "title": "PA en paz, niebla, tienda mejorada y barra de acción dinámica",

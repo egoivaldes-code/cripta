@@ -2,6 +2,67 @@
 
 Esquema: `0.X` = cambio grande · `0.X.Y` = cambio pequeño / fix.
 
+## 0.33.1 — Jefe de la Cripta sin combate forzado, nueva condición de
+victoria y conectores arreglados
+
+**El jefe (Esqueleto Mago, 2 palancas) ya no fuerza combate al aparecer**:
+antes salía ya "despierto" (`dormant:false, wakeR:0`) y se forzaba
+`scanForNewCombatants()+endHeroTurn()` al instante — el jugador no tenía
+ninguna ventana para reaccionar. Ahora aparece "dormido" con el mismo radio
+de aviso que el resto de enemigos de la Cripta (`wakeR:3`): el jugador
+puede acercarse con normalidad y es él quien decide entrar en contacto: el
+combate salta solo, de forma natural, en cuanto se acerca lo suficiente
+(mismo mecanismo de siempre, `scanForNewCombatants()`, sin ningún forzado
+extra). Mensaje narrativo nuevo al activar la 2ª palanca (sustituye al
+genérico de antes).
+
+**Arreglado: matar una invocación del mago terminaba la partida**. Causa
+real: la victoria dependía en parte de un contador de "enemigos totales de
+toda la mazmorra" calculado SOLO a partir de las listas estáticas de los
+4 niveles — nunca contaba nada invocado en tiempo real (esqueletos del
+mago, monstruos de cofre/altar malos). Bastaba con matar lo suficiente
+(cualquier cosa, incluida una invocación) para que las bajas totales
+superaran ese conteo "oficial" y se diera la partida por ganada sin haber
+tocado al jefe. Se quitó el sistema entero (`checkFullVictory`,
+`totalFoeCount`, `cryptBossLooted`, `checkBossLooted`).
+
+**Nueva condición de fin de partida — matar al jefe, sin más**: ya no hace
+falta lootear su cadáver ni limpiar nada más de la mazmorra. Al matarlo
+(`killFoe` detecta `target.id === CRYPT_BOSS_ID` y llama a
+`onBossKilled()`), el tiempo de la partida se congela EN ESE INSTANTE
+(no cuando se manda el nombre, que puede tardar en escribirse), se abre
+una ventana pequeña para mandar el tiempo al leaderboard (se cierra sola
+al aceptar, sin esperar a la respuesta de red) y la partida sigue con
+total normalidad — nada de pantalla de fin de nivel. En su lugar, aparece
+un botón nuevo "Reiniciar nivel" junto a "Terminar turno" (mismo marco,
+escala ajustada para los dos a la vez) que hace exactamente lo mismo que
+el botón de Ajustes, para cuando el jugador decida dar la partida por
+acabada. `state.hero.bossDefeated` viaja con el héroe entre zonas y se
+guarda con la partida, para que el botón siga ahí si se cierra la app.
+
+**Conectores arreglados y verificados**: se fija la palabra "conectores"
+para las entradas/salidas que enlazan zonas del calabozo (ver AGENTS.md).
+A la Cripta le faltaban `arriveX`/`arriveY` en su conector hacia el
+cementerio — volver de la Cripta dejaba al héroe en el punto de partida de
+fábrica del cementerio en vez de junto a su puerta real. Arreglado
+(`arriveX:14, arriveY:5` en `data/levels/cripta.json`). Verificados los 4
+conectores del calabozo en los dos sentidos cada uno (cripta, mausoleo1,
+mausoleo2 — los dos mausoleos ya estaban bien).
+
+**Pruebas hechas esta versión**: reproducido el jefe apareciendo dormido y
+confirmado que el jugador puede alejarse/acercarse libremente sin activar
+combate hasta entrar en su radio de aviso; forzado un número alto de bajas
+"de mazmorra entera" y confirmado que matar un enemigo cualquiera ya NO
+dispara ninguna victoria falsa; simulado matar al jefe de verdad
+(esperando el cooldown real de ataque) y confirmado: ventana de victoria
+abierta con el contenido correcto, botón de Reiniciar nivel aparece, fila
+de botones con la clase de "dos botones", envío del nombre cierra la
+ventana y deja `state.busy=false`, y se puede seguir jugando después sin
+errores. Los 4 conectores reconstruidos desde los JSON reales de los 4
+niveles y comprobado que cada llegada cae a 1-2 casillas de la puerta
+correspondiente. Regresión general (los 4 tipos de IA enemiga) repetida
+sin errores.
+
 ## 0.33 — PA fuera de combate, niebla, combate instantáneo, pathfinding a
 objetos, ajustes de comodidad, arquero, tienda reordenada+filtrada, barra de
 acción dinámica, aviso de PA y altares consistentes
